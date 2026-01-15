@@ -38,6 +38,7 @@ dependencies:
   pretty_dio_logger: ^1.4.0
   get_it: ^7.2.0  # For lazy singleton pattern
   flutter_secure_storage: ^8.0.0
+  dio_refresh: ^1.0.0
 
 dev_dependencies:
   flutter_test:
