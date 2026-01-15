@@ -64,7 +64,7 @@ class DioHandler {
         }, 
 
         shouldRefresh: (response) =>
-          response?.statusCode == 401 || response?.statusCode == 403,
+          response?.statusCode == 401,
 
         authHeader: (tokenStore) {
           if (tokenStore.accessToken == null || 
