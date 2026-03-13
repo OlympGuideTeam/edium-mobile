@@ -1,20 +1,33 @@
+import 'package:edium/core/di/injection.dart';
+import 'package:edium/core/router/app_router.dart';
+import 'package:edium/core/storage/hive_storage.dart';
+import 'package:edium/core/theme/app_theme.dart';
+import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
+import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await HiveStorage.init();
+  await initializeDependencies();
+  getIt<AuthBloc>().add(const AppStarted());
+  runApp(const EdiumApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class EdiumApp extends StatelessWidget {
+  const EdiumApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      )
+    return BlocProvider.value(
+      value: getIt<AuthBloc>(),
+      child: MaterialApp.router(
+        title: 'Edium',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        routerConfig: buildRouter(),
+      ),
     );
   }
 }
