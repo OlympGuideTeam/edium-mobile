@@ -27,7 +27,7 @@ abstract class BaseApiService {
             ?? Options(method: method.name.toUpperCase()));
         return parser(response.data);
       } catch (e) {
-        throw e;
+        rethrow;
       }
     }
 
