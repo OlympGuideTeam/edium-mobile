@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter run *)",
+      "Bash(flutter build *)",
+      "Bash(flutter test *)",
+      "Bash(flutter test)",
+      "Bash(flutter analyze)",
+      "Bash(flutter pub get)",
+      "Bash(flutter pub upgrade *)",
+      "Bash(flutter pub run *)",
+      "Bash(dart format *)",
+      "Bash(dart analyze)",
+      "Bash(dart fix --apply)",
+      "Bash(dart run *)",
+      "Bash(bundle exec fastlane *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport sys, json, subprocess\ntry:\n    data = json.load(sys.stdin)\n    f = data.get('file_path', '')\nexcept:\n    sys.exit(0)\nif f.endswith('.dart'):\n    subprocess.run(['dart', 'format', f], capture_output=True)\n\""
+          }
+        ]
+      }
+    ]
+  }
+}
