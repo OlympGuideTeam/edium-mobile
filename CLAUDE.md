@@ -1,6 +1,6 @@
 # CLAUDE.md — Edium Mobile
 
-Мобильное приложение Edium — Flutter (iOS/Android). Образовательная платформа с квизами.
+Мобильное приложение Edium — Flutter (iOS/Android) + Swift для нативных iOS-модулей. Образовательная платформа с квизами.
 
 ## Архитектура
 
@@ -65,6 +65,33 @@ GoRouter реактивно слушает `AuthBloc.stream`. При смене 
 
 Маршруты: `/splash` → `/welcome` → `/phone` → `/otp` → `/name-input` → `/role-selection` → `/teacher/home` или `/student/home`
 
+## Swift (нативные iOS-модули)
+
+Swift используется для функциональности, недоступной в чистом Flutter.
+
+**Расположение:** `ios/` — стандартная структура iOS-проекта Xcode.
+
+**Интеграция с Flutter:** через [Platform Channels](https://docs.flutter.dev/platform-integration/platform-channels):
+```dart
+// Dart-сторона
+final channel = MethodChannel('edium/имя_канала');
+final result = await channel.invokeMethod('метод', аргументы);
+```
+```swift
+// Swift-сторона (AppDelegate.swift или отдельный плагин)
+let channel = FlutterMethodChannel(name: "edium/имя_канала", binaryMessenger: controller)
+channel.setMethodCallHandler { call, result in
+    // обработка вызова
+}
+```
+
+**Когда писать Swift, а не Dart:**
+- Нативные системные API (недоступны во Flutter)
+- Нативные iOS-уведомления (сложные сценарии поверх Firebase)
+- Нативный UI-компонент, встраиваемый через `UiKitView`
+
+**Сборка:** `flutter build ios` компилирует Swift вместе с Dart-кодом автоматически.
+
 ## Команды
 
 ```bash
@@ -73,6 +100,9 @@ flutter test
 flutter analyze
 dart format .
 dart fix --apply
+
+# Открыть iOS-проект в Xcode (для Swift-разработки)
+open ios/Runner.xcworkspace
 
 bundle exec fastlane ios beta
 bundle exec fastlane android beta
