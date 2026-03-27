@@ -1,12 +1,9 @@
 import 'package:edium/core/di/injection.dart';
-import 'package:edium/core/theme/app_colors.dart';
-import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/user.dart';
 import 'package:edium/domain/usecases/user/set_role_usecase.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
-import 'package:edium/presentation/shared/widgets/edium_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -44,48 +41,114 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       child: BlocListener<AuthBloc, AuthState>(
         listener: (_, __) {},
         child: Scaffold(
+          backgroundColor: Colors.white,
           body: SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 48),
-                  Text('Кто вы?', style: AppTextStyles.heading2),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Выберите роль для продолжения',
-                    style: AppTextStyles.bodySmall
-                        .copyWith(color: AppColors.textSecondary),
+                  const SizedBox(height: 56),
+                  // Тег "Последний шаг"
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'ПОСЛЕДНИЙ ШАГ',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: 1,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Кто вы?',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Выберите роль — от этого зависит\nинтерфейс приложения',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF888888),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  // Карточка "Учитель"
                   _RoleCard(
-                    role: UserRole.teacher,
-                    title: 'Преподаватель',
-                    subtitle: 'Создавайте квизы, отслеживайте прогресс студентов',
-                    icon: Icons.person_pin_rounded,
-                    color: AppColors.primary,
+                    emoji: '👩‍🏫',
+                    title: 'Учитель',
+                    subtitle: 'Создаю квизы, веду классы',
                     isSelected: _selected == UserRole.teacher,
-                    onTap: () => setState(() => _selected = UserRole.teacher),
+                    onTap: () =>
+                        setState(() => _selected = UserRole.teacher),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+                  // Карточка "Ученик"
                   _RoleCard(
-                    role: UserRole.student,
-                    title: 'Студент',
-                    subtitle: 'Проходите квизы и отслеживайте свои результаты',
-                    icon: Icons.school_rounded,
-                    color: AppColors.secondary,
+                    emoji: '🎒',
+                    title: 'Ученик',
+                    subtitle: 'Прохожу квизы, учусь',
                     isSelected: _selected == UserRole.student,
-                    onTap: () => setState(() => _selected = UserRole.student),
+                    onTap: () =>
+                        setState(() => _selected = UserRole.student),
                   ),
                   const Spacer(),
-                  EdiumButton(
-                    label: 'Продолжить',
-                    onPressed:
-                        (_selected == null || _loading) ? null : _confirm,
-                    isLoading: _loading,
+                  // Кнопка
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed:
+                          (_selected == null || _loading) ? null : _confirm,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1A1A1A),
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: const Color(0xFFCCCCCC),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
+                        textStyle: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      child: _loading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Начать →'),
+                    ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 12),
+                  const Center(
+                    child: Text(
+                      'Роль можно сменить в настройках',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFAAAAAA),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
@@ -97,20 +160,16 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 }
 
 class _RoleCard extends StatelessWidget {
-  final UserRole role;
+  final String emoji;
   final String title;
   final String subtitle;
-  final IconData icon;
-  final Color color;
   final bool isSelected;
   final VoidCallback onTap;
 
   const _RoleCard({
-    required this.role,
+    required this.emoji,
     required this.title,
     required this.subtitle,
-    required this.icon,
-    required this.color,
     required this.isSelected,
     required this.onTap,
   });
@@ -121,52 +180,61 @@ class _RoleCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? color.withAlpha(20) : AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? Colors.white : const Color(0xFFFAFAFA),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? color : AppColors.cardBorder,
-            width: isSelected ? 2 : 1,
+            color: isSelected
+                ? const Color(0xFF333333)
+                : const Color(0xFFDDDDDD),
+            width: 1.5,
           ),
         ),
         child: Row(
           children: [
             Container(
-              width: 60,
-              height: 60,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: color.withAlpha(30),
-                borderRadius: BorderRadius.circular(16),
+                color: const Color(0xFFEEEEEE),
+                borderRadius: BorderRadius.circular(11),
               ),
-              child: Icon(icon, color: color, size: 30),
+              child: Center(
+                child: Text(emoji, style: const TextStyle(fontSize: 22)),
+              ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: AppTextStyles.subtitle),
-                  const SizedBox(height: 4),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: AppTextStyles.caption,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF999999),
+                    ),
                   ),
                 ],
               ),
             ),
             if (isSelected)
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.check, color: Colors.white, size: 14),
-              ),
+              const Text('✓',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A1A1A),
+                  )),
           ],
         ),
       ),

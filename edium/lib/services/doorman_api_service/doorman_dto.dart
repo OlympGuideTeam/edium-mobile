@@ -77,8 +77,8 @@ class RegisterRequest {
 }
 
 enum Channel {
-  max('max'),
-  sms('sms');
+  tg('tg'),
+  vk('vk');
 
   final String type_;
   const Channel(this.type_);
