@@ -16,7 +16,7 @@ class AuthRepositoryImpl implements IAuthRepository {
   @override
   Future<void> sendOtp({required String phone}) async {
     await _doorman.sendOtpRequest(
-      OtpSendRequest(phone: phone, channel: Channel.max),
+      OtpSendRequest(phone: phone, channel: Channel.tg),
     );
   }
 

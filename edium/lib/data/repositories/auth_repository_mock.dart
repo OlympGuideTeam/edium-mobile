@@ -16,8 +16,8 @@ class AuthRepositoryMock implements IAuthRepository {
     required String otp,
   }) async {
     await Future.delayed(const Duration(milliseconds: 700));
-    if (otp != '1234') {
-      throw Exception('Неверный код. Используйте 1234 для теста.');
+    if (otp != '123456') {
+      throw Exception('Неверный код. Используйте 123456 для теста.');
     }
     _authenticated = true;
   }
