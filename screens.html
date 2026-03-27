@@ -1,0 +1,2597 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edium — Наброски экранов</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #F0EDE8;
+      font-family: 'Courier New', monospace;
+      padding: 40px 24px 80px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #888;
+      font-size: 13px;
+      margin-bottom: 48px;
+    }
+
+    /* Flow arrow row */
+    .flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 52px;
+      font-size: 12px;
+      color: #555;
+    }
+    .flow-step {
+      background: #fff;
+      border: 1.5px solid #ccc;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-weight: 600;
+      color: #333;
+    }
+    .flow-arrow { color: #aaa; font-size: 16px; }
+
+    /* Grid of phones */
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 36px;
+      justify-content: center;
+    }
+
+    .screen-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .screen-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #444;
+      text-align: center;
+      letter-spacing: 0.3px;
+    }
+    .screen-label span {
+      display: block;
+      font-weight: 400;
+      color: #999;
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
+    /* Phone shell */
+    .phone {
+      width: 220px;
+      height: 420px;
+      background: #fff;
+      border-radius: 28px;
+      border: 2.5px solid #333;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 4px 6px 0px #333;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Notch */
+    .phone::before {
+      content: '';
+      display: block;
+      width: 60px;
+      height: 10px;
+      background: #333;
+      border-radius: 0 0 8px 8px;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+    }
+
+    .phone-content {
+      flex: 1;
+      padding: 28px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+    }
+
+    /* Reusable UI primitives */
+    .logo-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .logo-box {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      background: #1a1a1a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -2px;
+    }
+    .logo-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .screen-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a1a;
+      line-height: 1.3;
+    }
+    .screen-desc {
+      font-size: 10px;
+      color: #888;
+      line-height: 1.4;
+    }
+
+    /* Input field */
+    .input-field {
+      height: 36px;
+      border: 1.5px solid #bbb;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      font-size: 10px;
+      color: #999;
+      background: #fafafa;
+      gap: 6px;
+    }
+    .input-field.active {
+      border-color: #333;
+      color: #333;
+    }
+    .input-field .placeholder { color: #bbb; font-size: 10px; }
+    .input-icon { font-size: 12px; }
+
+    /* Button */
+    .btn-primary {
+      height: 40px;
+      background: #1a1a1a;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .btn-secondary {
+      height: 38px;
+      background: #fff;
+      border: 1.5px solid #333;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .btn-outline-light {
+      height: 38px;
+      background: #f5f5f5;
+      border: 1.5px solid #ddd;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #555;
+      font-size: 11px;
+      font-weight: 600;
+      gap: 6px;
+    }
+
+    /* Divider */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      color: #bbb;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #ddd;
+    }
+
+    /* OTP boxes */
+    .otp-row {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+    }
+    .otp-box {
+      width: 28px;
+      height: 36px;
+      border: 1.5px solid #bbb;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+      color: #333;
+      background: #fafafa;
+    }
+    .otp-box.filled { border-color: #333; background: #fff; }
+
+    /* Channel picker */
+    .channel-row {
+      display: flex;
+      gap: 7px;
+    }
+    .channel-btn {
+      flex: 1;
+      height: 38px;
+      border: 1.5px solid #ddd;
+      border-radius: 9px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: #555;
+      gap: 2px;
+      background: #fafafa;
+    }
+    .channel-btn.selected {
+      border-color: #333;
+      background: #fff;
+      color: #1a1a1a;
+      font-weight: 700;
+    }
+    .channel-btn .ch-icon { font-size: 14px; }
+
+    /* Role cards */
+    .role-card {
+      border: 1.5px solid #ddd;
+      border-radius: 12px;
+      padding: 12px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #fafafa;
+    }
+    .role-card.selected {
+      border-color: #333;
+      background: #fff;
+    }
+    .role-icon {
+      width: 36px;
+      height: 36px;
+      background: #eee;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .role-info .role-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+    .role-info .role-hint {
+      font-size: 9px;
+      color: #999;
+      margin-top: 1px;
+    }
+
+    /* Splash spinner */
+    .splash-center {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid #eee;
+      border-top-color: #333;
+      border-radius: 50%;
+    }
+
+    /* Info hint */
+    .hint-text {
+      font-size: 10px;
+      color: #aaa;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .hint-link {
+      color: #555;
+      text-decoration: underline;
+      font-size: 10px;
+      text-align: center;
+    }
+
+    /* Spacer */
+    .spacer { flex: 1; }
+
+    /* Phone flag prefix */
+    .phone-prefix {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: #333;
+      font-weight: 600;
+      border-right: 1px solid #ddd;
+      padding-right: 8px;
+      margin-right: 2px;
+    }
+
+    /* Section tag */
+    .section-tag {
+      display: inline-block;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: #1a1a1a;
+      color: #fff;
+      border-radius: 4px;
+      padding: 2px 7px;
+      margin-bottom: 2px;
+      align-self: flex-start;
+    }
+
+    /* Join quiz block */
+    .join-block {
+      border: 1.5px dashed #ccc;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .join-label {
+      font-size: 9px;
+      color: #999;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .join-input-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .join-input {
+      flex: 1;
+      height: 30px;
+      border: 1.5px solid #ddd;
+      border-radius: 7px;
+      background: #fafafa;
+      font-size: 9px;
+      color: #bbb;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+    }
+    .join-btn {
+      height: 30px;
+      background: #333;
+      color: #fff;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 0 10px;
+    }
+
+    /* ── Section header between groups ── */
+    .section-header {
+      width: 100%;
+      text-align: center;
+      margin: 52px 0 32px;
+      position: relative;
+    }
+    .section-header::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0; right: 0;
+      height: 1.5px;
+      background: #ccc;
+    }
+    .section-header-inner {
+      display: inline-block;
+      position: relative;
+      background: #F0EDE8;
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #333;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Tab bar ── */
+    .tab-bar {
+      display: flex;
+      border-top: 1.5px solid #ddd;
+      background: #fff;
+      padding: 6px 0 4px;
+    }
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      font-size: 8px;
+      color: #bbb;
+    }
+    .tab-item.active { color: #1a1a1a; }
+    .tab-item .tab-icon { font-size: 14px; }
+    .tab-item .tab-dot {
+      width: 4px; height: 4px;
+      background: #1a1a1a;
+      border-radius: 50%;
+    }
+
+    /* phone with tab-bar: content area shrinks */
+    .phone.has-tabs .phone-content {
+      padding-bottom: 6px;
+    }
+
+    /* ── List rows ── */
+    .list-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .list-row:last-child { border-bottom: none; }
+    .list-avatar {
+      width: 30px; height: 30px;
+      background: #eee;
+      border-radius: 8px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+    .list-info { flex: 1; min-width: 0; }
+    .list-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: #1a1a1a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .list-sub {
+      font-size: 9px;
+      color: #aaa;
+      margin-top: 1px;
+    }
+    .list-right {
+      font-size: 9px;
+      color: #bbb;
+      flex-shrink: 0;
+    }
+
+    /* ── Badge / tag ── */
+    .badge {
+      display: inline-block;
+      font-size: 8px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 20px;
+      background: #eee;
+      color: #555;
+    }
+    .badge.green { background: #d4f5e2; color: #1a7a45; }
+    .badge.orange { background: #fde8d0; color: #a0510a; }
+    .badge.blue { background: #d6eaff; color: #1a4fa0; }
+
+    /* ── Stat card ── */
+    .stat-row {
+      display: flex;
+      gap: 6px;
+    }
+    .stat-card {
+      flex: 1;
+      border: 1.5px solid #eee;
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      background: #fafafa;
+    }
+    .stat-val {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+    .stat-label {
+      font-size: 8px;
+      color: #aaa;
+    }
+
+    /* ── Search bar ── */
+    .search-bar {
+      height: 30px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 5px;
+      background: #f5f5f5;
+      font-size: 10px;
+      color: #bbb;
+    }
+
+    /* ── Filter chips ── */
+    .chips-row {
+      display: flex;
+      gap: 5px;
+      flex-wrap: nowrap;
+      overflow: hidden;
+    }
+    .chip {
+      height: 22px;
+      padding: 0 9px;
+      border: 1.5px solid #ddd;
+      border-radius: 20px;
+      font-size: 8px;
+      font-weight: 600;
+      color: #666;
+      display: flex;
+      align-items: center;
+      background: #fff;
+      white-space: nowrap;
+    }
+    .chip.active {
+      background: #1a1a1a;
+      color: #fff;
+      border-color: #1a1a1a;
+    }
+
+    /* ── Quiz card (library) ── */
+    .quiz-card {
+      border: 1.5px solid #eee;
+      border-radius: 10px;
+      padding: 9px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      background: #fff;
+    }
+    .quiz-card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+    }
+    .quiz-thumb {
+      width: 32px; height: 32px;
+      background: #eee;
+      border-radius: 7px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .quiz-meta { flex: 1; min-width: 0; }
+    .quiz-name {
+      font-size: 10px;
+      font-weight: 700;
+      color: #1a1a1a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .quiz-sub { font-size: 9px; color: #aaa; }
+    .quiz-footer {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* ── Profile ── */
+    .profile-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      padding: 8px 0 4px;
+    }
+    .profile-avatar {
+      width: 54px; height: 54px;
+      background: #e0e0e0;
+      border-radius: 50%;
+      border: 2px solid #ddd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+    .profile-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+    .profile-role {
+      font-size: 10px;
+      color: #aaa;
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-icon {
+      width: 26px; height: 26px;
+      background: #f0f0f0;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .settings-label {
+      flex: 1;
+      font-size: 10px;
+      color: #333;
+      font-weight: 600;
+    }
+    .settings-arrow { font-size: 10px; color: #ccc; }
+
+    /* ── Active quiz banner ── */
+    .active-banner {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #fff;
+    }
+    .active-banner-icon { font-size: 20px; }
+    .active-banner-info { flex: 1; }
+    .active-banner-title { font-size: 10px; font-weight: 700; }
+    .active-banner-sub { font-size: 8px; color: #aaa; margin-top: 1px; }
+    .active-banner-btn {
+      background: #fff;
+      color: #1a1a1a;
+      border-radius: 7px;
+      padding: 4px 9px;
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    /* ── Greet row ── */
+    .greet-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .greet-name { font-size: 14px; font-weight: 700; color: #1a1a1a; }
+    .greet-sub { font-size: 9px; color: #aaa; }
+    .greet-avatar {
+      width: 30px; height: 30px;
+      background: #e0e0e0;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    /* ── Fab button ── */
+    .fab {
+      position: absolute;
+      bottom: 54px;
+      right: 14px;
+      width: 36px; height: 36px;
+      background: #1a1a1a;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 300;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+  </style>
+</head>
+<body>
+
+<h1>Edium — Наброски экранов</h1>
+<p class="subtitle">Wireframes · Auth flow + Учитель + Ученик + Управление + Квиз WS + Работы v2</p>
+
+<div class="flow">
+  <div class="flow-step">Splash</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step">Welcome</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step">PhoneInput</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step">OtpInput</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step">NameInput</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step">RoleSelection</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step">Home</div>
+</div>
+
+<div class="grid">
+
+  <!-- 1. SPLASH -->
+  <div class="screen-wrap">
+    <div class="screen-label">1 · Splash<span>Загрузка приложения</span></div>
+    <div class="phone">
+      <div class="phone-content">
+        <div class="splash-center">
+          <div class="logo-box">E</div>
+          <div class="logo-title">edium</div>
+          <div class="spinner"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. WELCOME -->
+  <div class="screen-wrap">
+    <div class="screen-label">2 · Welcome<span>Вход или гость</span></div>
+    <div class="phone">
+      <div class="phone-content">
+        <div class="spacer"></div>
+        <div class="logo-block">
+          <div class="logo-box">E</div>
+          <div class="logo-title">edium</div>
+          <div class="hint-text" style="margin-top:2px;">Образовательная платформа</div>
+        </div>
+        <div class="spacer"></div>
+
+        <div class="btn-primary">Войти</div>
+
+        <div class="divider">или</div>
+
+        <div class="join-block">
+          <div class="join-label">Присоединиться к квизу</div>
+          <div class="join-input-row">
+            <div class="join-input">Код квиза...</div>
+            <div class="join-btn">→</div>
+          </div>
+          <div class="hint-text" style="font-size:9px;">Без авторизации</div>
+        </div>
+
+        <div style="height:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. PHONE INPUT -->
+  <div class="screen-wrap">
+    <div class="screen-label">3 · PhoneInput<span>Ввод номера телефона</span></div>
+    <div class="phone">
+      <div class="phone-content">
+        <div style="height:6px;"></div>
+        <div class="screen-title">Войти в Edium</div>
+        <div class="screen-desc">Введите номер телефона — мы отправим код подтверждения</div>
+
+        <div style="height:6px;"></div>
+
+        <div style="font-size:10px;color:#888;font-weight:600;">Номер телефона</div>
+        <div class="input-field active">
+          <div class="phone-prefix">🇷🇺 +7</div>
+          <span style="color:#333;font-size:11px;">999 123-45-67</span>
+        </div>
+
+        <div style="font-size:10px;color:#888;font-weight:600;margin-top:4px;">Способ получения кода</div>
+        <div class="channel-row">
+          <div class="channel-btn selected">
+            <span class="ch-icon">✈️</span>
+            <span>Telegram</span>
+          </div>
+          <div class="channel-btn">
+            <span class="ch-icon">💬</span>
+            <span>SMS</span>
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+
+        <div class="btn-primary">Получить код</div>
+        <div class="hint-text">Нажимая кнопку, вы соглашаетесь<br/>с условиями использования</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. OTP -->
+  <div class="screen-wrap">
+    <div class="screen-label">4 · OtpInput<span>Ввод 6-значного кода</span></div>
+    <div class="phone">
+      <div class="phone-content">
+        <div style="height:6px;"></div>
+        <div class="screen-title">Введите код</div>
+        <div class="screen-desc">Отправили код в Telegram<br/>на номер +7 999 ···-··-67</div>
+
+        <div style="height:12px;"></div>
+
+        <div class="otp-row">
+          <div class="otp-box filled">1</div>
+          <div class="otp-box filled">2</div>
+          <div class="otp-box filled">3</div>
+          <div class="otp-box filled">4</div>
+          <div class="otp-box">_</div>
+          <div class="otp-box">_</div>
+        </div>
+
+        <div class="hint-text" style="margin-top:6px;">Не пришёл код?</div>
+        <div class="hint-link">Отправить повторно через 42 сек</div>
+
+        <div class="spacer"></div>
+
+        <div class="btn-primary">Подтвердить</div>
+        <div class="btn-outline-light">← Изменить номер</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. NAME INPUT -->
+  <div class="screen-wrap">
+    <div class="screen-label">5 · NameInput<span>Только при первой регистрации</span></div>
+    <div class="phone">
+      <div class="phone-content">
+        <div style="height:6px;"></div>
+        <div class="section-tag">Новый аккаунт</div>
+        <div class="screen-title">Как вас зовут?</div>
+        <div class="screen-desc">Укажите имя — его увидят ученики и учителя</div>
+
+        <div style="height:10px;"></div>
+
+        <div style="font-size:10px;color:#888;font-weight:600;">Имя</div>
+        <div class="input-field active">
+          <span class="input-icon">👤</span>
+          <span style="color:#333;font-size:11px;">Иван</span>
+        </div>
+
+        <div style="font-size:10px;color:#888;font-weight:600;margin-top:4px;">Фамилия</div>
+        <div class="input-field">
+          <span class="input-icon">👤</span>
+          <span class="placeholder">Необязательно</span>
+        </div>
+
+        <div class="spacer"></div>
+
+        <div class="btn-primary">Продолжить</div>
+        <div class="hint-text">Вы сможете изменить имя позже<br/>в настройках профиля</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. ROLE SELECTION -->
+  <div class="screen-wrap">
+    <div class="screen-label">6 · RoleSelection<span>Выбор роли</span></div>
+    <div class="phone">
+      <div class="phone-content">
+        <div style="height:6px;"></div>
+        <div class="section-tag">Последний шаг</div>
+        <div class="screen-title">Кто вы?</div>
+        <div class="screen-desc">Выберите роль — от этого зависит интерфейс приложения</div>
+
+        <div style="height:10px;"></div>
+
+        <div class="role-card selected">
+          <div class="role-icon">👩‍🏫</div>
+          <div class="role-info">
+            <div class="role-name">Учитель</div>
+            <div class="role-hint">Создаю квизы, веду классы</div>
+          </div>
+          <div style="margin-left:auto;font-size:14px;">✓</div>
+        </div>
+
+        <div class="role-card">
+          <div class="role-icon">🎒</div>
+          <div class="role-info">
+            <div class="role-name">Ученик</div>
+            <div class="role-hint">Прохожу квизы, учусь</div>
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+
+        <div class="btn-primary">Начать →</div>
+        <div class="hint-text">Роль можно сменить в настройках</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section-header">
+  <div class="section-header-inner">👩‍🏫 Учитель — таб-бар</div>
+</div>
+
+<div class="grid">
+
+  <!-- 7. TEACHER HOME -->
+  <div class="screen-wrap">
+    <div class="screen-label">7 · TeacherHome<span>Активные квизы, классы, кнопка «Создать»</span></div>
+    <div class="phone has-tabs" style="position:relative;">
+      <div class="phone-content" style="gap:7px;">
+        <!-- Greet -->
+        <div class="greet-row">
+          <div>
+            <div class="greet-name">Добрый день, Анна 👋</div>
+            <div class="greet-sub">среда, 25 марта</div>
+          </div>
+          <div class="greet-avatar">👩‍🏫</div>
+        </div>
+
+        <!-- Active quiz banner -->
+        <div class="active-banner">
+          <div class="active-banner-icon">▶</div>
+          <div class="active-banner-info">
+            <div class="active-banner-title">Математика — Тема 5</div>
+            <div class="active-banner-sub">Идёт · 12 участников</div>
+          </div>
+          <div class="active-banner-btn">Войти</div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-val">3</div>
+            <div class="stat-label">Предстоящих квиза</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val">47</div>
+            <div class="stat-label">Учеников всего</div>
+          </div>
+        </div>
+
+        <!-- Upcoming -->
+        <div style="font-size:10px;font-weight:700;color:#1a1a1a;">Предстоящие</div>
+        <div class="list-row">
+          <div class="list-avatar">📋</div>
+          <div class="list-info">
+            <div class="list-title">Физика — контроль</div>
+            <div class="list-sub">Завтра · 10:00 · 7А</div>
+          </div>
+          <div class="badge orange">Скоро</div>
+        </div>
+        <div class="list-row">
+          <div class="list-avatar">📋</div>
+          <div class="list-info">
+            <div class="list-title">История — тест</div>
+            <div class="list-sub">27 марта · 8Б</div>
+          </div>
+          <div class="badge blue">Запл.</div>
+        </div>
+      </div>
+
+      <!-- FAB -->
+      <div class="fab">+</div>
+
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <div class="tab-item active">
+          <div class="tab-icon">🏠</div>
+          <div class="tab-dot"></div>
+          <div>Главная</div>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon">📋</div>
+          <div>Квизы</div>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon">🏫</div>
+          <div>Классы</div>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon">👤</div>
+          <div>Профиль</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. TEACHER QUIZ LIBRARY -->
+  <div class="screen-wrap">
+    <div class="screen-label">8 · TeacherQuizLibrary<span>Мои + глобальные, фильтры, поиск, избранное</span></div>
+    <div class="phone has-tabs">
+      <div class="phone-content" style="gap:7px;">
+        <div class="screen-title">Квизы</div>
+
+        <!-- Search -->
+        <div class="search-bar">
+          🔍 <span>Поиск по квизам...</span>
+        </div>
+
+        <!-- Filter chips -->
+        <div class="chips-row">
+          <div class="chip active">Мои</div>
+          <div class="chip">Глобальные</div>
+          <div class="chip">⭐ Избранные</div>
+        </div>
+
+        <!-- Quiz list -->
+        <div class="quiz-card">
+          <div class="quiz-card-header">
+            <div class="quiz-thumb">📐</div>
+            <div class="quiz-meta">
+              <div class="quiz-name">Математика. Тема 5</div>
+              <div class="quiz-sub">10 вопросов · 15 мин</div>
+            </div>
+            <div style="font-size:14px;color:#ccc;">⭐</div>
+          </div>
+          <div class="quiz-footer">
+            <div class="badge green">Синхронный</div>
+            <div class="badge">7А, 7Б</div>
+          </div>
+        </div>
+
+        <div class="quiz-card">
+          <div class="quiz-card-header">
+            <div class="quiz-thumb">⚗️</div>
+            <div class="quiz-meta">
+              <div class="quiz-name">Химия. Периодич. таблица</div>
+              <div class="quiz-sub">8 вопросов · без лимита</div>
+            </div>
+            <div style="font-size:14px;color:#f5c518;">⭐</div>
+          </div>
+          <div class="quiz-footer">
+            <div class="badge blue">Асинхронный</div>
+          </div>
+        </div>
+
+        <div class="quiz-card">
+          <div class="quiz-card-header">
+            <div class="quiz-thumb">📖</div>
+            <div class="quiz-meta">
+              <div class="quiz-name">История. ВОВ</div>
+              <div class="quiz-sub">15 вопросов · 20 мин</div>
+            </div>
+            <div style="font-size:14px;color:#ccc;">⭐</div>
+          </div>
+          <div class="quiz-footer">
+            <div class="badge green">Синхронный</div>
+          </div>
+        </div>
+      </div>
+      <div class="tab-bar">
+        <div class="tab-item"><div class="tab-icon">🏠</div><div>Главная</div></div>
+        <div class="tab-item active"><div class="tab-icon">📋</div><div class="tab-dot"></div><div>Квизы</div></div>
+        <div class="tab-item"><div class="tab-icon">🏫</div><div>Классы</div></div>
+        <div class="tab-item"><div class="tab-icon">👤</div><div>Профиль</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. TEACHER CLASSES -->
+  <div class="screen-wrap">
+    <div class="screen-label">9 · TeacherClasses<span>Список классов: ученики, последняя активность</span></div>
+    <div class="phone has-tabs">
+      <div class="phone-content" style="gap:7px;">
+        <div class="greet-row">
+          <div class="screen-title">Мои классы</div>
+          <div style="font-size:18px;cursor:pointer;">＋</div>
+        </div>
+
+        <!-- Search -->
+        <div class="search-bar">🔍 <span>Найти класс...</span></div>
+
+        <!-- Class list -->
+        <div class="list-row">
+          <div class="list-avatar">🏫</div>
+          <div class="list-info">
+            <div class="list-title">7А — Математика</div>
+            <div class="list-sub">24 ученика · Активность сегодня</div>
+          </div>
+          <div class="list-right">›</div>
+        </div>
+        <div class="list-row">
+          <div class="list-avatar">🏫</div>
+          <div class="list-info">
+            <div class="list-title">8Б — Физика</div>
+            <div class="list-sub">18 учеников · 2 дня назад</div>
+          </div>
+          <div class="list-right">›</div>
+        </div>
+        <div class="list-row">
+          <div class="list-avatar">🏫</div>
+          <div class="list-info">
+            <div class="list-title">9В — История</div>
+            <div class="list-sub">22 ученика · вчера</div>
+          </div>
+          <div class="list-right">›</div>
+        </div>
+        <div class="list-row">
+          <div class="list-avatar">🏫</div>
+          <div class="list-info">
+            <div class="list-title">10А — Химия</div>
+            <div class="list-sub">15 учеников · неделю назад</div>
+          </div>
+          <div class="list-right">›</div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="btn-secondary" style="font-size:11px;">+ Создать новый класс</div>
+      </div>
+      <div class="tab-bar">
+        <div class="tab-item"><div class="tab-icon">🏠</div><div>Главная</div></div>
+        <div class="tab-item"><div class="tab-icon">📋</div><div>Квизы</div></div>
+        <div class="tab-item active"><div class="tab-icon">🏫</div><div class="tab-dot"></div><div>Классы</div></div>
+        <div class="tab-item"><div class="tab-icon">👤</div><div>Профиль</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. TEACHER PROFILE -->
+  <div class="screen-wrap">
+    <div class="screen-label">10 · TeacherProfile<span>Профиль + настройки</span></div>
+    <div class="phone has-tabs">
+      <div class="phone-content" style="gap:7px;">
+        <!-- Profile header -->
+        <div class="profile-header">
+          <div class="profile-avatar">👩‍🏫</div>
+          <div class="profile-name">Анна Смирнова</div>
+          <div class="profile-role">Учитель · edium</div>
+          <div class="badge blue" style="margin-top:3px;">+7 999 ···-··-67</div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="stat-row">
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val">4</div>
+            <div class="stat-label">Класса</div>
+          </div>
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val">18</div>
+            <div class="stat-label">Квизов</div>
+          </div>
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val">79</div>
+            <div class="stat-label">Учеников</div>
+          </div>
+        </div>
+
+        <div style="height:4px;border-bottom:1px solid #eee;"></div>
+
+        <!-- Settings list -->
+        <div class="settings-row">
+          <div class="settings-icon">✏️</div>
+          <div class="settings-label">Редактировать профиль</div>
+          <div class="settings-arrow">›</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-icon">🔔</div>
+          <div class="settings-label">Уведомления</div>
+          <div class="settings-arrow">›</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-icon">🌐</div>
+          <div class="settings-label">Язык интерфейса</div>
+          <div class="settings-arrow">›</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-icon">🔒</div>
+          <div class="settings-label">Конфиденциальность</div>
+          <div class="settings-arrow">›</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-icon" style="background:#fde8d0;">🚪</div>
+          <div class="settings-label" style="color:#c0392b;">Выйти из аккаунта</div>
+          <div class="settings-arrow">›</div>
+        </div>
+      </div>
+      <div class="tab-bar">
+        <div class="tab-item"><div class="tab-icon">🏠</div><div>Главная</div></div>
+        <div class="tab-item"><div class="tab-icon">📋</div><div>Квизы</div></div>
+        <div class="tab-item"><div class="tab-icon">🏫</div><div>Классы</div></div>
+        <div class="tab-item active"><div class="tab-icon">👤</div><div class="tab-dot"></div><div>Профиль</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section-header">
+  <div class="section-header-inner">🎒 Ученик — таб-бар</div>
+</div>
+
+<div class="grid">
+
+  <!-- 11. STUDENT HOME -->
+  <div class="screen-wrap">
+    <div class="screen-label">11 · StudentHome<span>Баннер квиза, дедлайны, последние оценки</span></div>
+    <div class="phone has-tabs" style="position:relative;">
+      <div class="phone-content" style="gap:7px;">
+
+        <!-- Greet -->
+        <div class="greet-row">
+          <div>
+            <div class="greet-name">Привет, Иван 👋</div>
+            <div class="greet-sub">среда, 25 марта</div>
+          </div>
+          <div class="greet-avatar">🎒</div>
+        </div>
+
+        <!-- Active quiz banner -->
+        <div class="active-banner">
+          <div class="active-banner-icon">⚡</div>
+          <div class="active-banner-info">
+            <div class="active-banner-title">Математика — Тема 5</div>
+            <div class="active-banner-sub">Идёт сейчас · 7А</div>
+          </div>
+          <div class="active-banner-btn">Войти</div>
+        </div>
+
+        <!-- Upcoming deadlines -->
+        <div style="font-size:10px;font-weight:700;color:#1a1a1a;">Предстоящие дедлайны</div>
+        <div class="list-row">
+          <div class="list-avatar">📋</div>
+          <div class="list-info">
+            <div class="list-title">Физика — контроль</div>
+            <div class="list-sub">Завтра · до 23:59</div>
+          </div>
+          <div class="badge orange">Срочно</div>
+        </div>
+        <div class="list-row">
+          <div class="list-avatar">📋</div>
+          <div class="list-info">
+            <div class="list-title">История — тест</div>
+            <div class="list-sub">27 марта</div>
+          </div>
+          <div class="badge blue">Скоро</div>
+        </div>
+
+        <!-- Last grades -->
+        <div style="font-size:10px;font-weight:700;color:#1a1a1a;">Последние оценки</div>
+        <div class="stat-row">
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val" style="color:#1a7a45;">5</div>
+            <div class="list-sub" style="text-align:center;">Химия</div>
+          </div>
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val" style="color:#a0510a;">3</div>
+            <div class="list-sub" style="text-align:center;">История</div>
+          </div>
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val" style="color:#1a4fa0;">4</div>
+            <div class="list-sub" style="text-align:center;">Физика</div>
+          </div>
+        </div>
+
+      </div>
+      <div class="tab-bar">
+        <div class="tab-item active"><div class="tab-icon">🏠</div><div class="tab-dot"></div><div>Главная</div></div>
+        <div class="tab-item"><div class="tab-icon">📋</div><div>Квизы</div></div>
+        <div class="tab-item"><div class="tab-icon">🏫</div><div>Классы</div></div>
+        <div class="tab-item"><div class="tab-icon">👤</div><div>Профиль</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12. STUDENT QUIZ LIBRARY -->
+  <div class="screen-wrap">
+    <div class="screen-label">12 · StudentQuizLibrary<span>Доступные, пройденные, в процессе</span></div>
+    <div class="phone has-tabs">
+      <div class="phone-content" style="gap:7px;">
+        <div class="screen-title">Квизы</div>
+
+        <div class="search-bar">🔍 <span>Поиск по квизам...</span></div>
+
+        <div class="chips-row">
+          <div class="chip active">Доступные</div>
+          <div class="chip">В процессе</div>
+          <div class="chip">Пройденные</div>
+        </div>
+
+        <!-- Available quiz -->
+        <div class="quiz-card">
+          <div class="quiz-card-header">
+            <div class="quiz-thumb">📐</div>
+            <div class="quiz-meta">
+              <div class="quiz-name">Математика. Тема 5</div>
+              <div class="quiz-sub">10 вопросов · 15 мин · 7А</div>
+            </div>
+            <div class="badge orange" style="flex-shrink:0;">Сегодня</div>
+          </div>
+          <div class="quiz-footer">
+            <div class="badge green">Синхронный</div>
+            <div style="flex:1;"></div>
+            <div class="badge blue">Начать →</div>
+          </div>
+        </div>
+
+        <!-- In progress -->
+        <div class="quiz-card" style="border-color:#f5c518;">
+          <div class="quiz-card-header">
+            <div class="quiz-thumb">⚗️</div>
+            <div class="quiz-meta">
+              <div class="quiz-name">Химия. Периодич. таблица</div>
+              <div class="quiz-sub">5 из 8 вопросов · 8Б</div>
+            </div>
+          </div>
+          <div class="quiz-footer">
+            <div class="badge" style="background:#fef9e0;color:#7a6000;">В процессе</div>
+            <div style="flex:1;"></div>
+            <div style="font-size:9px;color:#aaa;">62%</div>
+          </div>
+        </div>
+
+        <!-- Done -->
+        <div class="quiz-card" style="opacity:0.7;">
+          <div class="quiz-card-header">
+            <div class="quiz-thumb">📖</div>
+            <div class="quiz-meta">
+              <div class="quiz-name">История. ВОВ</div>
+              <div class="quiz-sub">Пройден 20 марта</div>
+            </div>
+            <div class="badge green" style="flex-shrink:0;">5 / 5</div>
+          </div>
+          <div class="quiz-footer">
+            <div class="badge">Пройден</div>
+            <div style="flex:1;"></div>
+            <div style="font-size:9px;color:#aaa;">Разбор →</div>
+          </div>
+        </div>
+
+      </div>
+      <div class="tab-bar">
+        <div class="tab-item"><div class="tab-icon">🏠</div><div>Главная</div></div>
+        <div class="tab-item active"><div class="tab-icon">📋</div><div class="tab-dot"></div><div>Квизы</div></div>
+        <div class="tab-item"><div class="tab-icon">🏫</div><div>Классы</div></div>
+        <div class="tab-item"><div class="tab-icon">👤</div><div>Профиль</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13. STUDENT CLASSES -->
+  <div class="screen-wrap">
+    <div class="screen-label">13 · StudentClasses<span>Мои классы, курсы внутри класса</span></div>
+    <div class="phone has-tabs">
+      <div class="phone-content" style="gap:7px;">
+        <div class="screen-title">Мои классы</div>
+
+        <!-- Class card expanded -->
+        <div style="border:1.5px solid #ddd;border-radius:10px;overflow:hidden;">
+          <!-- Class header -->
+          <div style="background:#1a1a1a;padding:9px 10px;display:flex;align-items:center;gap:8px;">
+            <div style="font-size:13px;">🏫</div>
+            <div style="flex:1;">
+              <div style="font-size:10px;font-weight:700;color:#fff;">7А — Математика</div>
+              <div style="font-size:8px;color:#aaa;margin-top:1px;">Анна Смирнова · 24 ученика</div>
+            </div>
+            <div style="font-size:10px;color:#aaa;">▲</div>
+          </div>
+          <!-- Courses inside -->
+          <div style="padding:6px 8px;display:flex;flex-direction:column;gap:4px;background:#fafafa;">
+            <div style="font-size:9px;color:#aaa;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;padding:2px 0;">Курсы</div>
+            <div class="list-row" style="padding:5px 0;">
+              <div class="list-avatar" style="width:24px;height:24px;font-size:11px;border-radius:6px;">📚</div>
+              <div class="list-info">
+                <div class="list-title">Алгебра. Базовый курс</div>
+                <div class="list-sub">3 модуля · 12 квизов</div>
+              </div>
+              <div class="list-right">›</div>
+            </div>
+            <div class="list-row" style="padding:5px 0;">
+              <div class="list-avatar" style="width:24px;height:24px;font-size:11px;border-radius:6px;">📚</div>
+              <div class="list-info">
+                <div class="list-title">Геометрия. Часть 1</div>
+                <div class="list-sub">2 модуля · 8 квизов</div>
+              </div>
+              <div class="list-right">›</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Second class collapsed -->
+        <div style="border:1.5px solid #ddd;border-radius:10px;overflow:hidden;">
+          <div style="padding:9px 10px;display:flex;align-items:center;gap:8px;background:#fff;">
+            <div style="font-size:13px;">🏫</div>
+            <div style="flex:1;">
+              <div style="font-size:10px;font-weight:700;color:#1a1a1a;">8Б — Физика</div>
+              <div style="font-size:8px;color:#aaa;margin-top:1px;">Борис Петров · 18 учеников</div>
+            </div>
+            <div style="font-size:10px;color:#aaa;">▼</div>
+          </div>
+        </div>
+
+        <div style="border:1.5px solid #ddd;border-radius:10px;overflow:hidden;">
+          <div style="padding:9px 10px;display:flex;align-items:center;gap:8px;background:#fff;">
+            <div style="font-size:13px;">🏫</div>
+            <div style="flex:1;">
+              <div style="font-size:10px;font-weight:700;color:#1a1a1a;">9В — История</div>
+              <div style="font-size:8px;color:#aaa;margin-top:1px;">Ольга Иванова · 22 ученика</div>
+            </div>
+            <div style="font-size:10px;color:#aaa;">▼</div>
+          </div>
+        </div>
+
+      </div>
+      <div class="tab-bar">
+        <div class="tab-item"><div class="tab-icon">🏠</div><div>Главная</div></div>
+        <div class="tab-item"><div class="tab-icon">📋</div><div>Квизы</div></div>
+        <div class="tab-item active"><div class="tab-icon">🏫</div><div class="tab-dot"></div><div>Классы</div></div>
+        <div class="tab-item"><div class="tab-icon">👤</div><div>Профиль</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 14. STUDENT PROFILE -->
+  <div class="screen-wrap">
+    <div class="screen-label">14 · StudentProfile<span>Профиль + настройки</span></div>
+    <div class="phone has-tabs">
+      <div class="phone-content" style="gap:7px;">
+
+        <div class="profile-header">
+          <div class="profile-avatar">🎒</div>
+          <div class="profile-name">Иван Козлов</div>
+          <div class="profile-role">Ученик · edium</div>
+          <div class="badge blue" style="margin-top:3px;">+7 999 ···-··-67</div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stat-row">
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val">3</div>
+            <div class="stat-label">Класса</div>
+          </div>
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val">24</div>
+            <div class="stat-label">Квизов</div>
+          </div>
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val" style="color:#1a7a45;">4.2</div>
+            <div class="stat-label">Ср. оценка</div>
+          </div>
+        </div>
+
+        <div style="height:4px;border-bottom:1px solid #eee;"></div>
+
+        <div class="settings-row">
+          <div class="settings-icon">✏️</div>
+          <div class="settings-label">Редактировать профиль</div>
+          <div class="settings-arrow">›</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-icon">🏆</div>
+          <div class="settings-label">Мои достижения</div>
+          <div class="settings-arrow">›</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-icon">🔔</div>
+          <div class="settings-label">Уведомления</div>
+          <div class="settings-arrow">›</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-icon">🌐</div>
+          <div class="settings-label">Язык интерфейса</div>
+          <div class="settings-arrow">›</div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-icon" style="background:#fde8d0;">🚪</div>
+          <div class="settings-label" style="color:#c0392b;">Выйти из аккаунта</div>
+          <div class="settings-arrow">›</div>
+        </div>
+
+      </div>
+      <div class="tab-bar">
+        <div class="tab-item"><div class="tab-icon">🏠</div><div>Главная</div></div>
+        <div class="tab-item"><div class="tab-icon">📋</div><div>Квизы</div></div>
+        <div class="tab-item"><div class="tab-icon">🏫</div><div>Классы</div></div>
+        <div class="tab-item active"><div class="tab-icon">👤</div><div class="tab-dot"></div><div>Профиль</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section-header">
+  <div class="section-header-inner">⚙️ Управление</div>
+</div>
+
+<div class="grid">
+
+  <!-- 15. CLASS DETAIL -->
+  <div class="screen-wrap">
+    <div class="screen-label">15 · ClassDetail<span>Ученики, квизы, курсы класса, пригласить</span></div>
+    <div class="phone has-tabs">
+      <div class="phone-content" style="gap:7px;">
+
+        <!-- Header -->
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="font-size:12px;color:#aaa;">←</div>
+          <div style="flex:1;">
+            <div class="screen-title">7А — Математика</div>
+            <div class="screen-desc">24 ученика · Анна Смирнова</div>
+          </div>
+          <div class="badge green">Активен</div>
+        </div>
+
+        <!-- Tabs inside screen -->
+        <div class="chips-row">
+          <div class="chip active">Ученики</div>
+          <div class="chip">Квизы</div>
+          <div class="chip">Курсы</div>
+        </div>
+
+        <!-- Students list -->
+        <div class="list-row">
+          <div class="list-avatar">🧑</div>
+          <div class="list-info">
+            <div class="list-title">Иван Козлов</div>
+            <div class="list-sub">Ср. оценка: 4.5</div>
+          </div>
+          <div class="badge green">4.5</div>
+        </div>
+        <div class="list-row">
+          <div class="list-avatar">👧</div>
+          <div class="list-info">
+            <div class="list-title">Мария Петрова</div>
+            <div class="list-sub">Ср. оценка: 3.8</div>
+          </div>
+          <div class="badge orange">3.8</div>
+        </div>
+        <div class="list-row">
+          <div class="list-avatar">🧑</div>
+          <div class="list-info">
+            <div class="list-title">Алексей Сидоров</div>
+            <div class="list-sub">Ср. оценка: 5.0</div>
+          </div>
+          <div class="badge green">5.0</div>
+        </div>
+        <div style="font-size:9px;color:#aaa;text-align:center;">ещё 21 ученик...</div>
+
+        <div class="spacer"></div>
+        <div class="btn-secondary" style="font-size:11px;">+ Пригласить ученика</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 16. COURSE DETAIL -->
+  <div class="screen-wrap">
+    <div class="screen-label">16 · CourseDetail<span>Модули, квизы, участники</span></div>
+    <div class="phone has-tabs">
+      <div class="phone-content" style="gap:7px;">
+
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="font-size:12px;color:#aaa;">←</div>
+          <div style="flex:1;">
+            <div class="screen-title">Алгебра. Базовый курс</div>
+            <div class="screen-desc">7А · 3 модуля · 12 квизов</div>
+          </div>
+        </div>
+
+        <div class="chips-row">
+          <div class="chip active">Модули</div>
+          <div class="chip">Квизы</div>
+          <div class="chip">Участники</div>
+        </div>
+
+        <!-- Module list -->
+        <div style="border:1.5px solid #ddd;border-radius:9px;overflow:hidden;">
+          <div style="background:#1a1a1a;padding:7px 10px;display:flex;align-items:center;gap:6px;">
+            <div style="font-size:11px;color:#fff;font-weight:700;">Модуль 1 · Уравнения</div>
+            <div style="margin-left:auto;font-size:9px;color:#aaa;">4 квиза</div>
+            <div style="font-size:9px;color:#aaa;">▲</div>
+          </div>
+          <div style="padding:5px 8px;background:#fafafa;display:flex;flex-direction:column;gap:3px;">
+            <div class="list-row" style="padding:4px 0;">
+              <div class="list-avatar" style="width:22px;height:22px;font-size:10px;border-radius:5px;">📋</div>
+              <div class="list-info"><div class="list-title">Линейные уравнения</div><div class="list-sub">8 вопросов</div></div>
+              <div class="badge green">✓</div>
+            </div>
+            <div class="list-row" style="padding:4px 0;">
+              <div class="list-avatar" style="width:22px;height:22px;font-size:10px;border-radius:5px;">📋</div>
+              <div class="list-info"><div class="list-title">Квадратные уравнения</div><div class="list-sub">10 вопросов</div></div>
+              <div class="badge orange">→</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="border:1.5px solid #ddd;border-radius:9px;">
+          <div style="padding:7px 10px;display:flex;align-items:center;gap:6px;">
+            <div style="font-size:11px;color:#1a1a1a;font-weight:700;">Модуль 2 · Функции</div>
+            <div style="margin-left:auto;font-size:9px;color:#aaa;">5 квизов</div>
+            <div style="font-size:9px;color:#aaa;">▼</div>
+          </div>
+        </div>
+
+        <div style="border:1.5px solid #ddd;border-radius:9px;">
+          <div style="padding:7px 10px;display:flex;align-items:center;gap:6px;">
+            <div style="font-size:11px;color:#1a1a1a;font-weight:700;">Модуль 3 · Неравенства</div>
+            <div style="margin-left:auto;font-size:9px;color:#aaa;">3 квиза</div>
+            <div style="font-size:9px;color:#aaa;">▼</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 17. CREATE QUIZ -->
+  <div class="screen-wrap">
+    <div class="screen-label">17 · CreateQuiz<span>Тип, вопросы, настройки</span></div>
+    <div class="phone">
+      <div class="phone-content" style="gap:7px;">
+
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="font-size:12px;color:#aaa;">←</div>
+          <div class="screen-title">Новый квиз</div>
+        </div>
+
+        <!-- Name -->
+        <div style="font-size:9px;color:#888;font-weight:700;">Название квиза</div>
+        <div class="input-field active">
+          <span style="color:#333;font-size:10px;">Математика — Тема 5</span>
+        </div>
+
+        <!-- Type -->
+        <div style="font-size:9px;color:#888;font-weight:700;">Тип</div>
+        <div class="channel-row">
+          <div class="channel-btn selected">
+            <span class="ch-icon">⚡</span>
+            <span>Синхронный</span>
+          </div>
+          <div class="channel-btn">
+            <span class="ch-icon">🕐</span>
+            <span>Асинхронный</span>
+          </div>
+        </div>
+
+        <!-- Questions -->
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:9px;color:#888;font-weight:700;">Вопросы (3)</div>
+          <div style="font-size:9px;color:#1a1a1a;font-weight:700;">+ Добавить</div>
+        </div>
+        <div class="list-row" style="padding:5px 0;">
+          <div class="list-avatar" style="width:22px;height:22px;font-size:10px;border-radius:5px;background:#d4f5e2;">1</div>
+          <div class="list-info"><div class="list-title">Чему равно 2+2?</div><div class="list-sub">Один ответ</div></div>
+          <div class="list-right">⋮</div>
+        </div>
+        <div class="list-row" style="padding:5px 0;">
+          <div class="list-avatar" style="width:22px;height:22px;font-size:10px;border-radius:5px;background:#d4f5e2;">2</div>
+          <div class="list-info"><div class="list-title">Корень из 9?</div><div class="list-sub">Один ответ</div></div>
+          <div class="list-right">⋮</div>
+        </div>
+
+        <!-- Settings compact -->
+        <div style="font-size:9px;color:#888;font-weight:700;">Настройки</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          <div class="chip active">⏱ Таймер: 15 мин</div>
+          <div class="chip">📅 Дедлайн</div>
+          <div class="chip">🔢 Лимит попыток</div>
+          <div class="chip">🕐 Отложенный старт</div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="btn-primary">Сохранить квиз</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 18. CREATE CLASS -->
+  <div class="screen-wrap">
+    <div class="screen-label">18 · CreateClass<span>Название, описание, пригласить учеников</span></div>
+    <div class="phone">
+      <div class="phone-content" style="gap:8px;">
+
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="font-size:12px;color:#aaa;">←</div>
+          <div class="screen-title">Новый класс</div>
+        </div>
+
+        <div style="font-size:9px;color:#888;font-weight:700;">Название класса</div>
+        <div class="input-field active">
+          <span style="color:#333;font-size:10px;">11А — Информатика</span>
+        </div>
+
+        <div style="font-size:9px;color:#888;font-weight:700;">Описание</div>
+        <div class="input-field" style="height:50px;align-items:flex-start;padding-top:8px;">
+          <span class="placeholder">Необязательно</span>
+        </div>
+
+        <!-- Invite -->
+        <div style="font-size:9px;color:#888;font-weight:700;">Пригласить учеников</div>
+        <div style="border:1.5px dashed #ccc;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;align-items:center;">
+          <div style="font-size:22px;">🔗</div>
+          <div style="font-size:10px;font-weight:700;color:#1a1a1a;">Ссылка-приглашение</div>
+          <div style="font-size:9px;color:#aaa;text-align:center;">Ученики перейдут по ссылке<br/>и попадут в класс</div>
+          <div style="background:#f0f0f0;border-radius:7px;padding:5px 12px;font-size:9px;color:#555;font-weight:600;">edium.ru/join/7a-math-2026</div>
+          <div style="font-size:9px;color:#1a1a1a;font-weight:700;text-decoration:underline;">Скопировать</div>
+        </div>
+
+        <!-- OR manual -->
+        <div class="divider" style="font-size:9px;">или добавить вручную</div>
+        <div class="join-input-row">
+          <div class="join-input" style="font-size:9px;">Поиск по имени / телефону...</div>
+          <div class="join-btn">+</div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="btn-primary">Создать класс</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 19. CREATE COURSE -->
+  <div class="screen-wrap">
+    <div class="screen-label">19 · CreateCourse<span>Название, модули, привязка к классу</span></div>
+    <div class="phone">
+      <div class="phone-content" style="gap:7px;">
+
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="font-size:12px;color:#aaa;">←</div>
+          <div class="screen-title">Новый курс</div>
+        </div>
+
+        <div style="font-size:9px;color:#888;font-weight:700;">Название курса</div>
+        <div class="input-field active">
+          <span style="color:#333;font-size:10px;">Алгебра. Базовый курс</span>
+        </div>
+
+        <!-- Bind to class -->
+        <div style="font-size:9px;color:#888;font-weight:700;">Привязать к классу</div>
+        <div class="input-field">
+          <span style="font-size:10px;color:#333;">7А — Математика</span>
+          <div style="margin-left:auto;font-size:9px;color:#aaa;">▼</div>
+        </div>
+
+        <!-- Modules -->
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:9px;color:#888;font-weight:700;">Модули (2)</div>
+          <div style="font-size:9px;color:#1a1a1a;font-weight:700;">+ Добавить</div>
+        </div>
+
+        <div style="border:1.5px solid #ddd;border-radius:9px;padding:8px 10px;display:flex;align-items:center;gap:7px;background:#fafafa;">
+          <div style="font-size:10px;color:#aaa;">⠿</div>
+          <div style="flex:1;">
+            <div style="font-size:10px;font-weight:700;color:#1a1a1a;">Модуль 1 · Уравнения</div>
+            <div style="font-size:8px;color:#aaa;">4 квиза привязано</div>
+          </div>
+          <div style="font-size:10px;color:#ccc;">⋮</div>
+        </div>
+
+        <div style="border:1.5px solid #ddd;border-radius:9px;padding:8px 10px;display:flex;align-items:center;gap:7px;background:#fafafa;">
+          <div style="font-size:10px;color:#aaa;">⠿</div>
+          <div style="flex:1;">
+            <div style="font-size:10px;font-weight:700;color:#1a1a1a;">Модуль 2 · Функции</div>
+            <div style="font-size:8px;color:#aaa;">0 квизов</div>
+          </div>
+          <div style="font-size:10px;color:#ccc;">⋮</div>
+        </div>
+
+        <div class="btn-outline-light" style="font-size:10px;border-style:dashed;">+ Добавить модуль</div>
+
+        <div class="spacer"></div>
+        <div class="btn-primary">Сохранить курс</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 20. GRADEBOOK -->
+  <div class="screen-wrap">
+    <div class="screen-label">20 · Gradebook<span>Ведомость: оценки учеников по квизам</span></div>
+    <div class="phone">
+      <div class="phone-content" style="gap:7px;">
+
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="font-size:12px;color:#aaa;">←</div>
+          <div style="flex:1;">
+            <div class="screen-title">Ведомость</div>
+            <div class="screen-desc">7А — Математика</div>
+          </div>
+          <div style="font-size:10px;color:#555;">↓ Экспорт</div>
+        </div>
+
+        <!-- Table -->
+        <div style="border:1.5px solid #ddd;border-radius:9px;overflow:hidden;font-size:8px;">
+          <!-- Header row -->
+          <div style="display:flex;background:#1a1a1a;color:#fff;padding:5px 6px;gap:2px;">
+            <div style="width:60px;flex-shrink:0;font-weight:700;">Ученик</div>
+            <div style="flex:1;text-align:center;">М.5</div>
+            <div style="flex:1;text-align:center;">Физ.</div>
+            <div style="flex:1;text-align:center;">Хим.</div>
+            <div style="flex:1;text-align:center;font-weight:700;">Ср.</div>
+          </div>
+          <!-- Rows -->
+          <div style="display:flex;padding:5px 6px;gap:2px;border-bottom:1px solid #f0f0f0;align-items:center;">
+            <div style="width:60px;flex-shrink:0;color:#1a1a1a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">И. Козлов</div>
+            <div style="flex:1;text-align:center;color:#1a7a45;font-weight:700;">5</div>
+            <div style="flex:1;text-align:center;color:#1a4fa0;font-weight:700;">4</div>
+            <div style="flex:1;text-align:center;color:#1a7a45;font-weight:700;">5</div>
+            <div style="flex:1;text-align:center;background:#d4f5e2;border-radius:4px;font-weight:700;color:#1a7a45;">4.7</div>
+          </div>
+          <div style="display:flex;padding:5px 6px;gap:2px;border-bottom:1px solid #f0f0f0;align-items:center;">
+            <div style="width:60px;flex-shrink:0;color:#1a1a1a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">М. Петрова</div>
+            <div style="flex:1;text-align:center;color:#a0510a;font-weight:700;">3</div>
+            <div style="flex:1;text-align:center;color:#a0510a;font-weight:700;">3</div>
+            <div style="flex:1;text-align:center;color:#1a4fa0;font-weight:700;">4</div>
+            <div style="flex:1;text-align:center;background:#fde8d0;border-radius:4px;font-weight:700;color:#a0510a;">3.3</div>
+          </div>
+          <div style="display:flex;padding:5px 6px;gap:2px;border-bottom:1px solid #f0f0f0;align-items:center;">
+            <div style="width:60px;flex-shrink:0;color:#1a1a1a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">А. Сидоров</div>
+            <div style="flex:1;text-align:center;color:#1a7a45;font-weight:700;">5</div>
+            <div style="flex:1;text-align:center;color:#1a7a45;font-weight:700;">5</div>
+            <div style="flex:1;text-align:center;color:#1a7a45;font-weight:700;">5</div>
+            <div style="flex:1;text-align:center;background:#d4f5e2;border-radius:4px;font-weight:700;color:#1a7a45;">5.0</div>
+          </div>
+          <div style="display:flex;padding:5px 6px;gap:2px;align-items:center;">
+            <div style="width:60px;flex-shrink:0;color:#1a1a1a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">О. Новикова</div>
+            <div style="flex:1;text-align:center;color:#1a4fa0;font-weight:700;">4</div>
+            <div style="flex:1;text-align:center;color:#1a7a45;font-weight:700;">5</div>
+            <div style="flex:1;text-align:center;color:#a0510a;font-weight:700;">3</div>
+            <div style="flex:1;text-align:center;background:#d6eaff;border-radius:4px;font-weight:700;color:#1a4fa0;">4.0</div>
+          </div>
+        </div>
+
+        <div style="font-size:9px;color:#aaa;text-align:center;">ещё 20 учеников...</div>
+
+        <!-- Summary -->
+        <div class="stat-row">
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val" style="color:#1a7a45;">4.3</div>
+            <div class="stat-label">Ср. по классу</div>
+          </div>
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val">24</div>
+            <div class="stat-label">Сдали</div>
+          </div>
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val" style="color:#a0510a;">2</div>
+            <div class="stat-label">Не сдали</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section-header">
+  <div class="section-header-inner">🔌 Квиз — проведение (WebSocket)</div>
+</div>
+
+<div class="grid">
+
+  <!-- 21. QUIZ LOBBY (ученик) -->
+  <div class="screen-wrap">
+    <div class="screen-label">21 · QuizLobby <span style="color:#1a7a45;">ученик</span><span>Ожидание старта, QR/код для входа</span></div>
+    <div class="phone">
+      <div class="phone-content" style="gap:8px;">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div class="screen-title">Математика — Тема 5</div>
+            <div class="screen-desc">Класс 7А · Анна Смирнова</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <div style="width:7px;height:7px;background:#1a7a45;border-radius:50%;"></div>
+            <div style="font-size:8px;color:#1a7a45;font-weight:700;">WS</div>
+          </div>
+        </div>
+
+        <!-- Status banner -->
+        <div style="background:#f5f5f5;border-radius:10px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="font-size:22px;">⏳</div>
+          <div style="font-size:11px;font-weight:700;color:#1a1a1a;">Ожидание учителя</div>
+          <div style="font-size:9px;color:#aaa;">Квиз начнётся, когда учитель запустит его</div>
+        </div>
+
+        <!-- QR code placeholder -->
+        <div style="border:1.5px dashed #ccc;border-radius:10px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:6px;">
+          <div style="width:70px;height:70px;background:#f0f0f0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:28px;">▣</div>
+          <div style="font-size:9px;color:#aaa;">Поделитесь кодом для входа</div>
+          <div style="background:#1a1a1a;color:#fff;border-radius:8px;padding:5px 16px;font-size:14px;font-weight:700;letter-spacing:4px;">A3F7</div>
+        </div>
+
+        <!-- Participants -->
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:9px;color:#888;font-weight:700;">Вошли (8)</div>
+          <div style="font-size:9px;color:#aaa;">ожидается 24</div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;">
+          <div style="background:#d4f5e2;border-radius:20px;padding:3px 8px;font-size:8px;color:#1a7a45;font-weight:600;">Иван К.</div>
+          <div style="background:#d4f5e2;border-radius:20px;padding:3px 8px;font-size:8px;color:#1a7a45;font-weight:600;">Мария П.</div>
+          <div style="background:#d4f5e2;border-radius:20px;padding:3px 8px;font-size:8px;color:#1a7a45;font-weight:600;">Алексей С.</div>
+          <div style="background:#d4f5e2;border-radius:20px;padding:3px 8px;font-size:8px;color:#1a7a45;font-weight:600;">Ольга Н.</div>
+          <div style="background:#d4f5e2;border-radius:20px;padding:3px 8px;font-size:8px;color:#1a7a45;font-weight:600;">Петя В.</div>
+          <div style="background:#eee;border-radius:20px;padding:3px 8px;font-size:8px;color:#aaa;">+ 3 ещё...</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 22. QUIZ MONITOR (учитель) -->
+  <div class="screen-wrap">
+    <div class="screen-label">22 · QuizMonitor <span style="color:#a0510a;">учитель</span><span>Real-time прогресс, дисквалификация</span></div>
+    <div class="phone">
+      <div class="phone-content" style="gap:7px;">
+
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="flex:1;">
+            <div class="screen-title">Математика — Тема 5</div>
+            <div class="screen-desc">Вопрос 3 из 10 · 7А</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <div style="width:7px;height:7px;background:#1a7a45;border-radius:50%;"></div>
+            <div style="font-size:8px;color:#1a7a45;font-weight:700;">LIVE</div>
+          </div>
+        </div>
+
+        <!-- Progress bar global -->
+        <div style="background:#f0f0f0;border-radius:4px;height:6px;overflow:hidden;">
+          <div style="width:30%;height:100%;background:#1a1a1a;border-radius:4px;"></div>
+        </div>
+        <div style="font-size:8px;color:#aaa;text-align:right;margin-top:-4px;">3 / 10 вопросов</div>
+
+        <!-- Stats row -->
+        <div class="stat-row">
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val" style="color:#1a7a45;">16</div>
+            <div class="stat-label">Ответили</div>
+          </div>
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val" style="color:#aaa;">6</div>
+            <div class="stat-label">Думают</div>
+          </div>
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val" style="color:#a0510a;">2</div>
+            <div class="stat-label">Отстают</div>
+          </div>
+        </div>
+
+        <!-- Student list with progress -->
+        <div style="font-size:9px;color:#888;font-weight:700;">Участники</div>
+
+        <div class="list-row" style="padding:4px 0;">
+          <div class="list-avatar" style="font-size:11px;">🧑</div>
+          <div class="list-info">
+            <div class="list-title">Иван Козлов</div>
+            <div style="background:#f0f0f0;border-radius:3px;height:4px;margin-top:3px;overflow:hidden;">
+              <div style="width:70%;height:100%;background:#1a7a45;border-radius:3px;"></div>
+            </div>
+          </div>
+          <div style="font-size:8px;color:#aaa;flex-shrink:0;">7/10</div>
+        </div>
+        <div class="list-row" style="padding:4px 0;">
+          <div class="list-avatar" style="font-size:11px;">👧</div>
+          <div class="list-info">
+            <div class="list-title">Мария Петрова</div>
+            <div style="background:#f0f0f0;border-radius:3px;height:4px;margin-top:3px;overflow:hidden;">
+              <div style="width:30%;height:100%;background:#f5c518;border-radius:3px;"></div>
+            </div>
+          </div>
+          <div style="font-size:8px;color:#aaa;flex-shrink:0;">3/10</div>
+        </div>
+        <div class="list-row" style="padding:4px 0;">
+          <div class="list-avatar" style="font-size:11px;">🧑</div>
+          <div class="list-info">
+            <div class="list-title" style="color:#c0392b;">Алексей С. ⚠</div>
+            <div style="background:#f0f0f0;border-radius:3px;height:4px;margin-top:3px;overflow:hidden;">
+              <div style="width:10%;height:100%;background:#e74c3c;border-radius:3px;"></div>
+            </div>
+          </div>
+          <div style="background:#fde8d0;border-radius:5px;padding:2px 6px;font-size:8px;color:#c0392b;font-weight:700;cursor:pointer;flex-shrink:0;">Дискв.</div>
+        </div>
+
+        <div style="font-size:9px;color:#aaa;text-align:center;">ещё 21 участник...</div>
+
+        <div class="btn-primary" style="height:34px;font-size:11px;">⏭ Следующий вопрос</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 23. QUIZ TAKING SYNC (ученик) -->
+  <div class="screen-wrap">
+    <div class="screen-label">23 · QuizTakingSync <span style="color:#1a7a45;">ученик</span><span>Вопрос → ответ → ожидание</span></div>
+    <div class="phone">
+      <div class="phone-content" style="gap:8px;">
+
+        <!-- Top bar: question progress + timer -->
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="font-size:9px;color:#888;font-weight:700;">Вопрос 3 / 10</div>
+          <div style="flex:1;background:#f0f0f0;border-radius:4px;height:5px;overflow:hidden;">
+            <div style="width:30%;height:100%;background:#1a1a1a;border-radius:4px;"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:3px;background:#fde8d0;border-radius:6px;padding:2px 7px;">
+            <div style="font-size:10px;">⏱</div>
+            <div style="font-size:10px;font-weight:700;color:#a0510a;">0:42</div>
+          </div>
+        </div>
+
+        <!-- Question -->
+        <div style="background:#f5f5f5;border-radius:12px;padding:12px;min-height:60px;display:flex;align-items:center;justify-content:center;">
+          <div style="font-size:12px;font-weight:700;color:#1a1a1a;text-align:center;line-height:1.4;">Чему равен корень квадратный из 144?</div>
+        </div>
+
+        <!-- Answer options -->
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="border:1.5px solid #ddd;border-radius:9px;padding:9px 12px;font-size:11px;color:#555;background:#fafafa;">А) 10</div>
+          <div style="border:2px solid #1a1a1a;border-radius:9px;padding:9px 12px;font-size:11px;color:#1a1a1a;background:#fff;font-weight:700;">Б) 12 ✓</div>
+          <div style="border:1.5px solid #ddd;border-radius:9px;padding:9px 12px;font-size:11px;color:#555;background:#fafafa;">В) 14</div>
+          <div style="border:1.5px solid #ddd;border-radius:9px;padding:9px 12px;font-size:11px;color:#555;background:#fafafa;">Г) 16</div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="btn-primary" style="height:36px;font-size:11px;">Подтвердить ответ</div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 24. QUIZ TAKING ASYNC (ученик) -->
+  <div class="screen-wrap">
+    <div class="screen-label">24 · QuizTakingAsync <span style="color:#1a7a45;">ученик</span><span>Вопросы в своём темпе</span></div>
+    <div class="phone">
+      <div class="phone-content" style="gap:8px;">
+
+        <!-- Top bar -->
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="font-size:12px;color:#aaa;">←</div>
+          <div style="flex:1;">
+            <div style="font-size:11px;font-weight:700;color:#1a1a1a;">Химия — Периодич. таблица</div>
+            <div style="font-size:8px;color:#aaa;">Асинхронный · до 27 марта</div>
+          </div>
+          <div style="font-size:9px;color:#aaa;">5 / 8</div>
+        </div>
+
+        <!-- Progress dots -->
+        <div style="display:flex;gap:4px;justify-content:center;">
+          <div style="width:18px;height:6px;background:#1a7a45;border-radius:3px;"></div>
+          <div style="width:18px;height:6px;background:#1a7a45;border-radius:3px;"></div>
+          <div style="width:18px;height:6px;background:#1a7a45;border-radius:3px;"></div>
+          <div style="width:18px;height:6px;background:#1a7a45;border-radius:3px;"></div>
+          <div style="width:18px;height:6px;background:#1a1a1a;border-radius:3px;"></div>
+          <div style="width:18px;height:6px;background:#ddd;border-radius:3px;"></div>
+          <div style="width:18px;height:6px;background:#ddd;border-radius:3px;"></div>
+          <div style="width:18px;height:6px;background:#ddd;border-radius:3px;"></div>
+        </div>
+
+        <!-- Question -->
+        <div style="background:#f5f5f5;border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:center;min-height:58px;">
+          <div style="font-size:11px;font-weight:700;color:#1a1a1a;text-align:center;line-height:1.4;">Какой элемент имеет атомный номер 79?</div>
+        </div>
+
+        <!-- Answers -->
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="border:1.5px solid #ddd;border-radius:9px;padding:8px 12px;font-size:10px;color:#555;background:#fafafa;">А) Серебро</div>
+          <div style="border:1.5px solid #ddd;border-radius:9px;padding:8px 12px;font-size:10px;color:#555;background:#fafafa;">Б) Платина</div>
+          <div style="border:1.5px solid #ddd;border-radius:9px;padding:8px 12px;font-size:10px;color:#555;background:#fafafa;">В) Золото</div>
+          <div style="border:1.5px solid #ddd;border-radius:9px;padding:8px 12px;font-size:10px;color:#555;background:#fafafa;">Г) Медь</div>
+        </div>
+
+        <div class="spacer"></div>
+        <div style="display:flex;gap:6px;">
+          <div class="btn-outline-light" style="flex:1;font-size:10px;">← Назад</div>
+          <div class="btn-primary" style="flex:2;height:36px;font-size:10px;">Далее →</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 25. QUIZ RESULTS STUDENT (ученик) -->
+  <div class="screen-wrap">
+    <div class="screen-label">25 · QuizResultsStudent <span style="color:#1a7a45;">ученик</span><span>Итоговый счёт, разбор ошибок</span></div>
+    <div class="phone">
+      <div class="phone-content" style="gap:8px;">
+
+        <!-- Score hero -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 0 4px;">
+          <div style="font-size:28px;">🏆</div>
+          <div style="font-size:28px;font-weight:900;color:#1a1a1a;">8 / 10</div>
+          <div class="badge green" style="font-size:10px;padding:3px 10px;">Оценка: 5</div>
+          <div style="font-size:9px;color:#aaa;">Математика — Тема 5 · 7А</div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stat-row">
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val" style="color:#1a7a45;">8</div>
+            <div class="stat-label">Верных</div>
+          </div>
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val" style="color:#e74c3c;">2</div>
+            <div class="stat-label">Ошибок</div>
+          </div>
+          <div class="stat-card" style="align-items:center;">
+            <div class="stat-val">3:41</div>
+            <div class="stat-label">Время</div>
+          </div>
+        </div>
+
+        <!-- Error breakdown -->
+        <div style="font-size:9px;color:#888;font-weight:700;">Разбор ошибок</div>
+
+        <div style="border:1.5px solid #fde8d0;border-radius:9px;padding:8px 10px;background:#fffaf5;">
+          <div style="font-size:9px;font-weight:700;color:#1a1a1a;">В.7 · Дроби и проценты</div>
+          <div style="font-size:8px;color:#e74c3c;margin-top:2px;">Ваш ответ: 25% ✗</div>
+          <div style="font-size:8px;color:#1a7a45;margin-top:1px;">Верный ответ: 20% ✓</div>
+        </div>
+
+        <div style="border:1.5px solid #fde8d0;border-radius:9px;padding:8px 10px;background:#fffaf5;">
+          <div style="font-size:9px;font-weight:700;color:#1a1a1a;">В.9 · Степени</div>
+          <div style="font-size:8px;color:#e74c3c;margin-top:2px;">Ваш ответ: 64 ✗</div>
+          <div style="font-size:8px;color:#1a7a45;margin-top:1px;">Верный ответ: 81 ✓</div>
+        </div>
+
+        <div class="btn-secondary" style="font-size:10px;height:34px;">Закрыть</div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 26. QUIZ RESULTS TEACHER (учитель) -->
+  <div class="screen-wrap">
+    <div class="screen-label">26 · QuizResultsTeacher <span style="color:#a0510a;">учитель</span><span>Агрегированная статистика по квизу</span></div>
+    <div class="phone">
+      <div class="phone-content" style="gap:7px;">
+
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="font-size:12px;color:#aaa;">←</div>
+          <div style="flex:1;">
+            <div class="screen-title">Итоги: Математика — Тема 5</div>
+            <div class="screen-desc">7А · 22 участника</div>
+          </div>
+          <div style="font-size:9px;color:#555;">↓</div>
+        </div>
+
+        <!-- Avg score -->
+        <div style="background:#1a1a1a;border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;color:#fff;">
+          <div style="font-size:26px;font-weight:900;">4.3</div>
+          <div>
+            <div style="font-size:10px;font-weight:700;">Средняя оценка</div>
+            <div style="font-size:8px;color:#aaa;margin-top:2px;">22 / 24 сдали · 2 не сдали</div>
+          </div>
+          <div style="margin-left:auto;font-size:20px;">📊</div>
+        </div>
+
+        <!-- Distribution -->
+        <div style="font-size:9px;color:#888;font-weight:700;">Распределение оценок</div>
+        <div style="display:flex;align-items:flex-end;gap:5px;height:44px;padding:0 2px;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;">
+            <div style="font-size:7px;color:#aaa;">2</div>
+            <div style="width:100%;background:#e74c3c;border-radius:3px 3px 0 0;height:8px;"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;">
+            <div style="font-size:7px;color:#aaa;">4</div>
+            <div style="width:100%;background:#f5c518;border-radius:3px 3px 0 0;height:16px;"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;">
+            <div style="font-size:7px;color:#aaa;">7</div>
+            <div style="width:100%;background:#1a4fa0;border-radius:3px 3px 0 0;height:28px;"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;">
+            <div style="font-size:7px;color:#aaa;">9</div>
+            <div style="width:100%;background:#1a7a45;border-radius:3px 3px 0 0;height:36px;"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;">
+            <div style="font-size:7px;color:#aaa;margin-top:auto;">Оц.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:5px;justify-content:flex-start;padding:0 2px;">
+          <div style="flex:1;text-align:center;font-size:7px;color:#aaa;">2</div>
+          <div style="flex:1;text-align:center;font-size:7px;color:#aaa;">3</div>
+          <div style="flex:1;text-align:center;font-size:7px;color:#aaa;">4</div>
+          <div style="flex:1;text-align:center;font-size:7px;color:#aaa;">5</div>
+          <div style="flex:1;"></div>
+        </div>
+
+        <!-- Per question -->
+        <div style="font-size:9px;color:#888;font-weight:700;">Ответы по вопросам</div>
+        <div class="list-row" style="padding:4px 0;">
+          <div class="list-avatar" style="width:22px;height:22px;font-size:9px;border-radius:5px;">В1</div>
+          <div class="list-info">
+            <div class="list-title">Корень из 144</div>
+            <div style="background:#f0f0f0;border-radius:3px;height:4px;margin-top:3px;overflow:hidden;">
+              <div style="width:91%;height:100%;background:#1a7a45;border-radius:3px;"></div>
+            </div>
+          </div>
+          <div style="font-size:8px;color:#1a7a45;font-weight:700;flex-shrink:0;">91%</div>
+        </div>
+        <div class="list-row" style="padding:4px 0;">
+          <div class="list-avatar" style="width:22px;height:22px;font-size:9px;border-radius:5px;">В7</div>
+          <div class="list-info">
+            <div class="list-title">Дроби и проценты</div>
+            <div style="background:#f0f0f0;border-radius:3px;height:4px;margin-top:3px;overflow:hidden;">
+              <div style="width:38%;height:100%;background:#e74c3c;border-radius:3px;"></div>
+            </div>
+          </div>
+          <div style="font-size:8px;color:#e74c3c;font-weight:700;flex-shrink:0;">38%</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section-header">
+  <div class="section-header-inner">📝 Работы — v2</div>
+</div>
+
+<div class="grid">
+
+  <!-- 27. CREATE WORK (учитель) -->
+  <div class="screen-wrap">
+    <div class="screen-label">27 · CreateWork <span style="color:#a0510a;">учитель</span><span>Создание проверочной работы</span></div>
+    <div class="phone">
+      <div class="phone-content" style="gap:7px;">
+
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="font-size:12px;color:#aaa;">←</div>
+          <div class="screen-title">Новая работа</div>
+        </div>
+
+        <div style="font-size:9px;color:#888;font-weight:700;">Название работы</div>
+        <div class="input-field active">
+          <span style="color:#333;font-size:10px;">Контрольная по алгебре №3</span>
+        </div>
+
+        <div style="display:flex;gap:6px;">
+          <div style="flex:1;">
+            <div style="font-size:9px;color:#888;font-weight:700;">Класс</div>
+            <div class="input-field" style="margin-top:3px;">
+              <span style="font-size:10px;color:#333;">7А</span>
+              <div style="margin-left:auto;font-size:9px;color:#aaa;">▼</div>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:9px;color:#888;font-weight:700;">Дедлайн</div>
+            <div class="input-field" style="margin-top:3px;">
+              <span style="font-size:10px;color:#333;">28 марта</span>
+              <div style="margin-left:auto;font-size:9px;color:#aaa;">📅</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tasks -->
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:9px;color:#888;font-weight:700;">Задания (3)</div>
+          <div style="font-size:9px;color:#1a1a1a;font-weight:700;">+ Добавить</div>
+        </div>
+
+        <div class="list-row" style="padding:5px 0;">
+          <div class="list-avatar" style="width:24px;height:24px;font-size:10px;border-radius:6px;background:#d6eaff;color:#1a4fa0;font-weight:700;">1</div>
+          <div class="list-info">
+            <div class="list-title">Решите уравнение: 2x+5=17</div>
+            <div class="list-sub">Развёрнутый ответ · 3 балла</div>
+          </div>
+          <div class="list-right">⋮</div>
+        </div>
+        <div class="list-row" style="padding:5px 0;">
+          <div class="list-avatar" style="width:24px;height:24px;font-size:10px;border-radius:6px;background:#d6eaff;color:#1a4fa0;font-weight:700;">2</div>
+          <div class="list-info">
+            <div class="list-title">Постройте график y=x²−4</div>
+            <div class="list-sub">С графиком · 5 баллов</div>
+          </div>
+          <div class="list-right">⋮</div>
+        </div>
+        <div class="list-row" style="padding:5px 0;">
+          <div class="list-avatar" style="width:24px;height:24px;font-size:10px;border-radius:6px;background:#d6eaff;color:#1a4fa0;font-weight:700;">3</div>
+          <div class="list-info">
+            <div class="list-title">Найдите корни уравнения...</div>
+            <div class="list-sub">Развёрнутый ответ · 4 балла</div>
+          </div>
+          <div class="list-right">⋮</div>
+        </div>
+
+        <!-- Max score -->
+        <div style="display:flex;align-items:center;justify-content:space-between;background:#f5f5f5;border-radius:8px;padding:7px 10px;">
+          <div style="font-size:9px;color:#888;font-weight:700;">Максимум баллов</div>
+          <div style="font-size:13px;font-weight:700;color:#1a1a1a;">12</div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="btn-primary">Опубликовать работу</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 28. SOLVE WORK (ученик) -->
+  <div class="screen-wrap">
+    <div class="screen-label">28 · SolveWork <span style="color:#1a7a45;">ученик</span><span>Решение: текст или фото → OCR</span></div>
+    <div class="phone">
+      <div class="phone-content" style="gap:7px;">
+
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="font-size:12px;color:#aaa;">←</div>
+          <div style="flex:1;">
+            <div class="screen-title">Контрольная по алгебре №3</div>
+            <div class="screen-desc">7А · до 28 марта · 23:59</div>
+          </div>
+          <div style="font-size:9px;color:#a0510a;font-weight:700;">Задание 2/3</div>
+        </div>
+
+        <!-- Progress dots -->
+        <div style="display:flex;gap:5px;">
+          <div style="flex:1;height:4px;background:#1a7a45;border-radius:3px;"></div>
+          <div style="flex:1;height:4px;background:#1a1a1a;border-radius:3px;"></div>
+          <div style="flex:1;height:4px;background:#ddd;border-radius:3px;"></div>
+        </div>
+
+        <!-- Task text -->
+        <div style="background:#f5f5f5;border-radius:10px;padding:10px;">
+          <div style="font-size:8px;color:#aaa;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px;">Задание 2 · 5 баллов</div>
+          <div style="font-size:10px;color:#1a1a1a;line-height:1.5;font-weight:600;">Постройте график функции y = x² − 4 и найдите точки пересечения с осями координат.</div>
+        </div>
+
+        <!-- Input mode toggle -->
+        <div class="channel-row">
+          <div class="channel-btn selected">
+            <span class="ch-icon">✏️</span>
+            <span>Текст</span>
+          </div>
+          <div class="channel-btn">
+            <span class="ch-icon">📷</span>
+            <span>Фото + OCR</span>
+          </div>
+        </div>
+
+        <!-- Text answer -->
+        <div style="border:1.5px solid #333;border-radius:9px;padding:8px 10px;min-height:72px;background:#fff;">
+          <div style="font-size:10px;color:#1a1a1a;line-height:1.5;">y = x² − 4<br/>При x=0: y = −4 → (0, −4)<br/>При y=0: x = ±2 → (±2, 0)</div>
+          <div style="width:2px;height:12px;background:#1a1a1a;display:inline-block;animation:blink 1s step-end infinite;"></div>
+        </div>
+        <div style="font-size:8px;color:#aaa;text-align:right;">Распознано Hawkeye OCR</div>
+
+        <div class="spacer"></div>
+        <div style="display:flex;gap:6px;">
+          <div class="btn-outline-light" style="flex:1;font-size:10px;">← Назад</div>
+          <div class="btn-primary" style="flex:2;height:36px;font-size:10px;">Далее →</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 29. GRADE WORK (учитель) -->
+  <div class="screen-wrap">
+    <div class="screen-label">29 · GradeWork <span style="color:#a0510a;">учитель</span><span>Оценивание работы ученика</span></div>
+    <div class="phone">
+      <div class="phone-content" style="gap:7px;">
+
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="font-size:12px;color:#aaa;">←</div>
+          <div style="flex:1;">
+            <div class="screen-title">Проверка работы</div>
+            <div class="screen-desc">Иван Козлов · Контрольная №3</div>
+          </div>
+          <div style="font-size:9px;color:#aaa;">1 / 22</div>
+        </div>
+
+        <!-- Student answer block -->
+        <div style="font-size:9px;color:#888;font-weight:700;">Задание 1 · макс. 3 балла</div>
+        <div style="background:#f5f5f5;border-radius:9px;padding:8px 10px;">
+          <div style="font-size:9px;font-weight:600;color:#1a1a1a;line-height:1.4;">Решите уравнение: 2x+5=17</div>
+        </div>
+
+        <!-- Photo answer -->
+        <div style="border:1.5px solid #ddd;border-radius:9px;overflow:hidden;">
+          <div style="background:#e8e8e8;height:70px;display:flex;align-items:center;justify-content:center;gap:6px;">
+            <div style="font-size:20px;">🖼</div>
+            <div style="font-size:9px;color:#888;">Фото ответа ученика</div>
+          </div>
+          <!-- OCR result -->
+          <div style="padding:6px 10px;background:#fffaf5;border-top:1px solid #f0e0d0;">
+            <div style="font-size:8px;color:#a0510a;font-weight:700;margin-bottom:2px;">Hawkeye OCR ·  распознано</div>
+            <div style="font-size:9px;color:#1a1a1a;">2x = 17 − 5 = 12<br/>x = 6 ✓</div>
+          </div>
+        </div>
+
+        <!-- Score input -->
+        <div style="font-size:9px;color:#888;font-weight:700;">Баллы за задание</div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <div style="display:flex;gap:4px;">
+            <div style="width:30px;height:30px;background:#f0f0f0;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#aaa;">0</div>
+            <div style="width:30px;height:30px;background:#f0f0f0;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#aaa;">1</div>
+            <div style="width:30px;height:30px;background:#f0f0f0;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#aaa;">2</div>
+            <div style="width:30px;height:30px;background:#1a1a1a;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;">3</div>
+          </div>
+          <div style="font-size:9px;color:#aaa;">из 3</div>
+        </div>
+
+        <!-- Comment -->
+        <div style="font-size:9px;color:#888;font-weight:700;">Комментарий учителя</div>
+        <div class="input-field" style="height:38px;">
+          <span class="placeholder">Необязательно</span>
+        </div>
+
+        <div class="spacer"></div>
+        <div style="display:flex;gap:6px;">
+          <div class="btn-outline-light" style="flex:1;font-size:10px;">Задание 2 →</div>
+          <div class="btn-primary" style="flex:2;height:36px;font-size:10px;">Сохранить оценку</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 30. WORK RESULT (ученик) -->
+  <div class="screen-wrap">
+    <div class="screen-label">30 · WorkResult <span style="color:#1a7a45;">ученик</span><span>Оценка и разбор работы</span></div>
+    <div class="phone">
+      <div class="phone-content" style="gap:8px;">
+
+        <!-- Score hero -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0 2px;">
+          <div style="font-size:26px;">📝</div>
+          <div style="font-size:11px;color:#aaa;">Контрольная по алгебре №3</div>
+          <div style="font-size:28px;font-weight:900;color:#1a1a1a;">10 / 12</div>
+          <div class="badge green" style="font-size:10px;padding:3px 12px;">Оценка: 5</div>
+          <div style="font-size:8px;color:#aaa;">Проверил: Анна Смирнова</div>
+        </div>
+
+        <!-- Per-task breakdown -->
+        <div style="font-size:9px;color:#888;font-weight:700;">Разбор по заданиям</div>
+
+        <!-- Task 1 — full score -->
+        <div style="border:1.5px solid #d4f5e2;border-radius:9px;padding:8px 10px;background:#f8fef9;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-size:9px;font-weight:700;color:#1a1a1a;">Задание 1 · Уравнение</div>
+            <div class="badge green">3 / 3</div>
+          </div>
+          <div style="font-size:8px;color:#1a7a45;margin-top:3px;">x = 6 — верно ✓</div>
+        </div>
+
+        <!-- Task 2 — partial -->
+        <div style="border:1.5px solid #fde8d0;border-radius:9px;padding:8px 10px;background:#fffaf5;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-size:9px;font-weight:700;color:#1a1a1a;">Задание 2 · График</div>
+            <div class="badge orange">4 / 5</div>
+          </div>
+          <div style="font-size:8px;color:#a0510a;margin-top:3px;">График верный, точки пересечения не подписаны</div>
+          <div style="font-size:8px;color:#555;font-style:italic;margin-top:3px;border-left:2px solid #ddd;padding-left:5px;">«Не забывай подписывать координаты» — А. Смирнова</div>
+        </div>
+
+        <!-- Task 3 — full score -->
+        <div style="border:1.5px solid #d4f5e2;border-radius:9px;padding:8px 10px;background:#f8fef9;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-size:9px;font-weight:700;color:#1a1a1a;">Задание 3 · Корни</div>
+            <div class="badge green">3 / 4</div>
+          </div>
+          <div style="font-size:8px;color:#a0510a;margin-top:3px;">Один корень пропущен</div>
+        </div>
+
+        <div class="btn-secondary" style="font-size:10px;height:34px;">Закрыть</div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section-header">
+  <div class="section-header-inner">📷 QR Scanner</div>
+</div>
+
+<div class="grid">
+
+  <!-- QR SCANNER -->
+  <div class="screen-wrap">
+    <div class="screen-label">QrScanner <span style="color:#1a7a45;">ученик</span><span>Сканирование QR-кода для входа в квиз</span></div>
+    <div class="phone" style="background:#111;">
+      <div class="phone-content" style="gap:0;padding:28px 0 0;position:relative;">
+
+        <!-- Top bar -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px 12px;">
+          <div style="font-size:12px;color:#fff;opacity:0.7;">✕</div>
+          <div style="font-size:11px;font-weight:700;color:#fff;">Сканировать QR</div>
+          <div style="font-size:18px;color:#fff;opacity:0.7;">🔦</div>
+        </div>
+
+        <!-- Camera viewfinder -->
+        <div style="position:relative;width:100%;flex:1;background:#222;display:flex;align-items:center;justify-content:center;min-height:240px;">
+
+          <!-- Simulated camera noise -->
+          <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,0.02) 0px,rgba(255,255,255,0.02) 1px,transparent 1px,transparent 4px);"></div>
+
+          <!-- Scan frame -->
+          <div style="position:relative;width:140px;height:140px;">
+            <!-- Corners -->
+            <div style="position:absolute;top:0;left:0;width:20px;height:20px;border-top:3px solid #fff;border-left:3px solid #fff;border-radius:3px 0 0 0;"></div>
+            <div style="position:absolute;top:0;right:0;width:20px;height:20px;border-top:3px solid #fff;border-right:3px solid #fff;border-radius:0 3px 0 0;"></div>
+            <div style="position:absolute;bottom:0;left:0;width:20px;height:20px;border-bottom:3px solid #fff;border-left:3px solid #fff;border-radius:0 0 0 3px;"></div>
+            <div style="position:absolute;bottom:0;right:0;width:20px;height:20px;border-bottom:3px solid #fff;border-right:3px solid #fff;border-radius:0 0 3px 0;"></div>
+
+            <!-- Scan line -->
+            <div style="position:absolute;top:40%;left:6px;right:6px;height:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.8),transparent);border-radius:1px;"></div>
+
+            <!-- QR code placeholder inside frame -->
+            <div style="position:absolute;inset:18px;background:rgba(255,255,255,0.07);border-radius:4px;display:flex;align-items:center;justify-content:center;">
+              <div style="font-size:36px;opacity:0.15;">▣</div>
+            </div>
+          </div>
+
+          <!-- Dim overlay sides -->
+          <div style="position:absolute;inset:0;background:radial-gradient(ellipse 160px 160px at center,transparent 65%,rgba(0,0,0,0.55) 100%);pointer-events:none;"></div>
+        </div>
+
+        <!-- Bottom sheet -->
+        <div style="background:#1a1a1a;padding:14px 16px 12px;display:flex;flex-direction:column;gap:10px;">
+          <div style="text-align:center;">
+            <div style="font-size:11px;font-weight:700;color:#fff;">Наведите камеру на QR-код</div>
+            <div style="font-size:9px;color:#888;margin-top:3px;">Код отображается на экране учителя или в приглашении</div>
+          </div>
+
+          <div class="divider" style="border-color:#333;">
+            <span style="background:#1a1a1a;padding:0 8px;color:#555;font-size:9px;">или введите код вручную</span>
+          </div>
+
+          <!-- Manual code input -->
+          <div class="join-input-row">
+            <div style="flex:1;height:36px;border:1.5px solid #333;border-radius:8px;background:#111;display:flex;align-items:center;padding:0 12px;gap:8px;">
+              <span style="font-size:14px;font-weight:700;letter-spacing:6px;color:#fff;">A3F7</span>
+            </div>
+            <div style="height:36px;background:#fff;color:#1a1a1a;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;padding:0 14px;">Войти</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
