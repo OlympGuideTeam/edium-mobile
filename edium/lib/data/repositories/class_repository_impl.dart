@@ -8,6 +8,11 @@ class ClassRepositoryImpl implements IClassRepository {
   ClassRepositoryImpl(this._datasource);
 
   @override
+  Future<String> createClass({required String title}) {
+    return _datasource.createClass(title: title);
+  }
+
+  @override
   Future<List<ClassSummary>> getMyClasses({required String role}) async {
     final models = await _datasource.getMyClasses(role: role);
     return models.map((m) => m.toEntity()).toList();

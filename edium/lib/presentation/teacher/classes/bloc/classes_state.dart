@@ -29,3 +29,13 @@ class ClassesError extends ClassesState {
 
   const ClassesError(this.message);
 }
+
+class ClassCreated extends ClassesState {
+  const ClassCreated();
+}
+
+class ClassCreateError extends ClassesState {
+  final String message;
+
+  const ClassCreateError(this.message);
+}
