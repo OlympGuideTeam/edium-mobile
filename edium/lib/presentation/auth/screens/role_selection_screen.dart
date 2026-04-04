@@ -1,4 +1,5 @@
 import 'package:edium/core/di/injection.dart';
+import 'package:edium/core/storage/profile_storage.dart';
 import 'package:edium/domain/entities/user.dart';
 import 'package:edium/domain/usecases/user/set_role_usecase.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
@@ -23,6 +24,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     setState(() => _loading = true);
     try {
       await getIt<SetRoleUsecase>()(_selected!);
+      await getIt<ProfileStorage>().saveRole(_selected!.name);
       if (!mounted) return;
       getIt<AuthBloc>().add(const RoleSelectedEvent());
     } catch (e) {

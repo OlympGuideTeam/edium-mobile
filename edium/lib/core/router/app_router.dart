@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:edium/core/di/injection.dart';
+import 'package:edium/core/storage/profile_storage.dart';
 import 'package:edium/domain/entities/user.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
@@ -10,6 +11,7 @@ import 'package:edium/presentation/auth/screens/phone_input_screen.dart';
 import 'package:edium/presentation/auth/screens/role_selection_screen.dart';
 import 'package:edium/presentation/auth/screens/splash_screen.dart';
 import 'package:edium/presentation/auth/screens/welcome_screen.dart';
+import 'package:edium/presentation/profile/edit_profile/edit_profile_screen.dart';
 import 'package:edium/presentation/student/home/student_home_screen.dart';
 import 'package:edium/presentation/teacher/home/teacher_home_screen.dart';
 import 'package:flutter/material.dart';
@@ -80,6 +82,13 @@ GoRouter buildRouter() {
         path: '/student/home',
         builder: (_, __) => const StudentHomeScreen(),
       ),
+      GoRoute(
+        path: '/profile/edit',
+        builder: (_, state) {
+          final user = state.extra as User;
+          return EditProfileScreen(user: user);
+        },
+      ),
     ],
   );
 }
@@ -95,6 +104,7 @@ String? _redirect(BuildContext context, GoRouterState state) {
       location.startsWith('/otp') ||
       location == '/name-input' ||
       location == '/role-selection';
+
 
   // Initial load — go to splash
   if (authState is AuthInitial) {
@@ -124,7 +134,8 @@ String? _redirect(BuildContext context, GoRouterState state) {
 
   if (authState is AuthAuthenticated) {
     if (isAuthPath) {
-      final role = authState.user.role;
+      final role = authState.user.role ??
+          _roleFromString(getIt<ProfileStorage>().getRole());
       if (role == UserRole.teacher) return '/teacher/home';
       if (role == UserRole.student) return '/student/home';
       return '/role-selection';
@@ -136,5 +147,11 @@ String? _redirect(BuildContext context, GoRouterState state) {
     return null;
   }
 
+  return null;
+}
+
+UserRole? _roleFromString(String? role) {
+  if (role == 'teacher') return UserRole.teacher;
+  if (role == 'student') return UserRole.student;
   return null;
 }
