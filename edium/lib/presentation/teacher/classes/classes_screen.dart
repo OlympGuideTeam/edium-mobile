@@ -18,6 +18,7 @@ class ClassesScreen extends StatelessWidget {
     return BlocProvider(
       create: (_) => ClassesBloc(
         getMyClasses: getIt(),
+        createClass: getIt(),
         role: role,
       )..add(const LoadClassesEvent()),
       child: _ClassesView(role: role),
@@ -30,13 +31,119 @@ class _ClassesView extends StatelessWidget {
 
   const _ClassesView({required this.role});
 
+  void _showCreateClassDialog(BuildContext context) {
+    final controller = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (bottomSheetContext) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            24,
+            20,
+            MediaQuery.of(bottomSheetContext).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text('Новый класс', style: AppTextStyles.heading3),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                style: AppTextStyles.body,
+                decoration: InputDecoration(
+                  hintText: 'Например, 7А — Математика',
+                  hintStyle: AppTextStyles.body
+                      .copyWith(color: AppColors.textSecondary),
+                  filled: true,
+                  fillColor: AppColors.background,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: AppColors.cardBorder),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: AppColors.cardBorder),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide:
+                        BorderSide(color: AppColors.primary, width: 1.5),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final title = controller.text.trim();
+                    if (title.isEmpty) return;
+                    context
+                        .read<ClassesBloc>()
+                        .add(CreateClassEvent(title));
+                    Navigator.of(bottomSheetContext).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    textStyle: AppTextStyles.button,
+                  ),
+                  child: const Text('Создать'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isTeacher = role == 'teacher';
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
+    return BlocListener<ClassesBloc, ClassesState>(
+      listener: (context, state) {
+        if (state is ClassCreated) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Класс создан')),
+          );
+        }
+        if (state is ClassCreateError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message)),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -53,9 +160,7 @@ class _ClassesView extends StatelessWidget {
                   ),
                   if (isTeacher)
                     IconButton(
-                      onPressed: () {
-                        // TODO: навигация на создание класса
-                      },
+                      onPressed: () => _showCreateClassDialog(context),
                       icon: const Icon(Icons.add, size: 28),
                       color: AppColors.textPrimary,
                     ),
@@ -146,35 +251,10 @@ class _ClassesView extends StatelessWidget {
                 },
               ),
             ),
-            // Кнопка создания (только для учителя)
-            if (isTeacher)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: OutlinedButton(
-                    onPressed: () {
-                      // TODO: навигация на создание класса
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: AppColors.cardBorder),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: Text(
-                      '+ Создать новый класс',
-                      style: AppTextStyles.body.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
           ],
         ),
       ),
+    ),
     );
   }
 }
