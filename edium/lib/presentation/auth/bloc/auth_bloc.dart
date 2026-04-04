@@ -1,4 +1,5 @@
 import 'package:edium/core/storage/profile_storage.dart';
+import 'package:edium/domain/entities/user.dart';
 import 'package:edium/domain/usecases/auth/logout_usecase.dart';
 import 'package:edium/domain/usecases/auth/send_otp_usecase.dart';
 import 'package:edium/domain/usecases/auth/verify_otp_usecase.dart';
@@ -40,10 +41,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
     try {
       final user = await getMe();
-      if (user.role == null) {
+      final savedRole = profileStorage.getRole();
+      UserRole? role;
+      if (savedRole == 'teacher') role = UserRole.teacher;
+      if (savedRole == 'student') role = UserRole.student;
+
+      if (role == null) {
         emit(AuthRoleRequired(user));
       } else {
-        emit(AuthAuthenticated(user));
+        emit(AuthAuthenticated(user.copyWith(role: role)));
       }
     } catch (_) {
       emit(const AuthUnauthenticated());
