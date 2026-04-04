@@ -41,7 +41,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           children: [
             _StudentDashboardPage(onNavigateToTab: _goToTab),
             const StudentQuizLibraryScreen(),
-            const ClassesScreen(),
+            const ClassesScreen(role: 'student'),
             const ProfileScreen(),
           ],
         ),
