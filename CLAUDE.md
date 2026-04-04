@@ -1,4 +1,10 @@
 # CLAUDE.md
+@../edium-claude/claude/shared/CLAUDE.md
+@../edium-claude/claude/shared/PRODUCT_FLOWS.md
+@../edium-claude/claude/shared/api-conventions.md
+@../edium-claude/claude/shared/security-rules.md
+@../edium-claude/claude/shared/project-context.md
+@../edium-claude/claude/backend/CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
