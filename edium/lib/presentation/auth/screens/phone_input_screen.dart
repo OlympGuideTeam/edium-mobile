@@ -111,6 +111,13 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
     }
   }
 
+  Future<void> _openVkBot() async {
+    final uri = Uri.parse('https://vk.com/edium_bot');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
@@ -297,6 +304,52 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                                         SizedBox(height: 2),
                                         Text(
                                           'Откройте @edium_bot и отправьте контакт',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Color(0xFF999999),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(Icons.open_in_new,
+                                      size: 16, color: Color(0xFFBBBBBB)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          // ВКонтакте-бот инфо
+                          GestureDetector(
+                            onTap: _openVkBot,
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF5F5F5),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                    color: const Color(0xFFDDDDDD)),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Text('💬', style: TextStyle(fontSize: 20)),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Код придёт в ВКонтакте',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF1A1A1A),
+                                          ),
+                                        ),
+                                        SizedBox(height: 2),
+                                        Text(
+                                          'Напишите боту Edium в ВК',
                                           style: TextStyle(
                                             fontSize: 11,
                                             color: Color(0xFF999999),

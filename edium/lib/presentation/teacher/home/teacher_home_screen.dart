@@ -2,11 +2,9 @@ import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
-import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
-import 'package:edium/presentation/debug/debug_panel_screen.dart';
+import 'package:edium/presentation/profile/profile_screen.dart';
 import 'package:edium/presentation/teacher/classes/classes_screen.dart';
-import 'package:edium/presentation/teacher/courses/courses_screen.dart';
 import 'package:edium/presentation/teacher/create_quiz/bloc/create_quiz_bloc.dart';
 import 'package:edium/presentation/teacher/create_quiz/create_quiz_screen.dart';
 import 'package:edium/presentation/teacher/quiz_library/bloc/quiz_library_bloc.dart';
@@ -14,7 +12,6 @@ import 'package:edium/presentation/teacher/quiz_library/bloc/quiz_library_event.
 import 'package:edium/presentation/teacher/quiz_library/quiz_library_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -33,8 +30,8 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     final pages = [
       _TeacherDashboardPage(onNavigateToTab: _goToTab),
       const QuizLibraryScreen(),
-      const CoursesScreen(),
       const ClassesScreen(),
+      const ProfileScreen(),
     ];
 
     return MultiBlocProvider(
@@ -73,14 +70,14 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                 label: 'Библиотека',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.school_outlined),
-                activeIcon: Icon(Icons.school),
-                label: 'Курсы',
-              ),
-              BottomNavigationBarItem(
                 icon: Icon(Icons.groups_outlined),
                 activeIcon: Icon(Icons.groups),
                 label: 'Классы',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline),
+                activeIcon: Icon(Icons.person),
+                label: 'Профиль',
               ),
             ],
           ),
@@ -113,24 +110,13 @@ class _TeacherDashboardPage extends StatelessWidget {
                   children: [
                     // Header
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 12, 0),
-                      child: Row(
-                        children: [
-                          Text(
-                            'Edium',
-                            style: AppTextStyles.heading3.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const Spacer(),
-                          _ProfileButton(
-                            name: firstName,
-                            role: 'Преподаватель',
-                            onSwitchMode: () =>
-                                context.go('/student/home'),
-                          ),
-                        ],
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                      child: Text(
+                        'Edium',
+                        style: AppTextStyles.heading3.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -210,19 +196,11 @@ class _TeacherDashboardPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 12),
                           _QuickActionTile(
-                            icon: Icons.school_outlined,
-                            label: 'Курсы',
-                            subtitle: 'Создавайте курсы из набора квизов',
-                            color: AppColors.success,
-                            onTap: () => onNavigateToTab(2),
-                          ),
-                          const SizedBox(height: 12),
-                          _QuickActionTile(
                             icon: Icons.groups_outlined,
                             label: 'Классы',
                             subtitle: 'Управляйте группами студентов',
-                            color: const Color(0xFFEC4899),
-                            onTap: () => onNavigateToTab(3),
+                            color: AppColors.success,
+                            onTap: () => onNavigateToTab(2),
                           ),
                         ],
                       ),
@@ -235,165 +213,6 @@ class _TeacherDashboardPage extends StatelessWidget {
           );
         },
       ),
-    );
-  }
-}
-
-// ── Profile button (opens bottom sheet) ─────────────────────────────────────
-
-class _ProfileButton extends StatelessWidget {
-  final String name;
-  final String role;
-  final VoidCallback onSwitchMode;
-
-  const _ProfileButton({
-    required this.name,
-    required this.role,
-    required this.onSwitchMode,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showProfileSheet(context),
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: AppColors.primaryLight,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Center(
-          child: Text(
-            name.isNotEmpty ? name[0].toUpperCase() : 'U',
-            style: AppTextStyles.subtitle
-                .copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showProfileSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.divider,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Avatar
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Center(
-                  child: Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                    style: AppTextStyles.heading2
-                        .copyWith(color: AppColors.primary),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(name, style: AppTextStyles.subtitle),
-              const SizedBox(height: 4),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  role,
-                  style: AppTextStyles.caption.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Switch mode
-              _SheetAction(
-                icon: Icons.swap_horiz_outlined,
-                label: 'Режим студента',
-                onTap: () {
-                  Navigator.pop(context);
-                  onSwitchMode();
-                },
-              ),
-              const SizedBox(height: 4),
-              // Debug
-              _SheetAction(
-                icon: Icons.bug_report_outlined,
-                label: 'Отладка (Hive)',
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const DebugPanelScreen()),
-                  );
-                },
-              ),
-              const SizedBox(height: 4),
-              // Logout
-              _SheetAction(
-                icon: Icons.logout_outlined,
-                label: 'Выйти',
-                color: AppColors.error,
-                onTap: () {
-                  Navigator.pop(context);
-                  getIt<AuthBloc>().add(const LogoutEvent());
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SheetAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color? color;
-
-  const _SheetAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final c = color ?? AppColors.textPrimary;
-    return ListTile(
-      leading: Icon(icon, color: c, size: 22),
-      title: Text(label, style: AppTextStyles.bodySmall.copyWith(color: c)),
-      onTap: onTap,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
 }

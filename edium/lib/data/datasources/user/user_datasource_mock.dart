@@ -1,6 +1,7 @@
 import 'package:edium/core/storage/profile_storage.dart';
 import 'package:edium/data/datasources/user/user_datasource.dart';
 import 'package:edium/data/models/user_model.dart';
+import 'package:edium/data/models/user_statistic_model.dart';
 
 class UserDatasourceMock implements IUserDatasource {
   final ProfileStorage _profileStorage;
@@ -27,6 +28,37 @@ class UserDatasourceMock implements IUserDatasource {
       name: _profileStorage.getName() ?? '',
       phone: '+79991234567',
       role: role,
+    );
+  }
+
+  @override
+  Future<UserModel> updateProfile({required String name}) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    await _profileStorage.saveName(name);
+    return UserModel(
+      id: 'mock-user-1',
+      name: name,
+      phone: '+79991234567',
+      role: _profileStorage.getRole(),
+    );
+  }
+
+  @override
+  Future<void> deleteAccount() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    await _profileStorage.clear();
+  }
+
+  @override
+  Future<UserStatisticModel> getStatistic() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return const UserStatisticModel(
+      quizCountCreated: 18,
+      classTeacherCount: 4,
+      studentCount: 79,
+      courseStudentCount: 3,
+      quizCountPassed: 24,
+      avgQuizScore: 4.2,
     );
   }
 }
