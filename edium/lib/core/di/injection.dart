@@ -1,5 +1,8 @@
 import 'package:edium/core/config/api_config.dart';
 import 'package:edium/core/storage/profile_storage.dart';
+import 'package:edium/data/datasources/class/class_datasource.dart';
+import 'package:edium/data/datasources/class/class_datasource_impl.dart';
+import 'package:edium/data/datasources/class/class_datasource_mock.dart';
 import 'package:edium/data/datasources/quiz/quiz_datasource.dart';
 import 'package:edium/data/datasources/quiz/quiz_datasource_hive.dart';
 import 'package:edium/data/datasources/quiz/quiz_datasource_impl.dart';
@@ -11,10 +14,12 @@ import 'package:edium/data/datasources/user/user_datasource_impl.dart';
 import 'package:edium/data/datasources/user/user_datasource_mock.dart';
 import 'package:edium/data/repositories/auth_repository_impl.dart';
 import 'package:edium/data/repositories/auth_repository_mock.dart';
+import 'package:edium/data/repositories/class_repository_impl.dart';
 import 'package:edium/data/repositories/quiz_repository_impl.dart';
 import 'package:edium/data/repositories/quiz_session_repository_impl.dart';
 import 'package:edium/data/repositories/user_repository_impl.dart';
 import 'package:edium/domain/repositories/auth_repository.dart';
+import 'package:edium/domain/repositories/class_repository.dart';
 import 'package:edium/domain/repositories/quiz_repository.dart';
 import 'package:edium/domain/repositories/quiz_session_repository.dart';
 import 'package:edium/domain/repositories/user_repository.dart';
@@ -29,6 +34,7 @@ import 'package:edium/domain/usecases/quiz_session/complete_quiz_usecase.dart';
 import 'package:edium/domain/usecases/quiz_session/get_my_sessions_usecase.dart';
 import 'package:edium/domain/usecases/quiz_session/start_quiz_usecase.dart';
 import 'package:edium/domain/usecases/quiz_session/submit_answer_usecase.dart';
+import 'package:edium/domain/usecases/class/get_my_classes_usecase.dart';
 import 'package:edium/domain/usecases/user/delete_account_usecase.dart';
 import 'package:edium/domain/usecases/user/get_me_usecase.dart';
 import 'package:edium/domain/usecases/user/get_user_statistic_usecase.dart';
@@ -63,6 +69,8 @@ Future<void> initializeDependencies() async {
         () => QuizDatasourceHive(getIt<ProfileStorage>()));
     getIt.registerLazySingleton<IQuizSessionDatasource>(
         () => QuizSessionDatasourceHive());
+    getIt.registerLazySingleton<IClassDatasource>(
+        () => ClassDatasourceMock());
   } else {
     getIt.registerLazySingleton<IUserDatasource>(
         () => UserDatasourceImpl(getIt<DioHandler>().dio));
@@ -70,6 +78,8 @@ Future<void> initializeDependencies() async {
         () => QuizDatasourceImpl(getIt<DioHandler>().dio));
     getIt.registerLazySingleton<IQuizSessionDatasource>(
         () => QuizSessionDatasourceImpl(getIt<DioHandler>().dio));
+    getIt.registerLazySingleton<IClassDatasource>(
+        () => ClassDatasourceImpl(getIt<DioHandler>().dio));
   }
 
   if (ApiConfig.useMock) {
@@ -92,6 +102,9 @@ Future<void> initializeDependencies() async {
   getIt.registerLazySingleton<IQuizSessionRepository>(
     () => QuizSessionRepositoryImpl(getIt()),
   );
+  getIt.registerLazySingleton<IClassRepository>(
+    () => ClassRepositoryImpl(getIt()),
+  );
 
   getIt.registerLazySingleton(() => SendOtpUsecase(getIt()));
   getIt.registerLazySingleton(() => VerifyOtpUsecase(getIt()));
@@ -101,6 +114,7 @@ Future<void> initializeDependencies() async {
   getIt.registerLazySingleton(() => GetUserStatisticUsecase(getIt()));
   getIt.registerLazySingleton(() => UpdateProfileUsecase(getIt()));
   getIt.registerLazySingleton(() => DeleteAccountUsecase(getIt()));
+  getIt.registerLazySingleton(() => GetMyClassesUsecase(getIt()));
   getIt.registerLazySingleton(() => GetQuizzesUsecase(getIt()));
   getIt.registerLazySingleton(() => CreateQuizUsecase(getIt()));
   getIt.registerLazySingleton(() => LikeQuizUsecase(getIt()));
