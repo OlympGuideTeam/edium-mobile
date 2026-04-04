@@ -30,7 +30,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     final pages = [
       _TeacherDashboardPage(onNavigateToTab: _goToTab),
       const QuizLibraryScreen(),
-      const ClassesScreen(),
+      const ClassesScreen(role: 'teacher'),
       const ProfileScreen(),
     ];
 
