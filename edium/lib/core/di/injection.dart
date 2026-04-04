@@ -34,6 +34,7 @@ import 'package:edium/domain/usecases/quiz_session/complete_quiz_usecase.dart';
 import 'package:edium/domain/usecases/quiz_session/get_my_sessions_usecase.dart';
 import 'package:edium/domain/usecases/quiz_session/start_quiz_usecase.dart';
 import 'package:edium/domain/usecases/quiz_session/submit_answer_usecase.dart';
+import 'package:edium/domain/usecases/class/create_class_usecase.dart';
 import 'package:edium/domain/usecases/class/get_my_classes_usecase.dart';
 import 'package:edium/domain/usecases/user/delete_account_usecase.dart';
 import 'package:edium/domain/usecases/user/get_me_usecase.dart';
@@ -115,6 +116,7 @@ Future<void> initializeDependencies() async {
   getIt.registerLazySingleton(() => UpdateProfileUsecase(getIt()));
   getIt.registerLazySingleton(() => DeleteAccountUsecase(getIt()));
   getIt.registerLazySingleton(() => GetMyClassesUsecase(getIt()));
+  getIt.registerLazySingleton(() => CreateClassUsecase(getIt()));
   getIt.registerLazySingleton(() => GetQuizzesUsecase(getIt()));
   getIt.registerLazySingleton(() => CreateQuizUsecase(getIt()));
   getIt.registerLazySingleton(() => LikeQuizUsecase(getIt()));

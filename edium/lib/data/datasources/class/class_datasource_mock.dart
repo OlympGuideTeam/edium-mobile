@@ -2,12 +2,29 @@ import 'package:edium/data/datasources/class/class_datasource.dart';
 import 'package:edium/data/models/class_summary_model.dart';
 
 class ClassDatasourceMock implements IClassDatasource {
+  final List<ClassSummaryModel> _createdClasses = [];
+
+  @override
+  Future<String> createClass({required String title}) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final id = 'class-new-${DateTime.now().millisecondsSinceEpoch}';
+    _createdClasses.add(ClassSummaryModel(
+      id: id,
+      title: title,
+      ownerName: 'Иван Петров',
+      studentCount: 0,
+      isOwner: true,
+    ));
+    return id;
+  }
+
   @override
   Future<List<ClassSummaryModel>> getMyClasses({required String role}) async {
     await Future.delayed(const Duration(milliseconds: 400));
 
     if (role == 'teacher') {
-      return const [
+      return [
+        ..._createdClasses,
         ClassSummaryModel(
           id: 'class-1',
           title: '7А — Математика',

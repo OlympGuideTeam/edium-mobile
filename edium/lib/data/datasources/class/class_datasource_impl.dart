@@ -7,6 +7,16 @@ class ClassDatasourceImpl extends BaseApiService implements IClassDatasource {
   ClassDatasourceImpl(super.dio);
 
   @override
+  Future<String> createClass({required String title}) {
+    return request(
+      'caesar/v1/classes',
+      method: HttpMethod.post,
+      req: {'title': title},
+      parser: (data) => (data as Map<String, dynamic>)['id'] as String,
+    );
+  }
+
+  @override
   Future<List<ClassSummaryModel>> getMyClasses({required String role}) {
     return request(
       'caesar/v1/classes/me',

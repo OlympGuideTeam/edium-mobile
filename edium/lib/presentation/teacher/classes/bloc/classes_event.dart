@@ -11,3 +11,9 @@ class SearchClassesEvent extends ClassesEvent {
 
   const SearchClassesEvent(this.query);
 }
+
+class CreateClassEvent extends ClassesEvent {
+  final String title;
+
+  const CreateClassEvent(this.title);
+}

@@ -1,3 +1,4 @@
+import 'package:edium/domain/usecases/class/create_class_usecase.dart';
 import 'package:edium/domain/usecases/class/get_my_classes_usecase.dart';
 import 'package:edium/presentation/teacher/classes/bloc/classes_event.dart';
 import 'package:edium/presentation/teacher/classes/bloc/classes_state.dart';
@@ -5,15 +6,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 class ClassesBloc extends Bloc<ClassesEvent, ClassesState> {
   final GetMyClassesUsecase _getMyClasses;
+  final CreateClassUsecase _createClass;
   final String role;
 
   ClassesBloc({
     required GetMyClassesUsecase getMyClasses,
+    required CreateClassUsecase createClass,
     required this.role,
   })  : _getMyClasses = getMyClasses,
+        _createClass = createClass,
         super(const ClassesInitial()) {
     on<LoadClassesEvent>(_onLoad);
     on<SearchClassesEvent>(_onSearch);
+    on<CreateClassEvent>(_onCreate);
   }
 
   Future<void> _onLoad(
@@ -54,5 +59,18 @@ class ClassesBloc extends Bloc<ClassesEvent, ClassesState> {
       filtered: filtered,
       searchQuery: event.query,
     ));
+  }
+
+  Future<void> _onCreate(
+    CreateClassEvent event,
+    Emitter<ClassesState> emit,
+  ) async {
+    try {
+      await _createClass(title: event.title);
+      emit(const ClassCreated());
+      add(const LoadClassesEvent());
+    } catch (e) {
+      emit(ClassCreateError(e.toString()));
+    }
   }
 }
