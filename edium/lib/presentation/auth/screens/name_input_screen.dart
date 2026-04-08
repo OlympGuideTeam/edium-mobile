@@ -1,3 +1,6 @@
+import 'package:edium/core/theme/app_colors.dart';
+import 'package:edium/core/theme/app_dimens.dart';
+import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:flutter/material.dart';
@@ -52,90 +55,50 @@ class _NameInputScreenState extends State<NameInputScreen> {
         backgroundColor: Colors.white,
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(horizontal: AppDimens.screenPaddingH),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 56),
-                // Тег "Новый аккаунт"
+                // Тег
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A1A),
-                    borderRadius: BorderRadius.circular(4),
+                    color: AppColors.mono900,
+                    borderRadius: BorderRadius.circular(AppDimens.radiusXs),
                   ),
-                  child: const Text(
-                    'НОВЫЙ АККАУНТ',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: 1,
-                    ),
-                  ),
+                  child: const Text('НОВЫЙ АККАУНТ', style: AppTextStyles.badgeText),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Как вас зовут?',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                ),
+                const Text('Как вас зовут?', style: AppTextStyles.screenTitle),
                 const SizedBox(height: 6),
                 const Text(
                   'Укажите имя и фамилию — их увидят\nученики и учителя',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF888888),
-                    height: 1.4,
-                  ),
+                  style: AppTextStyles.screenSubtitle,
                 ),
                 const SizedBox(height: 28),
-                // Фамилия
-                const Text(
-                  'Фамилия',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF888888),
-                  ),
-                ),
+                const Text('Фамилия', style: AppTextStyles.fieldLabel),
                 const SizedBox(height: 8),
                 _buildTextField(_surnameCtrl, 'Иванов'),
                 const SizedBox(height: 16),
-                // Имя
-                const Text(
-                  'Имя',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF888888),
-                  ),
-                ),
+                const Text('Имя', style: AppTextStyles.fieldLabel),
                 const SizedBox(height: 8),
                 _buildTextField(_nameCtrl, 'Иван'),
                 const Spacer(),
-                // Кнопка
                 SizedBox(
                   width: double.infinity,
-                  height: 52,
+                  height: AppDimens.buttonH,
                   child: ElevatedButton(
                     onPressed: _canSubmit ? _submit : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A1A1A),
+                      backgroundColor: AppColors.mono900,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: const Color(0xFFCCCCCC),
+                      disabledBackgroundColor: AppColors.mono200,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
                       ),
                       elevation: 0,
-                      textStyle: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      textStyle: AppTextStyles.primaryButton,
                     ),
                     child: const Text('Продолжить'),
                   ),
@@ -145,11 +108,7 @@ class _NameInputScreenState extends State<NameInputScreen> {
                   child: Text(
                     'Вы сможете изменить имя позже\nв настройках профиля',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFFAAAAAA),
-                      height: 1.5,
-                    ),
+                    style: AppTextStyles.helperText,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -163,34 +122,24 @@ class _NameInputScreenState extends State<NameInputScreen> {
 
   Widget _buildTextField(TextEditingController controller, String hint) {
     return Container(
-      height: 52,
+      height: AppDimens.inputH,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFBBBBBB),
-          width: 1.5,
-        ),
+        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+        border: Border.all(color: AppColors.mono250, width: AppDimens.borderWidth),
       ),
       child: TextField(
         controller: controller,
-        cursorColor: const Color(0xFF1A1A1A),
-        style: const TextStyle(
-          fontSize: 15,
-          color: Color(0xFF333333),
-        ),
+        cursorColor: AppColors.mono900,
+        style: AppTextStyles.fieldText,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(
-            fontSize: 15,
-            color: Color(0xFFBBBBBB),
-          ),
+          hintStyle: AppTextStyles.fieldHint,
           filled: false,
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         ),
       ),
     );
