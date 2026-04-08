@@ -1,5 +1,8 @@
 import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/storage/profile_storage.dart';
+import 'package:edium/core/theme/app_colors.dart';
+import 'package:edium/core/theme/app_dimens.dart';
+import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/user.dart';
 import 'package:edium/domain/usecases/user/set_role_usecase.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
@@ -46,87 +49,58 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
           backgroundColor: Colors.white,
           body: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: AppDimens.screenPaddingH),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 56),
-                  // Тег "Последний шаг"
+                  // Тег
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1A1A1A),
-                      borderRadius: BorderRadius.circular(4),
+                      color: AppColors.mono900,
+                      borderRadius: BorderRadius.circular(AppDimens.radiusXs),
                     ),
-                    child: const Text(
-                      'ПОСЛЕДНИЙ ШАГ',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: 1,
-                      ),
-                    ),
+                    child: const Text('ПОСЛЕДНИЙ ШАГ', style: AppTextStyles.badgeText),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Кто вы?',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1A1A1A),
-                    ),
-                  ),
+                  const Text('Кто вы?', style: AppTextStyles.screenTitle),
                   const SizedBox(height: 6),
                   const Text(
                     'Выберите роль — от этого зависит\nинтерфейс приложения',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF888888),
-                      height: 1.4,
-                    ),
+                    style: AppTextStyles.screenSubtitle,
                   ),
                   const SizedBox(height: 28),
-                  // Карточка "Учитель"
                   _RoleCard(
                     emoji: '👩‍🏫',
                     title: 'Учитель',
                     subtitle: 'Создаю квизы, веду классы',
                     isSelected: _selected == UserRole.teacher,
-                    onTap: () =>
-                        setState(() => _selected = UserRole.teacher),
+                    onTap: () => setState(() => _selected = UserRole.teacher),
                   ),
                   const SizedBox(height: 12),
-                  // Карточка "Ученик"
                   _RoleCard(
                     emoji: '🎒',
                     title: 'Ученик',
                     subtitle: 'Прохожу квизы, учусь',
                     isSelected: _selected == UserRole.student,
-                    onTap: () =>
-                        setState(() => _selected = UserRole.student),
+                    onTap: () => setState(() => _selected = UserRole.student),
                   ),
                   const Spacer(),
-                  // Кнопка
                   SizedBox(
                     width: double.infinity,
-                    height: 52,
+                    height: AppDimens.buttonH,
                     child: ElevatedButton(
-                      onPressed:
-                          (_selected == null || _loading) ? null : _confirm,
+                      onPressed: (_selected == null || _loading) ? null : _confirm,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A1A1A),
+                        backgroundColor: AppColors.mono900,
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor: const Color(0xFFCCCCCC),
+                        disabledBackgroundColor: AppColors.mono200,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
                         ),
                         elevation: 0,
-                        textStyle: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        textStyle: AppTextStyles.primaryButton,
                       ),
                       child: _loading
                           ? const SizedBox(
@@ -144,10 +118,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                   const Center(
                     child: Text(
                       'Роль можно сменить в настройках',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFFAAAAAA),
-                      ),
+                      style: AppTextStyles.helperText,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -184,13 +155,11 @@ class _RoleCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : const Color(0xFFFAFAFA),
-          borderRadius: BorderRadius.circular(14),
+          color: isSelected ? Colors.white : AppColors.mono25,
+          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
           border: Border.all(
-            color: isSelected
-                ? const Color(0xFF333333)
-                : const Color(0xFFDDDDDD),
-            width: 1.5,
+            color: isSelected ? AppColors.mono700 : AppColors.mono150,
+            width: AppDimens.borderWidth,
           ),
         ),
         child: Row(
@@ -199,7 +168,7 @@ class _RoleCard extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFEEEEEE),
+                color: AppColors.mono100,
                 borderRadius: BorderRadius.circular(11),
               ),
               child: Center(
@@ -216,7 +185,7 @@ class _RoleCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF1A1A1A),
+                      color: AppColors.mono900,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -224,19 +193,21 @@ class _RoleCard extends StatelessWidget {
                     subtitle,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF999999),
+                      color: AppColors.mono350,
                     ),
                   ),
                 ],
               ),
             ),
             if (isSelected)
-              const Text('✓',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A1A1A),
-                  )),
+              const Text(
+                '✓',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mono900,
+                ),
+              ),
           ],
         ),
       ),
