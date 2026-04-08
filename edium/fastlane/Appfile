@@ -1,0 +1,2 @@
+app_identifier("online.edium.app")
+apple_team_id(ENV["APPLE_TEAM_ID"])
