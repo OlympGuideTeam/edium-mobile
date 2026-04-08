@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:edium/core/config/api_config.dart';
 import 'package:edium/core/di/injection.dart';
+import 'package:edium/core/theme/app_colors.dart';
+import 'package:edium/core/theme/app_dimens.dart';
+import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
@@ -29,7 +32,6 @@ class _OtpScreenState extends State<OtpScreen>
   int _countdown = 60;
   Timer? _timer;
 
-  // Shake animation
   late final AnimationController _shakeController;
   late final Animation<double> _shakeAnimation;
 
@@ -95,11 +97,11 @@ class _OtpScreenState extends State<OtpScreen>
   }
 
   void _onCodeChanged(String value) {
-    // Оставляем только цифры, макс 6
     final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
     if (digits != value || digits.length > _codeLength) {
-      final clamped =
-          digits.length > _codeLength ? digits.substring(0, _codeLength) : digits;
+      final clamped = digits.length > _codeLength
+          ? digits.substring(0, _codeLength)
+          : digits;
       _hiddenController.value = TextEditingValue(
         text: clamped,
         selection: TextSelection.collapsed(offset: clamped.length),
@@ -113,7 +115,6 @@ class _OtpScreenState extends State<OtpScreen>
     }
   }
 
-  /// При тапе на ячейку — обрезаем текст до этой позиции
   void _onCellTap(int index) {
     _hiddenFocus.requestFocus();
     final text = _hiddenController.text;
@@ -179,7 +180,7 @@ class _OtpScreenState extends State<OtpScreen>
                         children: [
                           IconButton(
                             icon: const Icon(Icons.arrow_back_ios_new,
-                                size: 20, color: Color(0xFF1A1A1A)),
+                                size: 20, color: AppColors.mono900),
                             onPressed: () => context.pop(),
                           ),
                         ],
@@ -187,42 +188,31 @@ class _OtpScreenState extends State<OtpScreen>
                     ),
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppDimens.screenPaddingH),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 8),
-                            const Text(
-                              'Введите код',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF1A1A1A),
-                              ),
-                            ),
+                            const Text('Введите код',
+                                style: AppTextStyles.screenTitle),
                             const SizedBox(height: 6),
                             Text(
                               'Отправили код в Telegram\nна номер $_maskedPhone',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF888888),
-                                height: 1.4,
-                              ),
+                              style: AppTextStyles.screenSubtitle,
                             ),
                             const SizedBox(height: 32),
                             // OTP-ячейки с shake-анимацией
                             AnimatedBuilder(
                               animation: _shakeAnimation,
-                              builder: (context, child) {
-                                return Transform.translate(
-                                  offset: Offset(_shakeAnimation.value, 0),
-                                  child: child,
-                                );
-                              },
+                              builder: (context, child) => Transform.translate(
+                                offset: Offset(_shakeAnimation.value, 0),
+                                child: child,
+                              ),
                               child: GestureDetector(
                                 onTap: () => _hiddenFocus.requestFocus(),
                                 child: SizedBox(
-                                  height: 54,
+                                  height: AppDimens.otpCellH,
                                   child: Stack(
                                     children: [
                                       // Визуальные ячейки
@@ -245,54 +235,47 @@ class _OtpScreenState extends State<OtpScreen>
                                                 final hasError =
                                                     _error != null;
 
-                                                Color borderColor;
+                                                final Color borderColor;
                                                 if (hasError && hasDigit) {
-                                                  borderColor =
-                                                      const Color(0xFFEF4444);
+                                                  borderColor = AppColors.error;
                                                 } else if (hasDigit) {
                                                   borderColor =
-                                                      const Color(0xFF333333);
+                                                      AppColors.mono700;
                                                 } else if (isNext &&
                                                     _hiddenFocus.hasFocus) {
                                                   borderColor =
-                                                      const Color(0xFF333333);
+                                                      AppColors.mono700;
                                                 } else {
                                                   borderColor =
-                                                      const Color(0xFFBBBBBB);
+                                                      AppColors.mono250;
                                                 }
 
                                                 return Container(
-                                                  width: 46,
-                                                  height: 54,
+                                                  width: AppDimens.otpCellW,
+                                                  height: AppDimens.otpCellH,
                                                   margin: EdgeInsets.only(
-                                                      left: i == 0 ? 0 : 8),
+                                                      left: i == 0
+                                                          ? 0
+                                                          : AppDimens.otpCellGap),
                                                   decoration: BoxDecoration(
                                                     color: hasDigit
                                                         ? Colors.white
-                                                        : const Color(
-                                                            0xFFFAFAFA),
+                                                        : AppColors.mono25,
                                                     borderRadius:
                                                         BorderRadius.circular(
-                                                            10),
+                                                            AppDimens.radiusSm),
                                                     border: Border.all(
                                                       color: borderColor,
-                                                      width: 1.5,
+                                                      width:
+                                                          AppDimens.borderWidth,
                                                     ),
                                                   ),
                                                   child: Center(
                                                     child: hasDigit
-                                                        ? Text(
-                                                            text[i],
+                                                        ? Text(text[i],
                                                             style:
-                                                                const TextStyle(
-                                                              fontSize: 20,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w700,
-                                                              color: Color(
-                                                                  0xFF333333),
-                                                            ),
-                                                          )
+                                                                AppTextStyles
+                                                                    .otpDigit)
                                                         : null,
                                                   ),
                                                 );
@@ -301,29 +284,25 @@ class _OtpScreenState extends State<OtpScreen>
                                           );
                                         }),
                                       ),
-                                      // Скрытый TextField — без контекстного меню
+                                      // Скрытый TextField
                                       Positioned.fill(
                                         child: ExcludeSemantics(
                                           child: Opacity(
                                             opacity: 0,
                                             child: TextField(
-                                              controller:
-                                                  _hiddenController,
+                                              controller: _hiddenController,
                                               focusNode: _hiddenFocus,
                                               keyboardType:
                                                   TextInputType.number,
                                               maxLength: _codeLength,
                                               showCursor: false,
-                                              enableInteractiveSelection:
-                                                  false,
+                                              enableInteractiveSelection: false,
                                               stylusHandwritingEnabled: false,
                                               contextMenuBuilder:
                                                   (context, state) =>
-                                                      const SizedBox
-                                                          .shrink(),
+                                                      const SizedBox.shrink(),
                                               autofillHints: const [
-                                                AutofillHints
-                                                    .oneTimeCode,
+                                                AutofillHints.oneTimeCode,
                                               ],
                                               inputFormatters: [
                                                 FilteringTextInputFormatter
@@ -335,8 +314,7 @@ class _OtpScreenState extends State<OtpScreen>
                                               decoration:
                                                   const InputDecoration(
                                                 counterText: '',
-                                                border:
-                                                    InputBorder.none,
+                                                border: InputBorder.none,
                                               ),
                                             ),
                                           ),
@@ -353,9 +331,7 @@ class _OtpScreenState extends State<OtpScreen>
                                 child: Text(
                                   _error!,
                                   style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFFEF4444),
-                                  ),
+                                      fontSize: 13, color: AppColors.error),
                                 ),
                               ),
                             ],
@@ -363,10 +339,8 @@ class _OtpScreenState extends State<OtpScreen>
                             Center(
                               child: Text(
                                 'Не пришёл код?',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey.shade500,
-                                ),
+                                style: const TextStyle(
+                                    fontSize: 13, color: AppColors.mono350),
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -381,8 +355,8 @@ class _OtpScreenState extends State<OtpScreen>
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                     color: _countdown == 0
-                                        ? const Color(0xFF555555)
-                                        : const Color(0xFFAAAAAA),
+                                        ? AppColors.mono600
+                                        : AppColors.mono300,
                                     decoration: _countdown == 0
                                         ? TextDecoration.underline
                                         : null,
@@ -397,15 +371,14 @@ class _OtpScreenState extends State<OtpScreen>
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF5F5F5),
-                                    borderRadius: BorderRadius.circular(8),
+                                    color: AppColors.mono50,
+                                    borderRadius: BorderRadius.circular(
+                                        AppDimens.radiusSm - 2),
                                   ),
                                   child: const Text(
                                     'Тестовый код: 123456',
                                     style: TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF888888),
-                                    ),
+                                        fontSize: 12, color: AppColors.mono400),
                                   ),
                                 ),
                               ),
@@ -414,22 +387,19 @@ class _OtpScreenState extends State<OtpScreen>
                             // Кнопка подтверждения
                             SizedBox(
                               width: double.infinity,
-                              height: 52,
+                              height: AppDimens.buttonH,
                               child: ElevatedButton(
                                 onPressed: isLoading ? null : _submit,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF1A1A1A),
+                                  backgroundColor: AppColors.mono900,
                                   foregroundColor: Colors.white,
-                                  disabledBackgroundColor:
-                                      const Color(0xFFCCCCCC),
+                                  disabledBackgroundColor: AppColors.mono200,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
+                                    borderRadius: BorderRadius.circular(
+                                        AppDimens.radiusLg),
                                   ),
                                   elevation: 0,
-                                  textStyle: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                                  textStyle: AppTextStyles.primaryButton,
                                 ),
                                 child: isLoading
                                     ? const SizedBox(
@@ -447,22 +417,20 @@ class _OtpScreenState extends State<OtpScreen>
                             // Кнопка "Изменить номер"
                             SizedBox(
                               width: double.infinity,
-                              height: 48,
+                              height: AppDimens.buttonHSm,
                               child: OutlinedButton(
                                 onPressed: () => context.pop(),
                                 style: OutlinedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFF5F5F5),
-                                  foregroundColor: const Color(0xFF555555),
+                                  backgroundColor: AppColors.mono50,
+                                  foregroundColor: AppColors.mono600,
                                   side: const BorderSide(
-                                      color: Color(0xFFDDDDDD)),
+                                      color: AppColors.mono150),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
+                                    borderRadius: BorderRadius.circular(
+                                        AppDimens.radiusLg),
                                   ),
                                   elevation: 0,
-                                  textStyle: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                  textStyle: AppTextStyles.secondaryButton,
                                 ),
                                 child: const Text('← Изменить номер'),
                               ),

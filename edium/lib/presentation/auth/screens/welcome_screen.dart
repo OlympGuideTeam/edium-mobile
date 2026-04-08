@@ -1,3 +1,6 @@
+import 'package:edium/core/theme/app_colors.dart';
+import 'package:edium/core/theme/app_dimens.dart';
+import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -85,7 +88,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         resizeToAvoidBottomInset: true,
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(horizontal: AppDimens.screenPaddingH),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -93,17 +96,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 // Логотип с анимацией исчезновения
                 AnimatedBuilder(
                   animation: _animController,
-                  builder: (context, child) {
-                    return FadeTransition(
-                      opacity: _logoOpacity,
-                      child: child,
-                    );
-                  },
+                  builder: (context, child) =>
+                      FadeTransition(opacity: _logoOpacity, child: child),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(AppDimens.radiusXl),
                         child: Image.asset(
                           'assets/images/logo_e.png',
                           width: 72,
@@ -112,21 +111,11 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         ),
                       ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'edium',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1A1A1A),
-                        ),
-                      ),
+                      const Text('edium', style: AppTextStyles.screenTitle),
                       const SizedBox(height: 6),
                       const Text(
                         'Образовательная платформа',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFFAAAAAA),
-                        ),
+                        style: TextStyle(fontSize: 14, color: AppColors.mono300),
                       ),
                       const SizedBox(height: 12),
                     ],
@@ -136,21 +125,17 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 // Кнопка "Войти"
                 SizedBox(
                   width: double.infinity,
-                  height: 52,
+                  height: AppDimens.buttonH,
                   child: ElevatedButton(
                     onPressed: () => context.push('/phone'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A1A1A),
+                      backgroundColor: AppColors.mono900,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
                       ),
                       elevation: 0,
-                      textStyle: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.3,
-                      ),
+                      textStyle: AppTextStyles.primaryButton,
                     ),
                     child: const Text('Войти'),
                   ),
@@ -159,18 +144,15 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 // Разделитель
                 Row(
                   children: [
-                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                    Expanded(child: Divider(color: AppColors.mono150)),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 12),
                       child: Text(
                         'или',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFFBBBBBB),
-                        ),
+                        style: TextStyle(fontSize: 13, color: AppColors.mono250),
                       ),
                     ),
-                    Expanded(child: Divider(color: Colors.grey.shade300)),
+                    Expanded(child: Divider(color: AppColors.mono150)),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -216,27 +198,17 @@ class _QuizCodeBlock extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           border: Border.all(
-            color: isFocused
-                ? const Color(0xFF333333)
-                : const Color(0xFFCCCCCC),
-            width: 1.5,
+            color: isFocused ? AppColors.mono700 : AppColors.mono200,
+            width: AppDimens.borderWidth,
           ),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
         ),
         child: Column(
           children: [
-            const Text(
-              'ПРИСОЕДИНИТЬСЯ К КВИЗУ',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF999999),
-                letterSpacing: 0.5,
-              ),
-            ),
+            const Text('ПРИСОЕДИНИТЬСЯ К КВИЗУ', style: AppTextStyles.sectionTag),
             const SizedBox(height: 14),
             SizedBox(
-              height: 54,
+              height: AppDimens.otpCellH,
               child: Stack(
                 children: [
                   // Визуальные ячейки
@@ -252,40 +224,29 @@ class _QuizCodeBlock extends StatelessWidget {
                             final hasDigit = i < text.length;
                             final isNext = i == text.length;
 
-                            Color borderColor;
-                            if (hasDigit) {
-                              borderColor = const Color(0xFF333333);
-                            } else if (isNext && isFocused) {
-                              borderColor = const Color(0xFF333333);
-                            } else {
-                              borderColor = const Color(0xFFDDDDDD);
-                            }
+                            final borderColor = hasDigit
+                                ? AppColors.mono700
+                                : (isNext && isFocused)
+                                    ? AppColors.mono700
+                                    : AppColors.mono150;
 
                             return Container(
-                              width: 46,
-                              height: 54,
-                              margin:
-                                  EdgeInsets.only(left: i == 0 ? 0 : 8),
+                              width: AppDimens.otpCellW,
+                              height: AppDimens.otpCellH,
+                              margin: EdgeInsets.only(
+                                  left: i == 0 ? 0 : AppDimens.otpCellGap),
                               decoration: BoxDecoration(
-                                color: hasDigit
-                                    ? Colors.white
-                                    : const Color(0xFFFAFAFA),
-                                borderRadius: BorderRadius.circular(10),
+                                color: hasDigit ? Colors.white : AppColors.mono25,
+                                borderRadius:
+                                    BorderRadius.circular(AppDimens.radiusSm),
                                 border: Border.all(
-                                  color: borderColor,
-                                  width: 1.5,
-                                ),
+                                    color: borderColor,
+                                    width: AppDimens.borderWidth),
                               ),
                               child: Center(
                                 child: hasDigit
-                                    ? Text(
-                                        text[i],
-                                        style: const TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w700,
-                                          color: Color(0xFF333333),
-                                        ),
-                                      )
+                                    ? Text(text[i],
+                                        style: AppTextStyles.otpDigit)
                                     : null,
                               ),
                             );
@@ -294,7 +255,7 @@ class _QuizCodeBlock extends StatelessWidget {
                       );
                     }),
                   ),
-                  // Скрытый TextField — без контекстного меню
+                  // Скрытый TextField
                   Positioned.fill(
                     child: ExcludeSemantics(
                       child: Opacity(
@@ -314,9 +275,7 @@ class _QuizCodeBlock extends StatelessWidget {
                             LengthLimitingTextInputFormatter(6),
                           ],
                           onChanged: (value) {
-                            if (value.length == 6) {
-                              onSubmit();
-                            }
+                            if (value.length == 6) onSubmit();
                           },
                           decoration: const InputDecoration(
                             counterText: '',
@@ -332,10 +291,7 @@ class _QuizCodeBlock extends StatelessWidget {
             const SizedBox(height: 8),
             const Text(
               'Без авторизации',
-              style: TextStyle(
-                fontSize: 12,
-                color: Color(0xFFAAAAAA),
-              ),
+              style: TextStyle(fontSize: 12, color: AppColors.mono300),
             ),
           ],
         ),
