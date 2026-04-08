@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Edium SMS Gateway</string>
+    <string name="settings">Настройки</string>
+    <string name="start_service">Запустить</string>
+    <string name="stop_service">Остановить</string>
+    <string name="herald_url_hint">URL Herald-сервера (например http://192.168.1.10:80)</string>
+    <string name="api_key_hint">API-ключ (SMS_API_KEY)</string>
+    <string name="save">Сохранить</string>
+    <string name="history">История SMS</string>
+    <string name="history_empty">пусто</string>
+    <string name="status_idle">Не запущен</string>
+    <string name="status_not_configured">Не настроен</string>
+</resources>
