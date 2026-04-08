@@ -67,4 +67,70 @@ class AppTextStyles {
     color: AppColors.textSecondary,
     letterSpacing: 0.1,
   );
+
+  // ── Монохромный UI (auth-экраны и новые экраны) ──────────────────────────
+
+  static const TextStyle screenTitle = TextStyle(
+    fontSize: 22,
+    fontWeight: FontWeight.w700,
+    color: AppColors.mono900,
+  );
+
+  static const TextStyle screenSubtitle = TextStyle(
+    fontSize: 14,
+    color: AppColors.mono400,
+    height: 1.4,
+  );
+
+  static const TextStyle fieldLabel = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    color: AppColors.mono400,
+  );
+
+  static const TextStyle fieldText = TextStyle(
+    fontSize: 15,
+    color: AppColors.mono700,
+  );
+
+  static const TextStyle fieldHint = TextStyle(
+    fontSize: 15,
+    color: AppColors.mono250,
+  );
+
+  static const TextStyle helperText = TextStyle(
+    fontSize: 12,
+    color: AppColors.mono300,
+    height: 1.5,
+  );
+
+  static const TextStyle badgeText = TextStyle(
+    fontSize: 10,
+    fontWeight: FontWeight.w700,
+    color: Colors.white,
+    letterSpacing: 1.0,
+  );
+
+  static const TextStyle primaryButton = TextStyle(
+    fontSize: 15,
+    fontWeight: FontWeight.w700,
+  );
+
+  static const TextStyle secondaryButton = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+  );
+
+  static const TextStyle otpDigit = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    color: AppColors.mono700,
+  );
+
+  static const TextStyle sectionTag = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w700,
+    color: AppColors.mono350,
+    letterSpacing: 0.5,
+  );
 }
