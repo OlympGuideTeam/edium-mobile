@@ -66,29 +66,28 @@ jobs:
 
           security list-keychains -d user -s "$KEYCHAIN_PATH"
 
-      # ── Подпись: provisioning profile ──────────────────────────────────────
-      - name: Install provisioning profile
-        env:
-          PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
-        run: |
-          PP_PATH="$RUNNER_TEMP/profile.mobileprovision"
-          echo -n "$PROVISIONING_PROFILE_BASE64" | base64 --decode -o "$PP_PATH"
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
-
-      # ── CocoaPods ──────────────────────────────────────────────────────────
-      - name: Reinstall CocoaPods for current Ruby
+      # ── CocoaPods + Flutter build ──────────────────────────────────────────
+      # flutter build ios запускается здесь (не внутри fastlane), чтобы pod
+      # нашёлся через прямой PATH, а не через bundle exec окружение.
+      - name: Reinstall CocoaPods
         run: gem install cocoapods --no-document
 
-      # ── Сборка и загрузка ──────────────────────────────────────────────────
-      - name: Build & upload via Fastlane
+      - name: Pod install
+        working-directory: edium/ios
+        run: pod install
+
+      - name: Flutter build iOS (no codesign)
+        working-directory: edium
+        run: flutter build ios --release --no-codesign
+
+      # ── Подпись + загрузка через Fastlane ─────────────────────────────────
+      - name: Sign & upload via Fastlane
         working-directory: edium
         env:
           APPLE_TEAM_ID:                    ${{ secrets.APPLE_TEAM_ID }}
           APP_STORE_CONNECT_API_KEY_ID:     ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           APP_STORE_CONNECT_API_ISSUER_ID:  ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
-          PROVISIONING_PROFILE_NAME:        ${{ secrets.PROVISIONING_PROFILE_NAME }}
         run: bundle exec fastlane ios beta
 
       # ── Артефакты (опционально) ────────────────────────────────────────────
