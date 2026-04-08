@@ -8,6 +8,8 @@ import 'package:edium/presentation/student/quiz_library/bloc/student_quiz_bloc.d
 import 'package:edium/presentation/student/quiz_library/bloc/student_quiz_event.dart';
 import 'package:edium/presentation/student/quiz_library/student_quiz_library_screen.dart';
 import 'package:edium/presentation/teacher/classes/classes_screen.dart';
+import 'package:edium/presentation/shared/widgets/edium_tab_bar.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -45,36 +47,31 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             const ProfileScreen(),
           ],
         ),
-        bottomNavigationBar: Container(
-          decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: AppColors.divider, width: 0.5)),
-          ),
-          child: BottomNavigationBar(
-            currentIndex: _currentIndex,
-            onTap: (i) => setState(() => _currentIndex = i),
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                activeIcon: Icon(Icons.home),
-                label: 'Главная',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.explore_outlined),
-                activeIcon: Icon(Icons.explore),
-                label: 'Квизы',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.groups_outlined),
-                activeIcon: Icon(Icons.groups),
-                label: 'Классы',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person_outline),
-                activeIcon: Icon(Icons.person),
-                label: 'Профиль',
-              ),
-            ],
-          ),
+        bottomNavigationBar: EdiumTabBar(
+          currentIndex: _currentIndex,
+          onTap: (i) => setState(() => _currentIndex = i),
+          items: const [
+            EdiumTabItem(
+              icon: CupertinoIcons.house,
+              activeIcon: CupertinoIcons.house_fill,
+              label: 'Главная',
+            ),
+            EdiumTabItem(
+              icon: CupertinoIcons.compass,
+              activeIcon: CupertinoIcons.compass_fill,
+              label: 'Квизы',
+            ),
+            EdiumTabItem(
+              icon: CupertinoIcons.person_2,
+              activeIcon: CupertinoIcons.person_2_fill,
+              label: 'Классы',
+            ),
+            EdiumTabItem(
+              icon: CupertinoIcons.person_crop_circle,
+              activeIcon: CupertinoIcons.person_crop_circle_fill,
+              label: 'Профиль',
+            ),
+          ],
         ),
       ),
     );
