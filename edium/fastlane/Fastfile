@@ -25,8 +25,7 @@ platform :ios do
       export_options: {
         signingStyle: "automatic",
       },
-      xcargs:                "-allowProvisioningUpdates",
-      api_key:               api_key,
+      xcargs:                "-allowProvisioningUpdates -authenticationKeyID #{api_key[:key_id]} -authenticationKeyIssuerID #{api_key[:issuer_id]} -authenticationKeyPath #{api_key[:key_filepath]}",
       output_directory:      "build/ios/ipa",
       output_name:           "Edium.ipa",
       suppress_xcode_output: true,
