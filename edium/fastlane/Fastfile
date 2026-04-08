@@ -26,6 +26,7 @@ platform :ios do
         signingStyle: "automatic",
       },
       xcargs:                "-allowProvisioningUpdates",
+      api_key:               api_key,
       output_directory:      "build/ios/ipa",
       output_name:           "Edium.ipa",
       suppress_xcode_output: true,
