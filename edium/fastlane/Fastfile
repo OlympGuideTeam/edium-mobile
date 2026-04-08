@@ -22,10 +22,14 @@ platform :ios do
       scheme:                "Runner",
       configuration:         "Release",
       export_method:         "app-store",
+      codesigning_identity:  "Apple Distribution",
+      xcargs:                "CODE_SIGN_STYLE=Manual",
       export_options: {
-        signingStyle: "automatic",
+        signingStyle:         "manual",
+        provisioningProfiles: {
+          "online.edium.app" => ENV.fetch("PROVISIONING_PROFILE_NAME"),
+        },
       },
-      xcargs:                "-allowProvisioningUpdates -authenticationKeyID #{api_key[:key_id]} -authenticationKeyIssuerID #{api_key[:issuer_id]} -authenticationKeyPath #{api_key_path}",
       output_directory:      "build/ios/ipa",
       output_name:           "Edium.ipa",
       suppress_xcode_output: true,
