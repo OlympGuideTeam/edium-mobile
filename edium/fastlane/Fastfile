@@ -16,22 +16,18 @@ platform :ios do
       key_filepath: api_key_path,
     )
 
-    # Скомпилировать Flutter-код (без подписи — подпись на шаге build_app)
-    sh("flutter build ios --release --no-codesign", chdir: "..")
-
-    # Собрать подписанный IPA
+    # Собрать подписанный IPA (flutter build ios уже выполнен в workflow)
     build_app(
-      workspace:          "ios/Runner.xcworkspace",
-      scheme:             "Runner",
-      configuration:      "Release",
-      export_method:      "app-store",
+      workspace:             "ios/Runner.xcworkspace",
+      scheme:                "Runner",
+      configuration:         "Release",
+      export_method:         "app-store",
       export_options: {
-        provisioningProfiles: {
-          "online.edium.app" => ENV.fetch("PROVISIONING_PROFILE_NAME"),
-        },
+        signingStyle: "automatic",
       },
-      output_directory:   "build/ios/ipa",
-      output_name:        "Edium.ipa",
+      xcargs:                "-allowProvisioningUpdates",
+      output_directory:      "build/ios/ipa",
+      output_name:           "Edium.ipa",
       suppress_xcode_output: true,
     )
 
