@@ -76,6 +76,10 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
 
+      # ── CocoaPods ──────────────────────────────────────────────────────────
+      - name: Reinstall CocoaPods for current Ruby
+        run: gem install cocoapods --no-document
+
       # ── Сборка и загрузка ──────────────────────────────────────────────────
       - name: Build & upload via Fastlane
         working-directory: edium
