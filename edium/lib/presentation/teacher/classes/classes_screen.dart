@@ -1,5 +1,6 @@
 import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
+import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/class_summary.dart';
 import 'package:edium/presentation/teacher/classes/bloc/classes_bloc.dart';
@@ -36,16 +37,16 @@ class _ClassesView extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (bottomSheetContext) {
         return Padding(
           padding: EdgeInsets.fromLTRB(
-            20,
             24,
-            20,
+            24,
+            24,
             MediaQuery.of(bottomSheetContext).viewInsets.bottom + 24,
           ),
           child: Column(
@@ -57,40 +58,41 @@ class _ClassesView extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.divider,
+                    color: const Color(0xFFDDDDDD),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-              Text('Новый класс', style: AppTextStyles.heading3),
+              const Text(
+                'Новый класс',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1A1A1A),
+                ),
+              ),
               const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                style: AppTextStyles.body,
-                decoration: InputDecoration(
-                  hintText: 'Например, 7А — Математика',
-                  hintStyle: AppTextStyles.body
-                      .copyWith(color: AppColors.textSecondary),
-                  filled: true,
-                  fillColor: AppColors.background,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: AppColors.cardBorder),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: AppColors.cardBorder),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide:
-                        BorderSide(color: AppColors.primary, width: 1.5),
+              Container(
+                height: 52,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFBBBBBB), width: 1.5),
+                ),
+                child: TextField(
+                  controller: controller,
+                  autofocus: true,
+                  cursorColor: const Color(0xFF1A1A1A),
+                  style: const TextStyle(fontSize: 15, color: Color(0xFF333333)),
+                  decoration: const InputDecoration(
+                    hintText: 'Например, 7А — Математика',
+                    hintStyle: TextStyle(fontSize: 15, color: Color(0xFFBBBBBB)),
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   ),
                 ),
               ),
@@ -101,18 +103,20 @@ class _ClassesView extends StatelessWidget {
                   onPressed: () {
                     final title = controller.text.trim();
                     if (title.isEmpty) return;
-                    context
-                        .read<ClassesBloc>()
-                        .add(CreateClassEvent(title));
+                    context.read<ClassesBloc>().add(CreateClassEvent(title));
                     Navigator.of(bottomSheetContext).pop();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: const Color(0xFF1A1A1A),
                     foregroundColor: Colors.white,
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    textStyle: AppTextStyles.button,
+                    textStyle: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   child: const Text('Создать'),
                 ),
@@ -142,167 +146,193 @@ class _ClassesView extends StatelessWidget {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.white,
         body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Заголовок
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Классы',
-                      style: AppTextStyles.heading2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Заголовок
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 32, 20, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.mono900,
+                        borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+                      ),
+                      child: Text(
+                        isTeacher ? 'УЧИТЕЛЬ' : 'УЧЕНИК',
+                        style: AppTextStyles.badgeText,
+                      ),
                     ),
-                  ),
-                  if (isTeacher)
-                    IconButton(
-                      onPressed: () => _showCreateClassDialog(context),
-                      icon: const Icon(Icons.add, size: 28),
-                      color: AppColors.textPrimary,
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Классы',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1A1A1A),
+                            ),
+                          ),
+                        ),
+                        if (isTeacher)
+                          IconButton(
+                            onPressed: () => _showCreateClassDialog(context),
+                            icon: const Icon(Icons.add, size: 26),
+                            color: const Color(0xFF1A1A1A),
+                          ),
+                      ],
                     ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            // Поиск
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: TextField(
-                onChanged: (q) =>
-                    context.read<ClassesBloc>().add(SearchClassesEvent(q)),
-                style: AppTextStyles.body,
-                decoration: InputDecoration(
-                  hintText: 'Найти класс...',
-                  hintStyle: AppTextStyles.body
-                      .copyWith(color: AppColors.textSecondary),
-                  prefixIcon:
-                      const Icon(Icons.search, color: AppColors.textSecondary),
-                  filled: true,
-                  fillColor: AppColors.surface,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: AppColors.cardBorder),
+              const SizedBox(height: 14),
+              // Поиск
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Container(
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAFAFA),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFEEEEEE), width: 1.5),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: AppColors.cardBorder),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide:
-                        BorderSide(color: AppColors.primary, width: 1.5),
+                  child: TextField(
+                    onChanged: (q) =>
+                        context.read<ClassesBloc>().add(SearchClassesEvent(q)),
+                    cursorColor: const Color(0xFF1A1A1A),
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF333333)),
+                    decoration: const InputDecoration(
+                      hintText: 'Найти класс...',
+                      hintStyle: TextStyle(fontSize: 14, color: Color(0xFFBBBBBB)),
+                      prefixIcon: Icon(Icons.search, size: 18, color: Color(0xFFBBBBBB)),
+                      filled: false,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            // Список
-            Expanded(
-              child: BlocBuilder<ClassesBloc, ClassesState>(
-                builder: (context, state) {
-                  if (state is ClassesLoading || state is ClassesInitial) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (state is ClassesError) {
-                    return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('Ошибка загрузки',
-                              style: AppTextStyles.body),
-                          const SizedBox(height: 12),
-                          TextButton(
-                            onPressed: () => context
-                                .read<ClassesBloc>()
-                                .add(const LoadClassesEvent()),
-                            child: const Text('Повторить'),
+              const SizedBox(height: 16),
+              // Список
+              Expanded(
+                child: BlocBuilder<ClassesBloc, ClassesState>(
+                  builder: (context, state) {
+                    if (state is ClassesLoading || state is ClassesInitial) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF1A1A1A),
+                          strokeWidth: 2,
+                        ),
+                      );
+                    }
+                    if (state is ClassesError) {
+                      return Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Ошибка загрузки',
+                              style: TextStyle(fontSize: 14, color: Color(0xFF888888)),
+                            ),
+                            const SizedBox(height: 12),
+                            TextButton(
+                              onPressed: () => context
+                                  .read<ClassesBloc>()
+                                  .add(const LoadClassesEvent()),
+                              child: const Text(
+                                'Повторить',
+                                style: TextStyle(color: Color(0xFF1A1A1A)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    final loaded = state as ClassesLoaded;
+                    if (loaded.filtered.isEmpty) {
+                      return Center(
+                        child: Text(
+                          loaded.searchQuery.isNotEmpty
+                              ? 'Ничего не найдено'
+                              : 'У вас пока нет классов',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF888888),
                           ),
-                        ],
+                        ),
+                      );
+                    }
+                    return ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                      itemCount: loaded.filtered.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) => _ClassTile(
+                        classSummary: loaded.filtered[i],
+                        isTeacher: isTeacher,
                       ),
                     );
-                  }
-                  final loaded = state as ClassesLoaded;
-                  if (loaded.filtered.isEmpty) {
-                    return Center(
-                      child: Text(
-                        loaded.searchQuery.isNotEmpty
-                            ? 'Ничего не найдено'
-                            : 'У вас пока нет классов',
-                        style: AppTextStyles.body
-                            .copyWith(color: AppColors.textSecondary),
-                      ),
-                    );
-                  }
-                  return ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: loaded.filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (_, i) => _ClassTile(
-                      classSummary: loaded.filtered[i],
-                      showOwnerBadge: isTeacher,
-                    ),
-                  );
-                },
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }
 
 class _ClassTile extends StatelessWidget {
   final ClassSummary classSummary;
-  final bool showOwnerBadge;
+  final bool isTeacher;
 
   const _ClassTile({
     required this.classSummary,
-    required this.showOwnerBadge,
+    required this.isTeacher,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isOwner = showOwnerBadge && classSummary.isOwner;
+    final isOwner = isTeacher && classSummary.isOwner;
 
     return Material(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(16),
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: () {
           // TODO: навигация на детали класса
         },
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isOwner ? AppColors.primary.withAlpha(80) : AppColors.cardBorder,
+              color: isOwner ? const Color(0xFF60A5FA) : const Color(0xFFDDDDDD),
+              width: isOwner ? 2.0 : 1.5,
             ),
           ),
           child: Row(
             children: [
               // Иконка
               Container(
-                width: 48,
-                height: 48,
+                width: 46,
+                height: 46,
                 decoration: BoxDecoration(
-                  color: isOwner ? AppColors.primaryLight : const Color(0xFFFFF3EC),
-                  borderRadius: BorderRadius.circular(14),
+                  color: const Color(0xFFEEEEEE),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Center(
-                  child: Text(
-                    isOwner ? '🏫' : '🏠',
-                    style: const TextStyle(fontSize: 24),
-                  ),
+                child: const Center(
+                  child: Text('🏫', style: TextStyle(fontSize: 22)),
                 ),
               ),
               const SizedBox(width: 14),
@@ -311,25 +341,41 @@ class _ClassTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      classSummary.title,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            classSummary.title,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1A1A1A),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
                       '${_studentLabel(classSummary.studentCount)}  ·  ${classSummary.ownerName}',
-                      style: AppTextStyles.caption,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF999999),
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.chevron_right,
+                color: Color(0xFFCCCCCC),
+                size: 20,
+              ),
             ],
           ),
         ),
