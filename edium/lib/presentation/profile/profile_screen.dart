@@ -109,15 +109,10 @@ class _ProfileContent extends StatelessWidget {
                 color: AppColors.mono900,
                 borderRadius: BorderRadius.circular(AppDimens.radiusXs),
               ),
-              child: const Text('ПРОФИЛЬ', style: AppTextStyles.badgeText),
+              child: Text(roleLabel.toUpperCase(), style: AppTextStyles.badgeText),
             ),
             const SizedBox(height: 12),
             Text(user.name, style: AppTextStyles.screenTitle),
-            const SizedBox(height: 4),
-            Text(
-              roleLabel,
-              style: AppTextStyles.screenSubtitle,
-            ),
             const SizedBox(height: 32),
             // Статистика
             isTeacher
