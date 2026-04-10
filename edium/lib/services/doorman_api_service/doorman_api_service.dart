@@ -14,29 +14,38 @@ class DoormanApiService extends BaseApiService implements IDoormanApiService {
       method: HttpMethod.post,
       req: req.toJson(),
       headers: null,
-      parser: (_) {}
+      parser: (_) {},
     );
   }
 
   @override
-  Future<AuthTokensResponse> otpVerifyRequest(OtpVerifyRequest req) async {
+  Future<VerifyOtpResult> otpVerifyRequest(OtpVerifyRequest req) async {
     return request(
       DoormanEndpoints.otpVerify.path,
       method: HttpMethod.post,
       req: req.toJson(),
       headers: null,
-      parser: (data) => AuthTokensResponse.fromJson(data)
+      parser: (data) {
+        final json = data as Map<String, dynamic>;
+        if (json.containsKey('registration_token')) {
+          return RegistrationRequired(json['registration_token'] as String);
+        }
+        return AuthTokensResult(AuthTokensResponse.fromJson(json));
+      },
     );
   }
-  
+
   @override
-  Future<AuthTokensResponse> registerRequest(RegisterRequest req) async {
+  Future<AuthTokensResponse> registerRequest(
+    RegisterRequest req, {
+    required String registrationToken,
+  }) async {
     return request(
       DoormanEndpoints.authRegister.path,
       method: HttpMethod.post,
       req: req.toJson(),
-      headers: null,
-      parser: (data) => AuthTokensResponse.fromJson(data)
+      headers: {'X-Reg-Token': registrationToken},
+      parser: (data) => AuthTokensResponse.fromJson(data as Map<String, dynamic>),
     );
   }
 
@@ -47,18 +56,18 @@ class DoormanApiService extends BaseApiService implements IDoormanApiService {
       method: HttpMethod.post,
       req: req.toJson(),
       headers: null,
-      parser: (data) => AuthTokensResponse.fromJson(data)
+      parser: (data) => AuthTokensResponse.fromJson(data as Map<String, dynamic>),
     );
   }
 
   @override
-  Future<void> logoutRequest() async {
+  Future<void> logoutRequest(LogoutRequest req) async {
     return request(
       DoormanEndpoints.authLogout.path,
       method: HttpMethod.post,
-      req: null,
+      req: req.toJson(),
       headers: null,
-      parser: (_) {}
+      parser: (_) {},
     );
   }
 }

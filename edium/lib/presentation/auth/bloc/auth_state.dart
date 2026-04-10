@@ -18,14 +18,14 @@ class AuthLoading extends AuthState {
   const AuthLoading();
 }
 
-/// OTP has been sent to phone
 class AuthOtpSent extends AuthState {
   final String phone;
+  final String channel;
 
-  const AuthOtpSent(this.phone);
+  const AuthOtpSent(this.phone, {this.channel = 'sms'});
 
   @override
-  List<Object?> get props => [phone];
+  List<Object?> get props => [phone, channel];
 }
 
 /// Authenticated and has a role
@@ -38,14 +38,13 @@ class AuthAuthenticated extends AuthState {
   List<Object?> get props => [user];
 }
 
-/// Authenticated but name not yet entered (first login)
 class AuthNameRequired extends AuthState {
-  final User user;
+  final String phone;
 
-  const AuthNameRequired(this.user);
+  const AuthNameRequired(this.phone);
 
   @override
-  List<Object?> get props => [user];
+  List<Object?> get props => [phone];
 }
 
 /// Authenticated but role not yet chosen

@@ -6,6 +6,6 @@ class UpdateProfileUsecase {
 
   UpdateProfileUsecase(this._repository);
 
-  Future<User> call({required String name}) =>
-      _repository.updateProfile(name: name);
+  Future<User> call({required String name, required String surname}) =>
+      _repository.updateProfile(name: name, surname: surname);
 }

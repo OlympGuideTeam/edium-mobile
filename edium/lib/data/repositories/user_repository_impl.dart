@@ -21,8 +21,8 @@ class UserRepositoryImpl implements IUserRepository {
   }
 
   @override
-  Future<User> updateProfile({required String name}) async {
-    final model = await _datasource.updateProfile(name: name);
+  Future<User> updateProfile({required String name, required String surname}) async {
+    final model = await _datasource.updateProfile(name: name, surname: surname);
     return model.toEntity();
   }
 

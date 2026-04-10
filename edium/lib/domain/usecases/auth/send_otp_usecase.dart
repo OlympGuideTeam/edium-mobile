@@ -5,7 +5,7 @@ class SendOtpUsecase {
 
   SendOtpUsecase(this._repository);
 
-  Future<void> call({required String phone}) {
-    return _repository.sendOtp(phone: phone);
+  Future<void> call({required String phone, required String channel}) {
+    return _repository.sendOtp(phone: phone, channel: channel);
   }
 }

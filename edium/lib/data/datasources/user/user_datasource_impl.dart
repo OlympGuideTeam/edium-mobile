@@ -27,12 +27,13 @@ class UserDatasourceImpl extends BaseApiService implements IUserDatasource {
   }
 
   @override
-  Future<UserModel> updateProfile({required String name}) {
+  Future<UserModel> updateProfile({required String name, required String surname}) {
     return request(
       'caesar/v1/users/me',
       method: HttpMethod.patch,
-      req: {'name': name},
-      parser: (data) => UserModel.fromJson(data as Map<String, dynamic>),
+      req: {'name': name, 'surname': surname},
+      // PATCH returns 204 with no body — construct from params
+      parser: (_) => UserModel(id: '', name: name, surname: surname, phone: ''),
     );
   }
 

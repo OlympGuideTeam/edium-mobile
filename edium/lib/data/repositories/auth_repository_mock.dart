@@ -1,24 +1,30 @@
 import 'package:edium/domain/repositories/auth_repository.dart';
 
-/// Mock auth: any phone is accepted; OTP "1234" always passes.
 class AuthRepositoryMock implements IAuthRepository {
   bool _authenticated = false;
 
   @override
-  Future<void> sendOtp({required String phone}) async {
+  Future<void> sendOtp({required String phone, required String channel}) async {
     await Future.delayed(const Duration(milliseconds: 600));
-    // Always succeeds in mock
   }
 
   @override
-  Future<void> verifyOtp({
-    required String phone,
-    required String otp,
-  }) async {
+  Future<bool> verifyOtp({required String phone, required String otp}) async {
     await Future.delayed(const Duration(milliseconds: 700));
     if (otp != '123456') {
       throw Exception('Неверный код. Используйте 123456 для теста.');
     }
+    _authenticated = true;
+    return false;
+  }
+
+  @override
+  Future<void> register({
+    required String phone,
+    required String name,
+    required String surname,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 500));
     _authenticated = true;
   }
 
