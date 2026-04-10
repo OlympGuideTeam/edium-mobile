@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edium — Образовательная платформа</title>
+    <meta name="description" content="Edium — платформа для проведения квизов и домашних работ. Умные инструменты для учителей и учеников." />
+    <link rel="icon" href="/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script type="module" src="/src/main.js"></script>
+    <style>
+      :root {
+        --c-black:   #1A1A1A;
+        --c-dark:    #333333;
+        --c-mid:     #555555;
+        --c-muted:   #888888;
+        --c-faint:   #AAAAAA;
+        --c-hint:    #BBBBBB;
+        --c-disabled:#CCCCCC;
+        --c-border:  #DDDDDD;
+        --c-bg-2:    #FAFAFA;
+        --c-bg-3:    #F5F5F5;
+        --c-error:   #EF4444;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Inter", system-ui, sans-serif;
+        background: #fff;
+        color: var(--c-black);
+        -webkit-font-smoothing: antialiased;
+      }
+      /* ── Scroll ── */
+      html { scroll-behavior: smooth; }
+
+      /* ── Reveal animation ── */
+      .observe {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.45s ease, transform 0.45s ease;
+      }
+      .observe.animate-in {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* ── Tag badge ── */
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--c-black);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 4px;
+      }
+      .tag-outline {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: transparent;
+        color: var(--c-muted);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 4px;
+        border: 1.5px solid var(--c-border);
+      }
+
+      /* ── Buttons ── */
+      .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: var(--c-black);
+        color: #fff;
+        font-size: 15px;
+        font-weight: 700;
+        padding: 14px 28px;
+        border-radius: 14px;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        transition: opacity 0.15s ease;
+      }
+      .btn-primary:hover { opacity: 0.88; }
+
+      .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: var(--c-bg-3);
+        color: var(--c-mid);
+        font-size: 14px;
+        font-weight: 600;
+        padding: 14px 28px;
+        border-radius: 14px;
+        border: 1.5px solid var(--c-border);
+        cursor: pointer;
+        text-decoration: none;
+        transition: border-color 0.15s ease;
+      }
+      .btn-secondary:hover { border-color: var(--c-hint); }
+
+      /* ── Navbar ── */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(255,255,255,0.9);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--c-border);
+      }
+      .nav-inner {
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 0 24px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+      }
+      .nav-logo img { height: 30px; width: auto; }
+      nav a {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--c-muted);
+        text-decoration: none;
+        transition: color 0.15s ease;
+      }
+      nav a:hover { color: var(--c-black); }
+      nav { display: flex; align-items: center; gap: 32px; }
+
+      #menu-btn {
+        display: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 8px;
+        color: var(--c-muted);
+        border-radius: 8px;
+        transition: background 0.15s;
+      }
+      #menu-btn:hover { background: var(--c-bg-3); }
+
+      #mobile-menu {
+        display: none;
+        border-top: 1px solid var(--c-border);
+        background: #fff;
+        padding: 16px 24px;
+        flex-direction: column;
+        gap: 16px;
+      }
+      #mobile-menu.open { display: flex; }
+      #mobile-menu a {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--c-muted);
+        text-decoration: none;
+      }
+
+      @media (max-width: 640px) {
+        nav { display: none; }
+        #menu-btn { display: flex; align-items: center; }
+      }
+
+      /* ── Hero ── */
+      .hero {
+        padding: 96px 24px 80px;
+        text-align: center;
+        background: #fff;
+        border-bottom: 1px solid var(--c-border);
+      }
+      .hero h1 {
+        font-size: clamp(36px, 6vw, 56px);
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: -1px;
+        color: var(--c-black);
+        margin: 16px 0 20px;
+        max-width: 720px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .hero p {
+        font-size: 17px;
+        color: var(--c-muted);
+        line-height: 1.6;
+        max-width: 540px;
+        margin: 0 auto 36px;
+      }
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
+      }
+      .stats-row {
+        max-width: 600px;
+        margin: 72px auto 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0;
+      }
+      .stat {
+        padding: 20px 0;
+        border-right: 1px solid var(--c-border);
+      }
+      .stat:last-child { border-right: none; }
+      .stat-num {
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--c-black);
+        letter-spacing: -0.5px;
+      }
+      .stat-label {
+        font-size: 12px;
+        color: var(--c-faint);
+        margin-top: 4px;
+        font-weight: 500;
+      }
+
+      /* ── Section ── */
+      section {
+        padding: 80px 24px;
+      }
+      .section-inner {
+        max-width: 1040px;
+        margin: 0 auto;
+      }
+      .section-head {
+        text-align: center;
+        margin-bottom: 56px;
+      }
+      .section-head h2 {
+        font-size: clamp(26px, 4vw, 36px);
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        margin: 12px 0 10px;
+        color: var(--c-black);
+      }
+      .section-head p {
+        font-size: 15px;
+        color: var(--c-muted);
+        max-width: 480px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+
+      /* ── Features grid ── */
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+      @media (max-width: 900px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+      @media (max-width: 560px) { .features-grid { grid-template-columns: 1fr; } }
+
+      .feature-card {
+        background: var(--c-bg-2);
+        border: 1.5px solid var(--c-border);
+        border-radius: 16px;
+        padding: 28px 24px;
+        transition: border-color 0.2s ease;
+      }
+      .feature-card:hover { border-color: var(--c-hint); }
+      .feature-icon {
+        width: 40px;
+        height: 40px;
+        background: var(--c-black);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 18px;
+      }
+      .feature-icon svg { width: 18px; height: 18px; color: #fff; }
+      .feature-card h3 {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--c-black);
+        margin: 0 0 8px;
+      }
+      .feature-card p {
+        font-size: 13px;
+        color: var(--c-muted);
+        line-height: 1.6;
+        margin: 0;
+      }
+
+      /* ── Question types row ── */
+      .qtypes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+      }
+      .qtype-chip {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--c-mid);
+        background: #fff;
+        border: 1.5px solid var(--c-border);
+        border-radius: 6px;
+        padding: 4px 10px;
+        letter-spacing: 0.2px;
+      }
+
+      /* ── Roles ── */
+      .roles-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+      }
+      @media (max-width: 640px) { .roles-grid { grid-template-columns: 1fr; } }
+
+      .role-card {
+        border-radius: 24px;
+        padding: 36px 32px;
+        position: relative;
+        overflow: hidden;
+      }
+      .role-card-teacher {
+        background: var(--c-black);
+        color: #fff;
+      }
+      .role-card-student {
+        background: var(--c-bg-3);
+        border: 1.5px solid var(--c-border);
+        color: var(--c-black);
+      }
+      .role-icon {
+        width: 48px;
+        height: 48px;
+        background: rgba(255,255,255,0.12);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+        font-size: 22px;
+      }
+      .role-card-student .role-icon {
+        background: var(--c-border);
+      }
+      .role-card h3 {
+        font-size: 22px;
+        font-weight: 800;
+        margin: 0 0 10px;
+        letter-spacing: -0.3px;
+      }
+      .role-card-teacher h3 { color: #fff; }
+      .role-card > p {
+        font-size: 14px;
+        line-height: 1.6;
+        margin: 0 0 24px;
+      }
+      .role-card-teacher > p { color: rgba(255,255,255,0.55); }
+      .role-card-student > p { color: var(--c-muted); }
+      .role-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .role-list li {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .role-card-teacher .role-list li { color: rgba(255,255,255,0.75); }
+      .role-card-student .role-list li { color: var(--c-mid); }
+      .check {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .role-card-teacher .check { color: rgba(255,255,255,0.4); }
+      .role-card-student .check { color: var(--c-hint); }
+
+      /* ── Stack ── */
+      .stack-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+      }
+      @media (max-width: 720px) { .stack-grid { grid-template-columns: repeat(2, 1fr); } }
+
+      .stack-card {
+        background: #fff;
+        border: 1.5px solid var(--c-border);
+        border-radius: 14px;
+        padding: 20px 16px;
+        text-align: center;
+        transition: border-color 0.2s ease;
+      }
+      .stack-card:hover { border-color: var(--c-hint); }
+      .stack-card .emoji { font-size: 24px; margin-bottom: 8px; }
+      .stack-card .name {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--c-black);
+      }
+      .stack-card .desc {
+        font-size: 11px;
+        color: var(--c-faint);
+        margin-top: 3px;
+      }
+
+      /* ── CTA ── */
+      .cta-section {
+        background: var(--c-black);
+        color: #fff;
+        text-align: center;
+        padding: 80px 24px;
+      }
+      .cta-section h2 {
+        font-size: clamp(24px, 4vw, 36px);
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        margin: 12px 0 14px;
+      }
+      .cta-section p {
+        font-size: 15px;
+        color: rgba(255,255,255,0.5);
+        margin: 0 auto 36px;
+        max-width: 400px;
+        line-height: 1.6;
+      }
+      .cta-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
+      }
+      .btn-white {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: #fff;
+        color: var(--c-black);
+        font-size: 15px;
+        font-weight: 700;
+        padding: 14px 28px;
+        border-radius: 14px;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        transition: opacity 0.15s ease;
+      }
+      .btn-white:hover { opacity: 0.9; }
+      .btn-ghost {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: transparent;
+        color: rgba(255,255,255,0.65);
+        font-size: 14px;
+        font-weight: 600;
+        padding: 14px 28px;
+        border-radius: 14px;
+        border: 1.5px solid rgba(255,255,255,0.2);
+        cursor: pointer;
+        text-decoration: none;
+        transition: border-color 0.15s ease, color 0.15s ease;
+      }
+      .btn-ghost:hover {
+        border-color: rgba(255,255,255,0.45);
+        color: rgba(255,255,255,0.9);
+      }
+
+      /* ── Footer ── */
+      footer {
+        border-top: 1px solid var(--c-border);
+        padding: 32px 24px;
+      }
+      .footer-inner {
+        max-width: 1040px;
+        margin: 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .footer-inner a { text-decoration: none; }
+      .footer-inner img { height: 26px; width: auto; opacity: 0.6; }
+      .footer-copy {
+        font-size: 12px;
+        color: var(--c-faint);
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- ─── NAVBAR ─────────────────────────────────────────── -->
+    <header>
+      <div class="nav-inner">
+        <a href="#" class="nav-logo">
+          <img src="/logo.png" alt="Edium" />
+        </a>
+        <nav>
+          <a href="#features">Возможности</a>
+          <a href="#roles">Для кого</a>
+          <a href="#stack">Технологии</a>
+        </nav>
+        <button id="menu-btn" aria-label="Меню">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+      </div>
+      <div id="mobile-menu">
+        <a href="#features">Возможности</a>
+        <a href="#roles">Для кого</a>
+        <a href="#stack">Технологии</a>
+      </div>
+    </header>
+
+    <main>
+
+      <!-- ─── HERO ───────────────────────────────────────────── -->
+      <section class="hero">
+        <div class="tag">Образовательная платформа</div>
+        <h1>Квизы и задания — умнее и быстрее</h1>
+        <p>Edium автоматизирует создание и проверку учебных материалов. Real-time квизы, AI-генерация вопросов, OCR рукописных работ.</p>
+        <div class="hero-actions">
+          <a href="#features" class="btn-primary">
+            Узнать больше
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+            </svg>
+          </a>
+          <a href="#roles" class="btn-secondary">Для кого это</a>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-num">6 типов</div>
+            <div class="stat-label">вопросов в квизе</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num">Real‑time</div>
+            <div class="stat-label">проведение квизов</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num">AI</div>
+            <div class="stat-label">генерация вопросов</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── FEATURES ───────────────────────────────────────── -->
+      <section id="features" style="background: var(--c-bg-2); border-bottom: 1px solid var(--c-border);">
+        <div class="section-inner">
+          <div class="section-head observe">
+            <div class="tag-outline">Возможности</div>
+            <h2>Что умеет Edium</h2>
+            <p>Весь цикл — от создания задания до получения оценки — в одной платформе</p>
+          </div>
+
+          <div class="features-grid">
+
+            <div class="feature-card observe">
+              <div class="feature-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+              </div>
+              <h3>Синхронные квизы</h3>
+              <p>Все отвечают одновременно. Учитель управляет темпом, видит прогресс в реальном времени и получает статистику после каждого вопроса.</p>
+            </div>
+
+            <div class="feature-card observe">
+              <div class="feature-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <h3>Асинхронные задания</h3>
+              <p>Каждый ученик проходит в своём темпе. Поддержка дедлайнов, таймеров и ограничения числа попыток.</p>
+            </div>
+
+            <div class="feature-card observe">
+              <div class="feature-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+              </div>
+              <h3>AI-генерация вопросов</h3>
+              <p>Вставь параграф из учебника — Edium автоматически создаст набор вопросов разных типов.</p>
+            </div>
+
+            <div class="feature-card observe">
+              <div class="feature-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <h3>6 типов вопросов</h3>
+              <p>Выбор ответа, множественный выбор, открытый ответ, упорядочивание, соответствия и вопросы с точным вводом.</p>
+              <div class="qtypes">
+                <span class="qtype-chip">Выбор</span>
+                <span class="qtype-chip">Множественный</span>
+                <span class="qtype-chip">Открытый</span>
+                <span class="qtype-chip">Порядок</span>
+                <span class="qtype-chip">Соответствия</span>
+                <span class="qtype-chip">Точный ввод</span>
+              </div>
+            </div>
+
+            <div class="feature-card observe">
+              <div class="feature-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+              </div>
+              <h3>OCR рукописного текста</h3>
+              <p>Ученики фотографируют письменную работу — нейросеть распознаёт текст и передаёт на проверку автоматически.</p>
+            </div>
+
+            <div class="feature-card observe">
+              <div class="feature-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+              </div>
+              <h3>Аналитика и ведомость</h3>
+              <p>Матрица оценок по классу, прогресс по курсам, статистика ответов — в одном месте.</p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── ROLES ───────────────────────────────────────────── -->
+      <section id="roles">
+        <div class="section-inner">
+          <div class="section-head observe">
+            <div class="tag-outline">Для кого</div>
+            <h2>Одна платформа — два режима</h2>
+            <p>Любой пользователь может переключаться между режимом учителя и ученика</p>
+          </div>
+
+          <div class="roles-grid">
+
+            <div class="role-card role-card-teacher observe">
+              <div class="role-icon">🏫</div>
+              <h3>Учитель</h3>
+              <p>Создавай квизы вручную или с помощью AI, управляй классами, проводи контрольные и анализируй успеваемость.</p>
+              <ul class="role-list">
+                <li>
+                  <svg class="check" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  Конструктор квизов с 6 типами вопросов
+                </li>
+                <li>
+                  <svg class="check" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  Библиотека готовых квизов
+                </li>
+                <li>
+                  <svg class="check" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  Ведомость успеваемости по классу
+                </li>
+                <li>
+                  <svg class="check" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  Управление курсами и модулями
+                </li>
+              </ul>
+            </div>
+
+            <div class="role-card role-card-student observe">
+              <div class="role-icon">📖</div>
+              <h3>Ученик</h3>
+              <p>Присоединяйся к классу, проходи квизы по QR-коду или ссылке, отслеживай результаты и прогресс по курсу.</p>
+              <ul class="role-list">
+                <li>
+                  <svg class="check" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  Быстрый вход по QR-коду
+                </li>
+                <li>
+                  <svg class="check" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  История всех пройденных квизов
+                </li>
+                <li>
+                  <svg class="check" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  Загрузка письменных работ фотографией
+                </li>
+                <li>
+                  <svg class="check" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  Дедлайны и уведомления
+                </li>
+              </ul>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── STACK ───────────────────────────────────────────── -->
+      <section id="stack" style="background: var(--c-bg-2); border-top: 1px solid var(--c-border); border-bottom: 1px solid var(--c-border);">
+        <div class="section-inner">
+          <div class="section-head observe">
+            <div class="tag-outline">Технологии</div>
+            <h2>Под капотом</h2>
+            <p>Надёжный стек для высоких нагрузок</p>
+          </div>
+
+          <div class="stack-grid observe">
+            <div class="stack-card">
+              <div class="emoji">🐹</div>
+              <div class="name">Go</div>
+              <div class="desc">Микросервисы</div>
+            </div>
+            <div class="stack-card">
+              <div class="emoji">🐘</div>
+              <div class="name">PostgreSQL</div>
+              <div class="desc">Основные данные</div>
+            </div>
+            <div class="stack-card">
+              <div class="emoji">⚡</div>
+              <div class="name">Redis</div>
+              <div class="desc">Кэш и сессии</div>
+            </div>
+            <div class="stack-card">
+              <div class="emoji">📡</div>
+              <div class="name">WebSocket</div>
+              <div class="desc">Real-time события</div>
+            </div>
+            <div class="stack-card">
+              <div class="emoji">🐍</div>
+              <div class="name">Python</div>
+              <div class="desc">ML / OCR</div>
+            </div>
+            <div class="stack-card">
+              <div class="emoji">📨</div>
+              <div class="name">NATS</div>
+              <div class="desc">Брокер сообщений</div>
+            </div>
+            <div class="stack-card">
+              <div class="emoji">📱</div>
+              <div class="name">Flutter</div>
+              <div class="desc">iOS & Android</div>
+            </div>
+            <div class="stack-card">
+              <div class="emoji">🐳</div>
+              <div class="name">Docker</div>
+              <div class="desc">Оркестрация</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── CTA ────────────────────────────────────────────── -->
+      <section class="cta-section">
+        <div class="section-inner">
+          <div class="tag" style="background: rgba(255,255,255,0.12); margin: 0 auto; display: inline-flex;">В разработке</div>
+          <h2>Следи за процессом</h2>
+          <p>Делимся прогрессом разработки в Telegram-канале. Напиши нам на почту — ответим.</p>
+          <div class="cta-links">
+            <a href="https://t.me/+fmvzSE1I7r5lZDFi" target="_blank" rel="noopener" class="btn-white">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.04 9.613c-.15.678-.546.843-1.106.524l-3.066-2.258-1.48 1.424c-.163.163-.3.3-.616.3l.22-3.107 5.653-5.11c.245-.22-.054-.34-.383-.12l-6.99 4.402-3.013-.94c-.654-.205-.666-.654.137-.968l11.76-4.535c.544-.197 1.02.133.924.775z"/>
+              </svg>
+              Telegram-канал
+            </a>
+            <a href="mailto:olympguide@mail.ru" class="btn-ghost">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+              olympguide@mail.ru
+            </a>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ─── FOOTER ─────────────────────────────────────────── -->
+    <footer>
+      <div class="footer-inner">
+        <a href="#">
+          <img src="/logo.png" alt="Edium" />
+        </a>
+        <p class="footer-copy">© 2025 Edium. Курсовой проект НИУ ВШЭ.</p>
+        <p class="footer-copy">Титаренко · Панкратов · Исаев</p>
+      </div>
+    </footer>
+
+  </body>
+</html>
