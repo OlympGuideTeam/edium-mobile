@@ -49,9 +49,10 @@ class _ProfileView extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Ошибка загрузки',
-                    style: TextStyle(fontSize: 15, color: AppColors.mono400),
+                  Text(
+                    state.message,
+                    style: const TextStyle(fontSize: 15, color: AppColors.mono400),
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
                   GestureDetector(
@@ -112,7 +113,10 @@ class _ProfileContent extends StatelessWidget {
               child: Text(roleLabel.toUpperCase(), style: AppTextStyles.badgeText),
             ),
             const SizedBox(height: 12),
-            Text(user.name, style: AppTextStyles.screenTitle),
+            Text(
+              [user.surname, user.name].whereType<String>().where((s) => s.isNotEmpty).join(' '),
+              style: AppTextStyles.screenTitle,
+            ),
             const SizedBox(height: 32),
             // Статистика
             isTeacher

@@ -1,3 +1,4 @@
+import 'package:edium/core/config/api_config.dart';
 import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
@@ -97,18 +98,21 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
     }
     setState(() => _error = null);
     final phone = '+7$_digits';
-    getIt<AuthBloc>().add(SendOtpEvent(phone));
+    getIt<AuthBloc>().add(SendOtpEvent(phone, channel: 'sms'));
+  }
+
+  void _submitTelegram() {
+    if (!_isValid) {
+      setState(() => _error = 'Введите корректный номер телефона');
+      return;
+    }
+    setState(() => _error = null);
+    final phone = '+7$_digits';
+    getIt<AuthBloc>().add(SendOtpEvent(phone, channel: 'tg'));
   }
 
   Future<void> _openTelegramBot() async {
-    final uri = Uri.parse('https://t.me/edium_bot');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
-
-  Future<void> _openVkBot() async {
-    final uri = Uri.parse('https://vk.com/edium_bot');
+    final uri = Uri.parse('https://t.me/${ApiConfig.telegramBotUsername}');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
@@ -120,8 +124,12 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
       value: getIt<AuthBloc>(),
       child: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
+          if (ModalRoute.of(context)?.isCurrent != true) return;
           if (state is AuthOtpSent) {
-            context.push('/otp?phone=${Uri.encodeComponent(state.phone)}');
+            context.push(
+              '/otp?phone=${Uri.encodeComponent(state.phone)}&channel=${state.channel}',
+            );
+            if (state.channel == 'tg') _openTelegramBot();
           } else if (state is AuthError) {
             setState(() => _error = state.message);
           }
@@ -158,7 +166,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                                 style: AppTextStyles.screenTitle),
                             const SizedBox(height: 6),
                             const Text(
-                              'Введите номер телефона — мы отправим\nкод подтверждения в Telegram',
+                              'Введите номер телефона и выберите\nспособ получения кода',
                               style: AppTextStyles.screenSubtitle,
                             ),
                             const SizedBox(height: 28),
@@ -249,30 +257,29 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                                     fontSize: 12, color: AppColors.error),
                               ),
                             ],
-                            const SizedBox(height: 20),
-                            // Telegram-бот инфо
-                            GestureDetector(
-                              onTap: _openTelegramBot,
-                              child: _InfoCard(
-                                emoji: '✈️',
-                                title: 'Код придёт в Telegram',
-                                subtitle: 'Откройте @edium_bot и отправьте контакт',
-                                tappable: true,
+                            const Spacer(),
+                            // Кнопка "Получить код в TG"
+                            SizedBox(
+                              width: double.infinity,
+                              height: AppDimens.buttonH,
+                              child: ElevatedButton(
+                                onPressed: isLoading ? null : _submitTelegram,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF53A5E3),
+                                  foregroundColor: Colors.white,
+                                  disabledBackgroundColor: AppColors.mono200,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                        AppDimens.radiusLg),
+                                  ),
+                                  elevation: 0,
+                                  textStyle: AppTextStyles.primaryButton,
+                                ),
+                                child: const Text('Получить код в TG'),
                               ),
                             ),
                             const SizedBox(height: 10),
-                            // ВКонтакте-бот инфо
-                            GestureDetector(
-                              onTap: _openVkBot,
-                              child: _InfoCard(
-                                emoji: '💬',
-                                title: 'Код придёт в ВКонтакте',
-                                subtitle: 'Напишите боту Edium в ВК',
-                                tappable: true,
-                              ),
-                            ),
-                            const Spacer(),
-                            // Кнопка отправки
+                            // Кнопка "Получить код" (SMS)
                             SizedBox(
                               width: double.infinity,
                               height: AppDimens.buttonH,
@@ -325,56 +332,3 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  final String emoji;
-  final String title;
-  final String subtitle;
-  final bool tappable;
-
-  const _InfoCard({
-    required this.emoji,
-    required this.title,
-    required this.subtitle,
-    this.tappable = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.mono50,
-        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-        border: Border.all(color: AppColors.mono150),
-      ),
-      child: Row(
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 20)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.mono900,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 11, color: AppColors.mono350),
-                ),
-              ],
-            ),
-          ),
-          if (tappable)
-            const Icon(Icons.open_in_new, size: 16, color: AppColors.mono250),
-        ],
-      ),
-    );
-  }
-}

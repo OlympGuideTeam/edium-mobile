@@ -1,4 +1,5 @@
 import 'package:edium/core/di/injection.dart';
+import 'package:edium/presentation/shared/widgets/edium_notification.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
@@ -135,14 +136,10 @@ class _ClassesView extends StatelessWidget {
     return BlocListener<ClassesBloc, ClassesState>(
       listener: (context, state) {
         if (state is ClassCreated) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Класс создан')),
-          );
+          EdiumNotification.show(context, 'Класс создан');
         }
         if (state is ClassCreateError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
+          EdiumNotification.show(context, state.message, type: EdiumNotificationType.error);
         }
       },
       child: Scaffold(

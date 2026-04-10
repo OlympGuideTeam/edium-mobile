@@ -13,11 +13,12 @@ class AppStarted extends AuthEvent {
 
 class SendOtpEvent extends AuthEvent {
   final String phone;
+  final String channel;
 
-  const SendOtpEvent(this.phone);
+  const SendOtpEvent(this.phone, {this.channel = 'sms'});
 
   @override
-  List<Object?> get props => [phone];
+  List<Object?> get props => [phone, channel];
 }
 
 class VerifyOtpEvent extends AuthEvent {
@@ -28,6 +29,21 @@ class VerifyOtpEvent extends AuthEvent {
 
   @override
   List<Object?> get props => [phone, otp];
+}
+
+class RegisterEvent extends AuthEvent {
+  final String phone;
+  final String name;
+  final String surname;
+
+  const RegisterEvent({
+    required this.phone,
+    required this.name,
+    required this.surname,
+  });
+
+  @override
+  List<Object?> get props => [phone, name, surname];
 }
 
 class NameSubmittedEvent extends AuthEvent {

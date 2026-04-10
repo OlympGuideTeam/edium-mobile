@@ -1,4 +1,5 @@
 import 'package:edium/core/di/injection.dart';
+import 'package:edium/presentation/shared/widgets/edium_notification.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/user.dart';
@@ -43,10 +44,9 @@ class _EditProfileViewState extends State<_EditProfileView> {
   @override
   void initState() {
     super.initState();
-    final state = context.read<EditProfileBloc>().state;
-    final parts = (state as EditProfileInitial).user.name.split(' ');
-    _firstNameController = TextEditingController(text: parts.isNotEmpty ? parts[0] : '');
-    _lastNameController = TextEditingController(text: parts.length > 1 ? parts.sublist(1).join(' ') : '');
+    final state = context.read<EditProfileBloc>().state as EditProfileInitial;
+    _firstNameController = TextEditingController(text: state.user.name);
+    _lastNameController = TextEditingController(text: state.user.surname ?? '');
   }
 
   @override
@@ -58,136 +58,207 @@ class _EditProfileViewState extends State<_EditProfileView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => context.pop(),
-        ),
-        title: Text('Редактирование', style: AppTextStyles.subtitle),
-        centerTitle: true,
-      ),
-      body: BlocConsumer<EditProfileBloc, EditProfileState>(
-        listener: (context, state) {
-          if (state is EditProfileSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Профиль обновлён')),
-            );
-            context.pop(true);
-          }
-          if (state is EditProfileDeleted) {
-            getIt<AuthBloc>().add(const LogoutEvent());
-          }
-          if (state is EditProfileError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
-          }
-        },
-        builder: (context, state) {
-          final isLoading = state is EditProfileLoading;
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        resizeToAvoidBottomInset: true,
+        body: BlocConsumer<EditProfileBloc, EditProfileState>(
+          listener: (context, state) {
+            if (state is EditProfileSuccess) {
+              EdiumNotification.show(context, 'Профиль обновлён');
+              context.pop(true);
+            }
+            if (state is EditProfileDeleted) {
+              getIt<AuthBloc>().add(const LogoutEvent());
+            }
+            if (state is EditProfileError) {
+              EdiumNotification.show(context, state.message, type: EdiumNotificationType.error);
+            }
+          },
+          builder: (context, state) {
+            final isLoading = state is EditProfileLoading;
+            return SafeArea(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 24),
-                  Text('Имя', style: AppTextStyles.label),
-                  const SizedBox(height: 8),
-                  _InputField(
-                    controller: _firstNameController,
-                    hint: 'Введите имя',
-                    enabled: !isLoading,
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Фамилия', style: AppTextStyles.label),
-                  const SizedBox(height: 8),
-                  _InputField(
-                    controller: _lastNameController,
-                    hint: 'Введите фамилию',
-                    enabled: !isLoading,
-                  ),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: isLoading ? null : _onSave,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        textStyle: AppTextStyles.button,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        size: 20,
+                        color: AppColors.mono900,
                       ),
-                      child: isLoading
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
+                      alignment: Alignment.centerLeft,
+                      onPressed: () => context.pop(),
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SizedBox(height: 8),
+                          const Text('Редактирование', style: AppTextStyles.screenTitle),
+                          const SizedBox(height: 32),
+                          const Text('Имя', style: AppTextStyles.fieldLabel),
+                          const SizedBox(height: 8),
+                          _InputField(
+                            controller: _firstNameController,
+                            hint: 'Введите имя',
+                            enabled: !isLoading,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text('Фамилия', style: AppTextStyles.fieldLabel),
+                          const SizedBox(height: 8),
+                          _InputField(
+                            controller: _lastNameController,
+                            hint: 'Введите фамилию',
+                            enabled: !isLoading,
+                          ),
+                          const Spacer(),
+                          SizedBox(
+                            height: 52,
+                            child: ElevatedButton(
+                              onPressed: isLoading ? null : _onSave,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.mono900,
+                                foregroundColor: Colors.white,
+                                disabledBackgroundColor: AppColors.mono200,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                elevation: 0,
+                                textStyle: AppTextStyles.primaryButton,
                               ),
-                            )
-                          : const Text('Сохранить'),
-                    ),
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: isLoading ? null : () => _showDeleteDialog(context),
-                    child: Text(
-                      'Удалить аккаунт',
-                      style: AppTextStyles.body.copyWith(
-                        color: AppColors.error,
+                              child: isLoading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text('Сохранить'),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 48,
+                            child: OutlinedButton(
+                              onPressed: isLoading ? null : () => _showLogoutDialog(context),
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: AppColors.mono50,
+                                foregroundColor: AppColors.mono600,
+                                side: const BorderSide(color: AppColors.mono150),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                elevation: 0,
+                                textStyle: AppTextStyles.secondaryButton,
+                              ),
+                              child: const Text('Выйти из аккаунта'),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextButton(
+                            onPressed: isLoading ? null : () => _showDeleteDialog(context),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.error,
+                              textStyle: AppTextStyles.secondaryButton,
+                            ),
+                            child: const Text('Удалить аккаунт'),
+                          ),
+                          const SizedBox(height: 24),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
                 ],
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
 
   void _onSave() {
-    final firstName = _firstNameController.text.trim();
-    final lastName = _lastNameController.text.trim();
-    if (firstName.isEmpty) return;
-    final fullName = lastName.isEmpty ? firstName : '$firstName $lastName';
-    context.read<EditProfileBloc>().add(UpdateProfileEvent(fullName));
+    final name = _firstNameController.text.trim();
+    final surname = _lastNameController.text.trim();
+    if (name.isEmpty || surname.isEmpty) return;
+    context.read<EditProfileBloc>().add(UpdateProfileEvent(name: name, surname: surname));
+  }
+
+  void _showLogoutDialog(BuildContext parentContext) {
+    showDialog(
+      context: parentContext,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Выйти из аккаунта?',
+          style: AppTextStyles.screenTitle.copyWith(fontSize: 17),
+        ),
+        content: const Text(
+          'Вы будете перенаправлены на экран входа.',
+          style: AppTextStyles.screenSubtitle,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            style: TextButton.styleFrom(foregroundColor: AppColors.mono600),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              getIt<AuthBloc>().add(const LogoutEvent());
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.mono900,
+              textStyle: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            child: const Text('Выйти'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showDeleteDialog(BuildContext parentContext) {
     showDialog(
       context: parentContext,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Удалить аккаунт?'),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Удалить аккаунт?',
+          style: AppTextStyles.screenTitle.copyWith(fontSize: 17),
+        ),
         content: const Text(
           'Это действие необратимо. Все данные будут удалены.',
+          style: AppTextStyles.screenSubtitle,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
+            style: TextButton.styleFrom(foregroundColor: AppColors.mono600),
             child: const Text('Отмена'),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              parentContext
-                  .read<EditProfileBloc>()
-                  .add(const DeleteAccountEvent());
+              parentContext.read<EditProfileBloc>().add(const DeleteAccountEvent());
             },
-            child: Text(
-              'Удалить',
-              style: TextStyle(color: AppColors.error),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.error,
+              textStyle: const TextStyle(fontWeight: FontWeight.w700),
             ),
+            child: const Text('Удалить'),
           ),
         ],
       ),
@@ -208,30 +279,31 @@ class _InputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      enabled: enabled,
-      style: AppTextStyles.body,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-        filled: true,
-        fillColor: AppColors.surface,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+    return Container(
+      height: 52,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: enabled ? AppColors.mono250 : AppColors.mono150,
+          width: 1.5,
         ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.cardBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.cardBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+      ),
+      child: TextField(
+        controller: controller,
+        enabled: enabled,
+        textCapitalization: TextCapitalization.words,
+        cursorColor: AppColors.mono900,
+        style: AppTextStyles.fieldText,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: AppTextStyles.fieldHint,
+          filled: false,
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          disabledBorder: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         ),
       ),
     );

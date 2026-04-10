@@ -55,12 +55,16 @@ GoRouter buildRouter() {
         path: '/otp',
         builder: (context, state) {
           final phone = state.uri.queryParameters['phone'] ?? '';
-          return OtpScreen(phone: phone);
+          final channel = state.uri.queryParameters['channel'] ?? 'sms';
+          return OtpScreen(phone: phone, channel: channel);
         },
       ),
       GoRoute(
         path: '/name-input',
-        builder: (_, __) => const NameInputScreen(),
+        builder: (_, state) {
+          final phone = state.uri.queryParameters['phone'] ?? '';
+          return NameInputScreen(phone: phone);
+        },
       ),
       GoRoute(
         path: '/role-selection',
@@ -123,7 +127,8 @@ String? _redirect(BuildContext context, GoRouterState state) {
   }
 
   if (authState is AuthNameRequired) {
-    if (location != '/name-input') return '/name-input';
+    final encoded = Uri.encodeComponent(authState.phone);
+    if (!location.startsWith('/name-input')) return '/name-input?phone=$encoded';
     return null;
   }
 
