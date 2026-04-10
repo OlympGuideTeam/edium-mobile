@@ -44,3 +44,26 @@ platform :ios do
     File.delete(api_key_path) if File.exist?(api_key_path)
   end
 end
+
+
+platform :android do
+  desc "Загрузить в RuStore"
+  lane :beta do
+    apk_path = File.join(
+      Dir.pwd, "..", "build", "app", "outputs",
+      "flutter-apk", "app-release.apk"
+    )
+    UI.user_error!("APK не найден: #{apk_path}") unless File.exist?(apk_path)
+
+    rustore_publish(
+      company_id:    ENV.fetch("RUSTORE_COMPANY_ID"),
+      token:         ENV.fetch("RUSTORE_TOKEN"),
+      package_name:  "online.edium.app",
+      apk_path:      apk_path,
+      publish_type:  "MANUAL",
+      release_notes: ENV.fetch("RELEASE_NOTES", "Внутренняя сборка"),
+    )
+
+    UI.success("✅ Загружено в RuStore")
+  end
+end

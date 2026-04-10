@@ -1,0 +1,99 @@
+# .github/workflows/android-rustore.yml
+
+name: Android → RuStore
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_notes:
+        description: "Что изменилось"
+        required: false
+        default: "Внутренняя сборка"
+
+jobs:
+  deploy:
+    name: Build & Upload to RuStore
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        working-directory: edium
+        run: flutter pub get
+
+      # ── Keystore ─────────────────────────────────────────────
+      - name: Decode keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo -n "$ANDROID_KEYSTORE_BASE64" | base64 --decode \
+            > "$RUNNER_TEMP/upload-keystore.jks"
+
+      - name: Create key.properties
+        working-directory: edium/android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS:         ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD:      ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cat > key.properties <<EOF
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=$RUNNER_TEMP/upload-keystore.jks
+          EOF
+
+      # ── Build APK ───────────────────────────────────────────
+      - name: Flutter build APK
+        working-directory: edium
+        run: flutter build apk --release
+
+      # ── Ruby / Fastlane ──────────────────────────────────────
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-version: latest
+          bundler-cache: true
+          working-directory: edium
+
+      # ── Upload ───────────────────────────────────────────────
+      - name: Upload to RuStore
+        working-directory: edium
+        env:
+          RUSTORE_COMPANY_ID: ${{ secrets.RUSTORE_COMPANY_ID }}
+          RUSTORE_TOKEN:      ${{ secrets.RUSTORE_TOKEN }}
+          RELEASE_NOTES:      ${{ github.event.inputs.release_notes }}
+        run: bundle exec fastlane android beta
+
+      # ── Артефакт ─────────────────────────────────────────────
+      - name: Upload APK artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Edium-${{ github.run_number }}.apk
+          path: edium/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
+
+      # ── Cleanup ──────────────────────────────────────────────
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/upload-keystore.jks"
+          rm -f edium/android/key.properties
