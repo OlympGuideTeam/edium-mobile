@@ -1,0 +1,52 @@
+name: Deploy Landing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "landing/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: landing/package-lock.json
+
+      - name: Сборка лендинга
+        working-directory: landing
+        run: |
+          npm ci
+          npm run build
+
+      - name: Копирование dist на сервер
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_VM_HOST }}
+          username: deploy
+          key: ${{ secrets.PROD_VM_SSH_KEY }}
+          source: "landing/dist/"
+          target: /tmp/landing-deploy/
+          strip_components: 0
+
+      - name: Установка файлов
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_VM_HOST }}
+          username: deploy
+          key: ${{ secrets.PROD_VM_SSH_KEY }}
+          script: |
+            set -e
+            mkdir -p /opt/edium/landing
+            rsync -a --delete /tmp/landing-deploy/landing/dist/ /opt/edium/landing/
+            rm -rf /tmp/landing-deploy
+            echo "Лендинг задеплоен: $(date)" >> /opt/edium/landing-deploy.log
