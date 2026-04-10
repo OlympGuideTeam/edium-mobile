@@ -4,13 +4,13 @@ class OtpSendRequest {
 
   const OtpSendRequest({
     required this.phone,
-    required this.channel
+    required this.channel,
   });
 
   Map<String, dynamic> toJson() => {
-    'phone': phone,
-    'channel': channel.type_
-  };
+        'phone': phone,
+        'channel': channel.type_,
+      };
 }
 
 class OtpVerifyRequest {
@@ -19,31 +19,55 @@ class OtpVerifyRequest {
 
   OtpVerifyRequest({
     required this.phone,
-    required this.otp
+    required this.otp,
   });
 
   Map<String, dynamic> toJson() => {
-    'phone': phone,
-    'otp': otp
-  };
+        'phone': phone,
+        'otp': otp,
+      };
+}
+
+sealed class VerifyOtpResult {}
+
+class AuthTokensResult extends VerifyOtpResult {
+  final AuthTokensResponse tokens;
+  AuthTokensResult(this.tokens);
+}
+
+class RegistrationRequired extends VerifyOtpResult {
+  final String registrationToken;
+  RegistrationRequired(this.registrationToken);
 }
 
 class AuthTokensResponse {
   final String accessToken;
   final String refreshToken;
-  final String expiresIn;
+  final int expiresIn;
 
   AuthTokensResponse({
     required this.accessToken,
     required this.refreshToken,
-    required this.expiresIn
+    required this.expiresIn,
   });
 
   factory AuthTokensResponse.fromJson(Map<String, dynamic> json) {
     return AuthTokensResponse(
-      accessToken: json['access_token'], 
-      refreshToken: json['refresh_token'], 
-      expiresIn: json['expires_in']
+      accessToken: json['access_token'] as String,
+      refreshToken: json['refresh_token'] as String,
+      expiresIn: json['expires_in'] as int,
+    );
+  }
+}
+
+class RegistrationTokenResponse {
+  final String registrationToken;
+
+  RegistrationTokenResponse({required this.registrationToken});
+
+  factory RegistrationTokenResponse.fromJson(Map<String, dynamic> json) {
+    return RegistrationTokenResponse(
+      registrationToken: json['registration_token'] as String,
     );
   }
 }
@@ -54,8 +78,18 @@ class RefreshTokenRequest {
   RefreshTokenRequest({required this.refreshToken});
 
   Map<String, dynamic> toJson() => {
-    'refresh_token': refreshToken
-  };
+        'refresh_token': refreshToken,
+      };
+}
+
+class LogoutRequest {
+  final String refreshToken;
+
+  LogoutRequest({required this.refreshToken});
+
+  Map<String, dynamic> toJson() => {
+        'refresh_token': refreshToken,
+      };
 }
 
 class RegisterRequest {
@@ -64,21 +98,22 @@ class RegisterRequest {
   final String phone;
 
   RegisterRequest({
-    required this.name, 
-    required this.surname, 
-    required this.phone
+    required this.name,
+    required this.surname,
+    required this.phone,
   });
 
   Map<String, dynamic> toJson() => {
-    'name': name, 
-    'surname': surname,
-    'phone': phone
-  };
+        'name': name,
+        'surname': surname,
+        'phone': phone,
+      };
 }
 
 enum Channel {
   tg('tg'),
-  vk('vk');
+  vk('vk'),
+  sms('sms');
 
   final String type_;
   const Channel(this.type_);

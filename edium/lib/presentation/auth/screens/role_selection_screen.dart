@@ -4,7 +4,6 @@ import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/user.dart';
-import 'package:edium/domain/usecases/user/set_role_usecase.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
@@ -25,18 +24,10 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
   Future<void> _confirm() async {
     if (_selected == null) return;
     setState(() => _loading = true);
-    try {
-      await getIt<SetRoleUsecase>()(_selected!);
-      await getIt<ProfileStorage>().saveRole(_selected!.name);
-      if (!mounted) return;
-      getIt<AuthBloc>().add(const RoleSelectedEvent());
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    }
-    if (mounted) setState(() => _loading = false);
+    await getIt<ProfileStorage>().saveRole(_selected!.name);
+    if (!mounted) return;
+    getIt<AuthBloc>().add(const RoleSelectedEvent());
+    setState(() => _loading = false);
   }
 
   @override

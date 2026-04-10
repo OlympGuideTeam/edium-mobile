@@ -5,6 +5,7 @@ import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
+import 'package:edium/domain/usecases/auth/send_otp_usecase.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
@@ -12,11 +13,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class OtpScreen extends StatefulWidget {
   final String phone;
+  final String channel;
 
-  const OtpScreen({super.key, required this.phone});
+  const OtpScreen({super.key, required this.phone, this.channel = 'sms'});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -24,6 +27,7 @@ class OtpScreen extends StatefulWidget {
 
 class _OtpScreenState extends State<OtpScreen>
     with SingleTickerProviderStateMixin {
+  bool get _isTelegram => widget.channel == 'tg';
   static const int _codeLength = 6;
 
   final _hiddenController = TextEditingController();
@@ -38,7 +42,7 @@ class _OtpScreenState extends State<OtpScreen>
   @override
   void initState() {
     super.initState();
-    _startCountdown();
+    if (!_isTelegram) _startCountdown();
 
     _shakeController = AnimationController(
       vsync: this,
@@ -145,12 +149,30 @@ class _OtpScreenState extends State<OtpScreen>
     HapticFeedback.mediumImpact();
   }
 
-  void _resend() {
+  Future<void> _resend() async {
     if (_countdown > 0) return;
-    getIt<AuthBloc>().add(SendOtpEvent(widget.phone));
+    if (_isTelegram) {
+      _openTelegramBot();
+      return;
+    }
+    try {
+      await getIt<SendOtpUsecase>()(
+        phone: widget.phone,
+        channel: widget.channel,
+      );
+    } catch (_) {
+      // OTP_ALREADY_SENT и прочие ошибки игнорируем — таймер всё равно перезапускаем
+    }
     _startCountdown();
     _hiddenController.clear();
     _hiddenFocus.requestFocus();
+  }
+
+  Future<void> _openTelegramBot() async {
+    final uri = Uri.parse('https://t.me/${ApiConfig.telegramBotUsername}');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   @override
@@ -198,7 +220,9 @@ class _OtpScreenState extends State<OtpScreen>
                                 style: AppTextStyles.screenTitle),
                             const SizedBox(height: 6),
                             Text(
-                              'Отправили код в Telegram\nна номер $_maskedPhone',
+                              _isTelegram
+                                  ? 'Введите код из @edium_bot\nдля номера $_maskedPhone'
+                                  : 'Отправили код по SMS\nна номер $_maskedPhone',
                               style: AppTextStyles.screenSubtitle,
                             ),
                             const SizedBox(height: 32),
@@ -336,34 +360,60 @@ class _OtpScreenState extends State<OtpScreen>
                               ),
                             ],
                             const SizedBox(height: 24),
-                            Center(
-                              child: Text(
-                                'Не пришёл код?',
-                                style: const TextStyle(
-                                    fontSize: 13, color: AppColors.mono350),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Center(
-                              child: GestureDetector(
-                                onTap: _countdown == 0 ? _resend : null,
-                                child: Text(
-                                  _countdown > 0
-                                      ? 'Отправить повторно через $_countdown сек'
-                                      : 'Отправить повторно',
+                            if (_isTelegram) ...[
+                              Center(
+                                child: const Text(
+                                  'Не получили код?',
                                   style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: _countdown == 0
-                                        ? AppColors.mono600
-                                        : AppColors.mono300,
-                                    decoration: _countdown == 0
-                                        ? TextDecoration.underline
-                                        : null,
+                                      fontSize: 13, color: AppColors.mono350),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Center(
+                                child: GestureDetector(
+                                  onTap: _openTelegramBot,
+                                  child: const Text(
+                                    'Открыть @edium_bot',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF53A5E3),
+                                      decoration: TextDecoration.underline,
+                                      decorationColor: Color(0xFF53A5E3),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
+                            ] else ...[
+                              Center(
+                                child: const Text(
+                                  'Не пришёл код?',
+                                  style: TextStyle(
+                                      fontSize: 13, color: AppColors.mono350),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Center(
+                                child: GestureDetector(
+                                  onTap: _countdown == 0 ? _resend : null,
+                                  child: Text(
+                                    _countdown > 0
+                                        ? 'Отправить повторно через $_countdown сек'
+                                        : 'Отправить повторно',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: _countdown == 0
+                                          ? AppColors.mono600
+                                          : AppColors.mono300,
+                                      decoration: _countdown == 0
+                                          ? TextDecoration.underline
+                                          : null,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                             if (ApiConfig.useMock) ...[
                               const SizedBox(height: 16),
                               Center(

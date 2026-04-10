@@ -1,6 +1,9 @@
+import 'package:edium/core/config/api_config.dart';
+import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
+import 'package:edium/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +20,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   final _codeController = TextEditingController();
   final _codeFocus = FocusNode();
   bool _codeFieldFocused = false;
+  bool _switching = false;
 
   late final AnimationController _animController;
   late final Animation<double> _logoOpacity;
@@ -79,6 +83,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     }
   }
 
+  Future<void> _switchEnv(AppEnvironment env) async {
+    if (env == ApiConfig.environment || _switching) return;
+    setState(() => _switching = true);
+    await reinitializeDependencies(env);
+    appRestartKey.value++;
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -93,7 +104,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Spacer(flex: 3),
-                // Логотип с анимацией исчезновения
                 AnimatedBuilder(
                   animation: _animController,
                   builder: (context, child) =>
@@ -122,7 +132,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   ),
                 ),
                 const Spacer(flex: 4),
-                // Кнопка "Войти"
                 SizedBox(
                   width: double.infinity,
                   height: AppDimens.buttonH,
@@ -141,7 +150,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   ),
                 ),
                 const SizedBox(height: 20),
-                // Разделитель
                 Row(
                   children: [
                     Expanded(child: Divider(color: AppColors.mono150)),
@@ -156,7 +164,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   ],
                 ),
                 const SizedBox(height: 20),
-                // Блок "Присоединиться к квизу"
                 _QuizCodeBlock(
                   controller: _codeController,
                   focusNode: _codeFocus,
@@ -165,11 +172,69 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   onCellTap: _onCellTap,
                 ),
                 const SizedBox(height: 24),
+                _EnvSwitcher(
+                  current: ApiConfig.environment,
+                  switching: _switching,
+                  onSelect: _switchEnv,
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _EnvSwitcher extends StatelessWidget {
+  final AppEnvironment current;
+  final bool switching;
+  final Future<void> Function(AppEnvironment) onSelect;
+
+  const _EnvSwitcher({
+    required this.current,
+    required this.switching,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: AppEnvironment.values.map((env) {
+        final isActive = env == current;
+        return GestureDetector(
+          onTap: switching ? null : () => onSelect(env),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: isActive ? AppColors.mono900 : AppColors.mono50,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: switching && isActive
+                ? const SizedBox(
+                    width: 10,
+                    height: 10,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(
+                    env.name.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                      color: isActive ? Colors.white : AppColors.mono300,
+                    ),
+                  ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
@@ -211,7 +276,6 @@ class _QuizCodeBlock extends StatelessWidget {
               height: AppDimens.otpCellH,
               child: Stack(
                 children: [
-                  // Визуальные ячейки
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(6, (i) {
@@ -255,7 +319,6 @@ class _QuizCodeBlock extends StatelessWidget {
                       );
                     }),
                   ),
-                  // Скрытый TextField
                   Positioned.fill(
                     child: ExcludeSemantics(
                       child: Opacity(

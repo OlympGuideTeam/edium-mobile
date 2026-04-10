@@ -25,7 +25,7 @@ class EditProfileBloc extends Bloc<EditProfileEvent, EditProfileState> {
   ) async {
     emit(const EditProfileLoading());
     try {
-      final user = await _updateProfile(name: event.name);
+      final user = await _updateProfile(name: event.name, surname: event.surname);
       emit(EditProfileSuccess(user));
     } catch (e) {
       emit(EditProfileError(e.toString()));
