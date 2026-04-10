@@ -3,6 +3,7 @@ enum UserRole { teacher, student }
 class User {
   final String id;
   final String name;
+  final String? surname;
   final String phone;
   final UserRole? role;
   final String? avatarUrl;
@@ -10,6 +11,7 @@ class User {
   const User({
     required this.id,
     required this.name,
+    this.surname,
     required this.phone,
     this.role,
     this.avatarUrl,
@@ -18,6 +20,7 @@ class User {
   User copyWith({
     String? id,
     String? name,
+    String? surname,
     String? phone,
     UserRole? role,
     String? avatarUrl,
@@ -25,6 +28,7 @@ class User {
     return User(
       id: id ?? this.id,
       name: name ?? this.name,
+      surname: surname ?? this.surname,
       phone: phone ?? this.phone,
       role: role ?? this.role,
       avatarUrl: avatarUrl ?? this.avatarUrl,
@@ -40,5 +44,5 @@ class User {
   int get hashCode => id.hashCode;
 
   @override
-  String toString() => 'User(id: $id, name: $name, role: $role)';
+  String toString() => 'User(id: $id, name: $name, surname: $surname, role: $role)';
 }

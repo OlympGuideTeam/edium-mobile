@@ -1,4 +1,5 @@
 import 'package:edium/core/theme/app_colors.dart';
+import 'package:edium/presentation/shared/widgets/edium_notification.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/quiz.dart';
 import 'package:edium/presentation/shared/widgets/edium_button.dart';
@@ -33,21 +34,13 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     return BlocConsumer<CreateQuizBloc, CreateQuizState>(
       listener: (context, state) {
         if (state.success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Квиз успешно создан!'),
-              backgroundColor: AppColors.success,
-            ),
-          );
+          EdiumNotification.show(context, 'Квиз успешно создан!');
           context.read<CreateQuizBloc>().add(const ResetCreateQuizEvent());
           _titleCtrl.clear();
           _subjectCtrl.clear();
         }
         if (state.error != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.error!),
-                backgroundColor: AppColors.error),
-          );
+          EdiumNotification.show(context, state.error!, type: EdiumNotificationType.error);
         }
       },
       builder: (context, state) {

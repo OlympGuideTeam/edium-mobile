@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:edium/domain/entities/user_statistic.dart';
 import 'package:edium/domain/usecases/user/get_me_usecase.dart';
 import 'package:edium/domain/usecases/user/get_user_statistic_usecase.dart';
 import 'package:edium/presentation/profile/bloc/profile_event.dart';
@@ -23,14 +24,21 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   ) async {
     emit(const ProfileLoading());
     try {
-      final results = await Future.wait([
-        _getMe(),
-        _getStatistic(),
-      ]);
-      emit(ProfileLoaded(
-        user: results[0] as dynamic,
-        statistic: results[1] as dynamic,
-      ));
+      final user = await _getMe();
+      UserStatistic statistic;
+      try {
+        statistic = await _getStatistic();
+      } catch (_) {
+        statistic = const UserStatistic(
+          quizCountCreated: 0,
+          classTeacherCount: 0,
+          studentCount: 0,
+          courseStudentCount: 0,
+          quizCountPassed: 0,
+          avgQuizScore: 0,
+        );
+      }
+      emit(ProfileLoaded(user: user, statistic: statistic));
     } catch (e) {
       emit(ProfileError(e.toString()));
     }

@@ -7,6 +7,8 @@ class AuthRepositoryImpl implements IAuthRepository {
   final IDoormanApiService _doorman;
   final ITokenStorage _tokenStorage;
 
+  String? _pendingRegistrationToken;
+
   AuthRepositoryImpl({
     required IDoormanApiService doorman,
     required ITokenStorage tokenStorage,
@@ -14,26 +16,58 @@ class AuthRepositoryImpl implements IAuthRepository {
         _tokenStorage = tokenStorage;
 
   @override
-  Future<void> sendOtp({required String phone}) async {
-    await _doorman.sendOtpRequest(
-      OtpSendRequest(phone: phone, channel: Channel.tg),
+  Future<void> sendOtp({required String phone, required String channel}) async {
+    final ch = Channel.values.firstWhere(
+      (c) => c.type_ == channel,
+      orElse: () => Channel.sms,
     );
+    await _doorman.sendOtpRequest(OtpSendRequest(phone: phone, channel: ch));
   }
 
   @override
-  Future<void> verifyOtp({required String phone, required String otp}) async {
-    final tokens = await _doorman.otpVerifyRequest(
+  Future<bool> verifyOtp({required String phone, required String otp}) async {
+    final result = await _doorman.otpVerifyRequest(
       OtpVerifyRequest(phone: phone, otp: int.parse(otp)),
+    );
+    switch (result) {
+      case AuthTokensResult(:final tokens):
+        await _tokenStorage.saveTokens(
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+        );
+        _pendingRegistrationToken = null;
+        return false;
+      case RegistrationRequired(:final registrationToken):
+        _pendingRegistrationToken = registrationToken;
+        return true;
+    }
+  }
+
+  @override
+  Future<void> register({
+    required String phone,
+    required String name,
+    required String surname,
+  }) async {
+    final regToken = _pendingRegistrationToken;
+    if (regToken == null) throw Exception('Сессия регистрации истекла. Начните заново');
+    final tokens = await _doorman.registerRequest(
+      RegisterRequest(name: name, surname: surname, phone: phone),
+      registrationToken: regToken,
     );
     await _tokenStorage.saveTokens(
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
     );
+    _pendingRegistrationToken = null;
   }
 
   @override
   Future<void> logout() async {
-    await _doorman.logoutRequest();
+    final refreshToken = await _tokenStorage.getRefreshToken();
+    if (refreshToken != null) {
+      await _doorman.logoutRequest(LogoutRequest(refreshToken: refreshToken));
+    }
     await _tokenStorage.deleteTokens();
   }
 

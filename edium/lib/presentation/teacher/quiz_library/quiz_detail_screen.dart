@@ -1,4 +1,5 @@
 import 'package:edium/core/di/injection.dart';
+import 'package:edium/presentation/shared/widgets/edium_notification.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/quiz.dart';
@@ -65,19 +66,11 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
       await getIt<IQuizRepository>().updateQuizStatus(widget.quizId, 'active');
       await _load();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Квиз опубликован!'),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        EdiumNotification.show(context, 'Квиз опубликован!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppColors.error),
-        );
+        EdiumNotification.show(context, 'Ошибка: $e', type: EdiumNotificationType.error);
       }
     }
   }
@@ -110,20 +103,12 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
     try {
       await getIt<IQuizRepository>().deleteQuiz(widget.quizId);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Квиз удалён'),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        EdiumNotification.show(context, 'Квиз удалён');
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppColors.error),
-        );
+        EdiumNotification.show(context, 'Ошибка: $e', type: EdiumNotificationType.error);
       }
     }
   }

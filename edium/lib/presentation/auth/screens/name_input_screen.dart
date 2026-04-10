@@ -1,13 +1,17 @@
+import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
+import 'package:edium/presentation/auth/bloc/auth_state.dart';
+import 'package:edium/presentation/shared/widgets/edium_notification.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class NameInputScreen extends StatefulWidget {
-  const NameInputScreen({super.key});
+  final String phone;
+  const NameInputScreen({super.key, required this.phone});
 
   @override
   State<NameInputScreen> createState() => _NameInputScreenState();
@@ -43,13 +47,32 @@ class _NameInputScreenState extends State<NameInputScreen> {
     final name = _nameCtrl.text.trim();
     final surname = _surnameCtrl.text.trim();
     if (name.isEmpty || surname.isEmpty) return;
-    final fullName = '$name $surname';
-    context.read<AuthBloc>().add(NameSubmittedEvent(fullName));
+    getIt<AuthBloc>().add(RegisterEvent(
+      phone: widget.phone,
+      name: name,
+      surname: surname,
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return BlocProvider.value(
+      value: getIt<AuthBloc>(),
+      child: BlocListener<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is AuthError) {
+            EdiumNotification.show(context, state.message, type: EdiumNotificationType.error);
+          }
+        },
+        child: _buildBody(),
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         backgroundColor: Colors.white,
@@ -118,6 +141,8 @@ class _NameInputScreenState extends State<NameInputScreen> {
         ),
       ),
     );
+      },
+    );
   }
 
   Widget _buildTextField(TextEditingController controller, String hint) {
@@ -130,6 +155,7 @@ class _NameInputScreenState extends State<NameInputScreen> {
       ),
       child: TextField(
         controller: controller,
+        textCapitalization: TextCapitalization.words,
         cursorColor: AppColors.mono900,
         style: AppTextStyles.fieldText,
         decoration: InputDecoration(

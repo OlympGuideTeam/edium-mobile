@@ -1,5 +1,6 @@
 import 'package:edium/core/config/api_config.dart';
 import 'package:edium/core/storage/profile_storage.dart';
+import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/data/datasources/class/class_datasource.dart';
 import 'package:edium/data/datasources/class/class_datasource_impl.dart';
 import 'package:edium/data/datasources/class/class_datasource_mock.dart';
@@ -24,6 +25,7 @@ import 'package:edium/domain/repositories/quiz_repository.dart';
 import 'package:edium/domain/repositories/quiz_session_repository.dart';
 import 'package:edium/domain/repositories/user_repository.dart';
 import 'package:edium/domain/usecases/auth/logout_usecase.dart';
+import 'package:edium/domain/usecases/auth/register_usecase.dart';
 import 'package:edium/domain/usecases/auth/send_otp_usecase.dart';
 import 'package:edium/domain/usecases/auth/verify_otp_usecase.dart';
 import 'package:edium/domain/usecases/quiz/create_quiz_usecase.dart';
@@ -50,6 +52,14 @@ import 'package:edium/services/token_storage/token_storage_interface.dart';
 import 'package:get_it/get_it.dart';
 
 final getIt = GetIt.instance;
+
+Future<void> reinitializeDependencies(AppEnvironment env) async {
+  ApiConfig.environment = env;
+  await ProfileStorage.saveEnvironment(env);
+  await getIt.reset();
+  await initializeDependencies();
+  getIt<AuthBloc>().add(const AppStarted());
+}
 
 Future<void> initializeDependencies() async {
 
@@ -109,6 +119,7 @@ Future<void> initializeDependencies() async {
 
   getIt.registerLazySingleton(() => SendOtpUsecase(getIt()));
   getIt.registerLazySingleton(() => VerifyOtpUsecase(getIt()));
+  getIt.registerLazySingleton(() => RegisterUsecase(getIt()));
   getIt.registerLazySingleton(() => LogoutUsecase(getIt()));
   getIt.registerLazySingleton(() => GetMeUsecase(getIt()));
   getIt.registerLazySingleton(() => SetRoleUsecase(getIt()));
@@ -130,9 +141,11 @@ Future<void> initializeDependencies() async {
     AuthBloc(
       sendOtp: getIt(),
       verifyOtp: getIt(),
+      register: getIt(),
       logout: getIt(),
       getMe: getIt(),
       profileStorage: getIt(),
+      dioHandler: getIt(),
     ),
   );
 }
