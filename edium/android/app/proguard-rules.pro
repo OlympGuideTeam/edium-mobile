@@ -10,3 +10,6 @@
 -dontwarn com.google.errorprone.annotations.**
 -dontwarn javax.annotation.**
 -dontwarn javax.annotation.concurrent.**
+
+# Flutter Play Store deferred components — not used outside Google Play
+-dontwarn com.google.android.play.core.**
