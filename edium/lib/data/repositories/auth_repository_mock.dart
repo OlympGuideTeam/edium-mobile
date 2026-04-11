@@ -1,7 +1,11 @@
+import 'package:edium/core/storage/profile_storage.dart';
 import 'package:edium/domain/repositories/auth_repository.dart';
 
 class AuthRepositoryMock implements IAuthRepository {
+  final ProfileStorage _profileStorage;
   bool _authenticated = false;
+
+  AuthRepositoryMock(this._profileStorage);
 
   @override
   Future<void> sendOtp({required String phone, required String channel}) async {
@@ -15,7 +19,8 @@ class AuthRepositoryMock implements IAuthRepository {
       throw Exception('Неверный код. Используйте 123456 для теста.');
     }
     _authenticated = true;
-    return false;
+    final isNewUser = !_profileStorage.hasName;
+    return isNewUser;
   }
 
   @override
