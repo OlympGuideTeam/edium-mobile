@@ -94,7 +94,7 @@ Future<void> initializeDependencies() async {
   }
 
   if (ApiConfig.useMock) {
-    getIt.registerLazySingleton<IAuthRepository>(() => AuthRepositoryMock());
+    getIt.registerLazySingleton<IAuthRepository>(() => AuthRepositoryMock(getIt()));
   } else {
     getIt.registerLazySingleton<IAuthRepository>(
       () => AuthRepositoryImpl(
