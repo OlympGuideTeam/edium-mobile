@@ -88,10 +88,8 @@ GoRouter buildRouter() {
       ),
       GoRoute(
         path: '/profile/edit',
-        builder: (_, state) {
-          final user = state.extra as User;
-          return EditProfileScreen(user: user);
-        },
+        redirect: (_, state) => state.extra == null ? '/welcome' : null,
+        builder: (_, state) => EditProfileScreen(user: state.extra as User),
       ),
     ],
   );
