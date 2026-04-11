@@ -77,8 +77,8 @@ jobs:
       - name: Upload to RuStore
         working-directory: edium
         env:
-          RUSTORE_COMPANY_ID: ${{ secrets.RUSTORE_COMPANY_ID }}
-          RUSTORE_TOKEN:      ${{ secrets.RUSTORE_TOKEN }}
+          RUSTORE_KEY_ID:      ${{ secrets.RUSTORE_KEY_ID }}
+          RUSTORE_PRIVATE_KEY_BASE64: ${{ secrets.RUSTORE_PRIVATE_KEY_BASE64 }}
           RELEASE_NOTES:      ${{ github.event.inputs.release_notes }}
         run: bundle exec fastlane android beta
 
