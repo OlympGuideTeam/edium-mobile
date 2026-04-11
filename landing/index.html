@@ -581,6 +581,60 @@
         font-size: 12px;
         color: var(--c-faint);
       }
+
+      /* ── Mobile ── */
+      @media (max-width: 640px) {
+        /* Spacing */
+        section          { padding: 52px 20px; }
+        .hero            { padding: 60px 20px 48px; }
+        .cta-section     { padding: 52px 20px; }
+        .section-head    { margin-bottom: 36px; }
+
+        /* Hero text & stats */
+        .hero p          { font-size: 15px; }
+        .stats-row       { margin-top: 40px; }
+        .stat-num        { font-size: 22px; }
+        .stat-label      { font-size: 11px; }
+
+        /* Hero actions — stack full-width */
+        .hero-actions                    { flex-direction: column; align-items: stretch; }
+        .hero-actions .btn-primary,
+        .hero-actions .btn-secondary     { justify-content: center; }
+
+        /* Role cards — smaller padding, tighter radius */
+        .role-card { padding: 24px 20px; border-radius: 20px; }
+        .role-card h3 { font-size: 20px; }
+
+        /* Disable column-expansion on mobile — keep single column */
+        .roles-grid.teacher-active,
+        .roles-grid.student-active { grid-template-columns: 1fr; }
+
+        /* Mobile active state: vertical lift + stronger shadow */
+        .role-card.active                      { transform: scale(1.015); }
+        .role-card.active.role-card-teacher    { box-shadow: 0 16px 40px rgba(0,0,0,0.26); }
+        .role-card.active.role-card-student    { box-shadow: 0 16px 40px rgba(0,0,0,0.09); border-color: var(--c-hint); }
+        .role-card.inactive                    { transform: scale(0.98); opacity: 0.42; }
+
+        /* Hint text — slightly bigger tap target feel */
+        .role-hint { font-size: 12px; margin-top: 16px; }
+
+        /* Feature cards — disable hover transform on touch */
+        .feature-card:hover { transform: none; box-shadow: none; }
+
+        /* CTA buttons — stack full-width */
+        .cta-links                   { flex-direction: column; align-items: stretch; }
+        .btn-white, .btn-ghost       { justify-content: center; }
+
+        /* Footer — column */
+        .footer-inner { flex-direction: column; align-items: flex-start; gap: 8px; }
+      }
+
+      /* Very small phones */
+      @media (max-width: 380px) {
+        .stat-num  { font-size: 19px; }
+        .role-card { padding: 20px 16px; }
+        .role-card h3 { font-size: 18px; }
+      }
     </style>
   </head>
   <body>
