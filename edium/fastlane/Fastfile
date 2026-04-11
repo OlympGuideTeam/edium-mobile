@@ -56,12 +56,11 @@ platform :android do
     UI.user_error!("APK не найден: #{apk_path}") unless File.exist?(apk_path)
 
     rustore_publish(
-      company_id:    ENV.fetch("RUSTORE_COMPANY_ID"),
-      token:         ENV.fetch("RUSTORE_TOKEN"),
+      key_id:       ENV.fetch("RUSTORE_KEY_ID"),
+      private_key:  ENV.fetch("RUSTORE_PRIVATE_KEY_BASE64"),
       package_name:  "online.edium.app",
-      apk_path:      apk_path,
+      gms_apk: apk_path
       publish_type:  "MANUAL",
-      release_notes: ENV.fetch("RELEASE_NOTES", "Внутренняя сборка"),
     )
 
     UI.success("✅ Загружено в RuStore")
