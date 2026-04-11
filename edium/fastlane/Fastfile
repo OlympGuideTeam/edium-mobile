@@ -58,9 +58,9 @@ platform :android do
     rustore_publish(
       key_id:       ENV.fetch("RUSTORE_KEY_ID"),
       private_key:  ENV.fetch("RUSTORE_PRIVATE_KEY_BASE64"),
-      package_name:  "online.edium.app",
-      gms_apk: apk_path
-      publish_type:  "MANUAL",
+      package_name: "online.edium.app",
+      gms_apk:      apk_path,
+      publish_type: "MANUAL",
     )
 
     UI.success("✅ Загружено в RuStore")
