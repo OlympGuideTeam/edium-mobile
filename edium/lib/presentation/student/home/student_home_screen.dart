@@ -1,5 +1,6 @@
 import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
+import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
@@ -95,114 +96,91 @@ class _StudentDashboardPage extends StatelessWidget {
               ? user!.name.split(' ').first
               : 'Студент';
           return Scaffold(
-            backgroundColor: AppColors.background,
+            backgroundColor: Colors.white,
             body: SafeArea(
               child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                      child: Text(
-                        'Edium',
-                        style: AppTextStyles.heading3.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w800,
-                        ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppDimens.screenPaddingH),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
+                      const Text('edium', style: AppTextStyles.screenTitle),
+                      const SizedBox(height: 28),
+                      Text(
+                        'Привет, $firstName',
+                        style: AppTextStyles.screenTitle,
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    // Greeting card
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [
-                              AppColors.secondary,
-                              Color(0xFFFF8F5E),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Привет, $firstName 🎓',
-                              style: AppTextStyles.heading2
-                                  .copyWith(color: Colors.white),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Готов проверить свои знания?',
-                              style: AppTextStyles.body.copyWith(
-                                color: Colors.white70,
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Готов проверить свои знания?',
+                        style: AppTextStyles.screenSubtitle,
+                      ),
+                      const SizedBox(height: 32),
+                      Material(
+                        color: Colors.white,
+                        borderRadius:
+                            BorderRadius.circular(AppDimens.radiusLg),
+                        child: InkWell(
+                          onTap: () => onNavigateToTab(1),
+                          borderRadius:
+                              BorderRadius.circular(AppDimens.radiusLg),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              borderRadius:
+                                  BorderRadius.circular(AppDimens.radiusLg),
+                              border: Border.all(
+                                color: AppColors.mono150,
+                                width: AppDimens.borderWidth,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    // CTA
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: GestureDetector(
-                        onTap: () => onNavigateToTab(1),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.cardBorder),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryLight,
-                                  borderRadius: BorderRadius.circular(14),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.mono50,
+                                    borderRadius: BorderRadius.circular(
+                                        AppDimens.radiusMd),
+                                  ),
+                                  child: Icon(CupertinoIcons.compass,
+                                      color: AppColors.mono700, size: 20),
                                 ),
-                                child: const Icon(Icons.rocket_launch_outlined,
-                                    color: AppColors.primary, size: 24),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Начните обучение',
-                                      style: AppTextStyles.bodySmall.copyWith(
-                                          fontWeight: FontWeight.w600),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'Перейдите в «Квизы», чтобы найти тест',
-                                      style: AppTextStyles.caption,
-                                    ),
-                                  ],
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Начните обучение',
+                                        style:
+                                            AppTextStyles.fieldText.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      const Text(
+                                        'Перейдите в «Квизы», чтобы найти тест',
+                                        style: AppTextStyles.helperText,
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              const Icon(Icons.chevron_right,
-                                  color: AppColors.textSecondary),
-                            ],
+                                Icon(Icons.chevron_right,
+                                    color: AppColors.mono300, size: 20),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -212,4 +190,3 @@ class _StudentDashboardPage extends StatelessWidget {
     );
   }
 }
-
