@@ -79,9 +79,13 @@ class _NameInputScreenState extends State<NameInputScreen> {
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppDimens.screenPaddingH),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            child: CustomScrollView(
+              slivers: [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                 const SizedBox(height: 56),
                 // Тег
                 Container(
@@ -135,6 +139,9 @@ class _NameInputScreenState extends State<NameInputScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
+              ],
+            ),
+          ),
               ],
             ),
           ),
