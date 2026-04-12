@@ -17,3 +17,9 @@ class CreateClassEvent extends ClassesEvent {
 
   const CreateClassEvent(this.title);
 }
+
+class DeleteClassEvent extends ClassesEvent {
+  final String classId;
+
+  const DeleteClassEvent(this.classId);
+}
