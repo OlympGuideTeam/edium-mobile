@@ -587,8 +587,14 @@ class _CoursesTab extends StatelessWidget {
               width: double.infinity,
               height: AppDimens.buttonH,
               child: ElevatedButton(
-                onPressed: () {
-                  // TODO: навигация на экран создания курса
+                onPressed: () async {
+                  final bloc = context.read<ClassDetailBloc>();
+                  final result = await context.push<bool>(
+                    '/course/create?classId=${bloc.classId}',
+                  );
+                  if (result == true && context.mounted) {
+                    bloc.add(LoadClassDetailEvent(bloc.classId));
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.mono900,
@@ -616,7 +622,9 @@ class _CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final card = Container(
+    final card = SizedBox(
+      width: double.infinity,
+      child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppDimens.radiusLg),
@@ -645,6 +653,7 @@ class _CourseCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
 
     if (!course.isTeacher) {

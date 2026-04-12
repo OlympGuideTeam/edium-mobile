@@ -12,6 +12,7 @@ import 'package:edium/presentation/auth/screens/role_selection_screen.dart';
 import 'package:edium/presentation/auth/screens/splash_screen.dart';
 import 'package:edium/presentation/auth/screens/welcome_screen.dart';
 import 'package:edium/presentation/class_detail/class_detail_screen.dart';
+import 'package:edium/presentation/teacher/create_course/create_course_screen.dart';
 import 'package:edium/presentation/profile/edit_profile/edit_profile_screen.dart';
 import 'package:edium/presentation/student/home/student_home_screen.dart';
 import 'package:edium/presentation/teacher/home/teacher_home_screen.dart';
@@ -97,6 +98,13 @@ GoRouter buildRouter() {
         builder: (_, state) {
           final classId = state.pathParameters['classId']!;
           return ClassDetailScreen(classId: classId);
+        },
+      ),
+      GoRoute(
+        path: '/course/create',
+        builder: (_, state) {
+          final classId = state.uri.queryParameters['classId'] ?? '';
+          return CreateCourseScreen(classId: classId);
         },
       ),
     ],
