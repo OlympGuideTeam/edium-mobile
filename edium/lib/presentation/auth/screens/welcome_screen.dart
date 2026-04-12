@@ -279,7 +279,7 @@ class _QuizCodeBlock extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(6, (i) {
-                      return GestureDetector(
+                      return Expanded(child: GestureDetector(
                         onTap: () => onCellTap(i),
                         child: AnimatedBuilder(
                           animation: controller,
@@ -295,10 +295,9 @@ class _QuizCodeBlock extends StatelessWidget {
                                     : AppColors.mono150;
 
                             return Container(
-                              width: AppDimens.otpCellW,
                               height: AppDimens.otpCellH,
-                              margin: EdgeInsets.only(
-                                  left: i == 0 ? 0 : AppDimens.otpCellGap),
+                              margin: EdgeInsets.symmetric(
+                                  horizontal: AppDimens.otpCellGap / 2),
                               decoration: BoxDecoration(
                                 color: hasDigit ? Colors.white : AppColors.mono25,
                                 borderRadius:
@@ -316,7 +315,7 @@ class _QuizCodeBlock extends StatelessWidget {
                             );
                           },
                         ),
-                      );
+                      ));
                     }),
                   ),
                   Positioned.fill(
