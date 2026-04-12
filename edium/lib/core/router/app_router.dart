@@ -11,6 +11,7 @@ import 'package:edium/presentation/auth/screens/phone_input_screen.dart';
 import 'package:edium/presentation/auth/screens/role_selection_screen.dart';
 import 'package:edium/presentation/auth/screens/splash_screen.dart';
 import 'package:edium/presentation/auth/screens/welcome_screen.dart';
+import 'package:edium/presentation/class_detail/class_detail_screen.dart';
 import 'package:edium/presentation/profile/edit_profile/edit_profile_screen.dart';
 import 'package:edium/presentation/student/home/student_home_screen.dart';
 import 'package:edium/presentation/teacher/home/teacher_home_screen.dart';
@@ -90,6 +91,13 @@ GoRouter buildRouter() {
         path: '/profile/edit',
         redirect: (_, state) => state.extra == null ? '/welcome' : null,
         builder: (_, state) => EditProfileScreen(user: state.extra as User),
+      ),
+      GoRoute(
+        path: '/class/:classId',
+        builder: (_, state) {
+          final classId = state.pathParameters['classId']!;
+          return ClassDetailScreen(classId: classId);
+        },
       ),
     ],
   );

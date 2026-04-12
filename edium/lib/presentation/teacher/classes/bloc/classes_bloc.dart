@@ -1,4 +1,5 @@
 import 'package:edium/domain/usecases/class/create_class_usecase.dart';
+import 'package:edium/domain/usecases/class/delete_class_usecase.dart';
 import 'package:edium/domain/usecases/class/get_my_classes_usecase.dart';
 import 'package:edium/presentation/teacher/classes/bloc/classes_event.dart';
 import 'package:edium/presentation/teacher/classes/bloc/classes_state.dart';
@@ -7,18 +8,22 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 class ClassesBloc extends Bloc<ClassesEvent, ClassesState> {
   final GetMyClassesUsecase _getMyClasses;
   final CreateClassUsecase _createClass;
+  final DeleteClassUsecase _deleteClass;
   final String role;
 
   ClassesBloc({
     required GetMyClassesUsecase getMyClasses,
     required CreateClassUsecase createClass,
+    required DeleteClassUsecase deleteClass,
     required this.role,
   })  : _getMyClasses = getMyClasses,
         _createClass = createClass,
+        _deleteClass = deleteClass,
         super(const ClassesInitial()) {
     on<LoadClassesEvent>(_onLoad);
     on<SearchClassesEvent>(_onSearch);
     on<CreateClassEvent>(_onCreate);
+    on<DeleteClassEvent>(_onDelete);
   }
 
   Future<void> _onLoad(
@@ -71,6 +76,19 @@ class ClassesBloc extends Bloc<ClassesEvent, ClassesState> {
       add(const LoadClassesEvent());
     } catch (e) {
       emit(ClassCreateError(e.toString()));
+    }
+  }
+
+  Future<void> _onDelete(
+    DeleteClassEvent event,
+    Emitter<ClassesState> emit,
+  ) async {
+    try {
+      await _deleteClass(classId: event.classId);
+      emit(const ClassDeleted());
+      add(const LoadClassesEvent());
+    } catch (e) {
+      emit(ClassDeleteError(e.toString()));
     }
   }
 }

@@ -1,14 +1,15 @@
 import 'package:edium/core/di/injection.dart';
-import 'package:edium/presentation/shared/widgets/edium_notification.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/class_summary.dart';
+import 'package:edium/presentation/shared/widgets/edium_notification.dart';
 import 'package:edium/presentation/teacher/classes/bloc/classes_bloc.dart';
 import 'package:edium/presentation/teacher/classes/bloc/classes_event.dart';
 import 'package:edium/presentation/teacher/classes/bloc/classes_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 class ClassesScreen extends StatelessWidget {
   final String role;
@@ -21,6 +22,7 @@ class ClassesScreen extends StatelessWidget {
       create: (_) => ClassesBloc(
         getMyClasses: getIt(),
         createClass: getIt(),
+        deleteClass: getIt(),
         role: role,
       )..add(const LoadClassesEvent()),
       child: _ClassesView(role: role),
@@ -129,6 +131,48 @@ class _ClassesView extends StatelessWidget {
     );
   }
 
+  Future<bool?> _confirmDeleteClass(BuildContext context, String title) {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+          ),
+          title: const Text(
+            'Удалить класс?',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.mono900,
+            ),
+          ),
+          content: Text(
+            'Класс «$title» будет удалён. Это действие необратимо.',
+            style: const TextStyle(fontSize: 14, color: AppColors.mono400),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text(
+                'Отмена',
+                style: TextStyle(color: AppColors.mono400),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text(
+                'Удалить',
+                style: TextStyle(color: AppColors.error),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isTeacher = role == 'teacher';
@@ -137,8 +181,11 @@ class _ClassesView extends StatelessWidget {
       listener: (context, state) {
         if (state is ClassCreated) {
           EdiumNotification.show(context, 'Класс создан');
-        }
-        if (state is ClassCreateError) {
+        } else if (state is ClassDeleted) {
+          EdiumNotification.show(context, 'Класс удалён');
+        } else if (state is ClassCreateError) {
+          EdiumNotification.show(context, state.message, type: EdiumNotificationType.error);
+        } else if (state is ClassDeleteError) {
           EdiumNotification.show(context, state.message, type: EdiumNotificationType.error);
         }
       },
@@ -272,10 +319,58 @@ class _ClassesView extends StatelessWidget {
                       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                       itemCount: loaded.filtered.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (_, i) => _ClassTile(
-                        classSummary: loaded.filtered[i],
-                        isTeacher: isTeacher,
-                      ),
+                      itemBuilder: (context, i) {
+                        final item = loaded.filtered[i];
+                        final tile = _ClassTile(
+                          classSummary: item,
+                          isTeacher: isTeacher,
+                        );
+
+                        if (!item.isOwner) return tile;
+
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Dismissible(
+                            key: ValueKey(item.id),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              decoration: BoxDecoration(
+                                color: AppColors.error,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Удалить',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            confirmDismiss: (_) =>
+                                _confirmDeleteClass(context, item.title),
+                            onDismissed: (_) {
+                              context
+                                  .read<ClassesBloc>()
+                                  .add(DeleteClassEvent(item.id));
+                            },
+                            child: tile,
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
@@ -306,7 +401,7 @@ class _ClassTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: () {
-          // TODO: навигация на детали класса
+          context.push('/class/${classSummary.id}');
         },
         borderRadius: BorderRadius.circular(14),
         child: Container(
