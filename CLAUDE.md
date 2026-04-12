@@ -5,6 +5,9 @@
 @../edium-claude/claude/shared/security-rules.md
 @../edium-claude/claude/shared/project-context.md
 @../edium-claude/claude/backend/CLAUDE.md
+@../edium-backend/caesar/api/openapi.yaml
+@../edium-backend/charon/api/openapi.yaml
+@../edium-backend/doorman/api/openapi.yaml
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
