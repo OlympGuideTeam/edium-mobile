@@ -22,7 +22,8 @@ class UserDatasourceImpl extends BaseApiService implements IUserDatasource {
       'caesar/v1/users/me',
       method: HttpMethod.patch,
       req: {'role': role},
-      parser: (data) => UserModel.fromJson(data as Map<String, dynamic>),
+      // PATCH returns 204 with no body
+      parser: (_) => UserModel(id: '', name: '', phone: '', role: role),
     );
   }
 

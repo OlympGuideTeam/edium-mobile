@@ -39,3 +39,13 @@ class ClassCreateError extends ClassesState {
 
   const ClassCreateError(this.message);
 }
+
+class ClassDeleted extends ClassesState {
+  const ClassDeleted();
+}
+
+class ClassDeleteError extends ClassesState {
+  final String message;
+
+  const ClassDeleteError(this.message);
+}
