@@ -36,6 +36,13 @@ import 'package:edium/domain/usecases/quiz_session/complete_quiz_usecase.dart';
 import 'package:edium/domain/usecases/quiz_session/get_my_sessions_usecase.dart';
 import 'package:edium/domain/usecases/quiz_session/start_quiz_usecase.dart';
 import 'package:edium/domain/usecases/quiz_session/submit_answer_usecase.dart';
+import 'package:edium/data/datasources/course/course_datasource.dart';
+import 'package:edium/data/datasources/course/course_datasource_impl.dart';
+import 'package:edium/data/datasources/course/course_datasource_mock.dart';
+import 'package:edium/data/repositories/course_repository_impl.dart';
+import 'package:edium/domain/repositories/course_repository.dart';
+import 'package:edium/domain/usecases/course/create_course_usecase.dart';
+import 'package:edium/domain/usecases/course/create_module_usecase.dart';
 import 'package:edium/domain/usecases/class/create_class_usecase.dart';
 import 'package:edium/domain/usecases/class/delete_class_usecase.dart';
 import 'package:edium/domain/usecases/class/delete_course_usecase.dart';
@@ -88,6 +95,8 @@ Future<void> initializeDependencies() async {
         () => QuizSessionDatasourceHive());
     getIt.registerLazySingleton<IClassDatasource>(
         () => ClassDatasourceMock());
+    getIt.registerLazySingleton<ICourseDatasource>(
+        () => CourseDatasourceMock());
   } else {
     getIt.registerLazySingleton<IUserDatasource>(
         () => UserDatasourceImpl(getIt<DioHandler>().dio));
@@ -97,6 +106,8 @@ Future<void> initializeDependencies() async {
         () => QuizSessionDatasourceImpl(getIt<DioHandler>().dio));
     getIt.registerLazySingleton<IClassDatasource>(
         () => ClassDatasourceImpl(getIt<DioHandler>().dio));
+    getIt.registerLazySingleton<ICourseDatasource>(
+        () => CourseDatasourceImpl(getIt<DioHandler>().dio));
   }
 
   if (ApiConfig.useMock) {
@@ -122,6 +133,9 @@ Future<void> initializeDependencies() async {
   getIt.registerLazySingleton<IClassRepository>(
     () => ClassRepositoryImpl(getIt()),
   );
+  getIt.registerLazySingleton<ICourseRepository>(
+    () => CourseRepositoryImpl(getIt()),
+  );
 
   getIt.registerLazySingleton(() => SendOtpUsecase(getIt()));
   getIt.registerLazySingleton(() => VerifyOtpUsecase(getIt()));
@@ -138,6 +152,8 @@ Future<void> initializeDependencies() async {
   getIt.registerLazySingleton(() => UpdateClassUsecase(getIt()));
   getIt.registerLazySingleton(() => DeleteClassUsecase(getIt()));
   getIt.registerLazySingleton(() => DeleteCourseUsecase(getIt()));
+  getIt.registerLazySingleton(() => CreateCourseUsecase(getIt()));
+  getIt.registerLazySingleton(() => CreateModuleUsecase(getIt()));
   getIt.registerLazySingleton(() => RemoveMemberUsecase(getIt()));
   getIt.registerLazySingleton(() => GetInviteLinkUsecase(getIt()));
   getIt.registerLazySingleton(() => GetQuizzesUsecase(getIt()));
