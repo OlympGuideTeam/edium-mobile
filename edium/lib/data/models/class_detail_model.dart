@@ -44,7 +44,7 @@ class CourseSummaryModel {
       title: json['title'] as String,
       teacherName: json['teacher_name'] as String,
       moduleCount: json['module_count'] as int,
-      quizCount: json['quiz_count'] as int,
+      quizCount: (json['quiz_count'] ?? json['element_count'] ?? 0) as int,
       isTeacher: json['is_teacher'] as bool,
     );
   }
