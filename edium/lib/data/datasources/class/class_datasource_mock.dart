@@ -1,8 +1,11 @@
 import 'package:edium/data/datasources/class/class_datasource.dart';
+import 'package:edium/data/models/class_detail_model.dart';
 import 'package:edium/data/models/class_summary_model.dart';
 
 class ClassDatasourceMock implements IClassDatasource {
   final List<ClassSummaryModel> _createdClasses = [];
+  final Map<String, ClassDetailModel> _classDetails = {};
+  final Set<String> _deletedClasses = {};
 
   @override
   Future<String> createClass({required String title}) async {
@@ -79,5 +82,113 @@ class ClassDatasourceMock implements IClassDatasource {
         isOwner: false,
       ),
     ];
+  }
+
+  ClassDetailModel _defaultDetail(String classId) {
+    return ClassDetailModel(
+      id: classId,
+      title: '7А — Математика',
+      ownerName: 'Иван Петров',
+      isOwner: true,
+      students: const [
+        MemberShortModel(id: 'student-1', name: 'Мария Кузнецова'),
+        MemberShortModel(id: 'student-2', name: 'Дмитрий Волков'),
+        MemberShortModel(id: 'student-3', name: 'Анна Соколова'),
+        MemberShortModel(id: 'student-4', name: 'Артём Новиков'),
+      ],
+      courses: const [
+        CourseSummaryModel(
+          id: 'course-1',
+          title: 'Алгебра 7 класс',
+          teacherName: 'Иван Петров',
+          moduleCount: 4,
+          quizCount: 12,
+          isTeacher: true,
+        ),
+        CourseSummaryModel(
+          id: 'course-2',
+          title: 'Геометрия 7 класс',
+          teacherName: 'Иван Петров',
+          moduleCount: 3,
+          quizCount: 8,
+          isTeacher: true,
+        ),
+        CourseSummaryModel(
+          id: 'course-3',
+          title: 'Информатика',
+          teacherName: 'Елена Смирнова',
+          moduleCount: 5,
+          quizCount: 15,
+          isTeacher: false,
+        ),
+      ],
+      teachers: const [
+        MemberShortModel(id: 'teacher-1', name: 'Иван Петров'),
+        MemberShortModel(id: 'teacher-2', name: 'Елена Смирнова'),
+      ],
+    );
+  }
+
+  @override
+  Future<ClassDetailModel> getClassDetail({required String classId}) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return _classDetails[classId] ?? _defaultDetail(classId);
+  }
+
+  @override
+  Future<void> updateClass({
+    required String classId,
+    required String title,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final current = _classDetails[classId] ?? _defaultDetail(classId);
+    _classDetails[classId] = ClassDetailModel(
+      id: current.id,
+      title: title,
+      ownerName: current.ownerName,
+      isOwner: current.isOwner,
+      students: current.students,
+      courses: current.courses,
+      teachers: current.teachers,
+    );
+  }
+
+  @override
+  Future<void> deleteClass({required String classId}) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    _deletedClasses.add(classId);
+    _classDetails.remove(classId);
+  }
+
+  @override
+  Future<void> removeMember({
+    required String classId,
+    required String userId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final current = _classDetails[classId] ?? _defaultDetail(classId);
+    _classDetails[classId] = ClassDetailModel(
+      id: current.id,
+      title: current.title,
+      ownerName: current.ownerName,
+      isOwner: current.isOwner,
+      students: current.students.where((s) => s.id != userId).toList(),
+      courses: current.courses,
+      teachers: current.teachers,
+    );
+  }
+
+  @override
+  Future<String> getInviteLink({
+    required String classId,
+    required String role,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return 'https://edium.ru/invite/mock-$role-$classId';
+  }
+
+  @override
+  Future<void> deleteCourse({required String courseId}) async {
+    await Future.delayed(const Duration(milliseconds: 300));
   }
 }
