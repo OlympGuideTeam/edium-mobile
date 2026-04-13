@@ -7,7 +7,6 @@
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:links.edium.online</string>
-		<string>webcredentials:edium.online</string>
 	</array>
 </dict>
 </plist>
