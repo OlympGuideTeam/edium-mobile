@@ -1,4 +1,6 @@
 import 'package:edium/data/datasources/course/course_datasource.dart';
+import 'package:edium/data/models/course_detail_model.dart';
+import 'package:edium/domain/entities/course_detail.dart';
 import 'package:edium/services/network/base_api_service.dart';
 import 'package:edium/services/network/http_method.dart';
 
@@ -28,6 +30,16 @@ class CourseDatasourceImpl extends BaseApiService implements ICourseDatasource {
       method: HttpMethod.post,
       req: {'title': title},
       parser: (_) {},
+    );
+  }
+
+  @override
+  Future<CourseDetail> getCourseDetail({required String courseId}) {
+    return request(
+      'caesar/v1/courses/$courseId',
+      method: HttpMethod.get,
+      parser: (data) =>
+          CourseDetailModel.fromJson(data as Map<String, dynamic>).toEntity(),
     );
   }
 }

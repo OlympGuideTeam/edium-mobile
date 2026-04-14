@@ -624,6 +624,8 @@ class _CourseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final card = SizedBox(
       width: double.infinity,
+      child: GestureDetector(
+      onTap: () => context.push('/course/${course.id}'),
       child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
@@ -653,6 +655,7 @@ class _CourseCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
     ),
     );
 
