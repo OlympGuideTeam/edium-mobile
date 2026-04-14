@@ -1,0 +1,121 @@
+import 'package:edium/domain/entities/course_detail.dart';
+
+class CourseItemModel {
+  final String id;
+  final String refId;
+  final String type;
+  final int orderIndex;
+  final String? attemptId;
+  final double? score;
+
+  const CourseItemModel({
+    required this.id,
+    required this.refId,
+    required this.type,
+    required this.orderIndex,
+    this.attemptId,
+    this.score,
+  });
+
+  factory CourseItemModel.fromJson(Map<String, dynamic> json) {
+    return CourseItemModel(
+      id: json['id'] as String,
+      refId: json['ref_id'] as String,
+      type: json['type'] as String,
+      orderIndex: json['order_index'] as int,
+      attemptId: json['attempt_id'] as String?,
+      score: (json['score'] as num?)?.toDouble(),
+    );
+  }
+
+  CourseItem toEntity() {
+    return CourseItem(
+      id: id,
+      refId: refId,
+      type: type,
+      orderIndex: orderIndex,
+      attemptId: attemptId,
+      score: score,
+    );
+  }
+}
+
+class ModuleDetailModel {
+  final String id;
+  final String title;
+  final int elementCount;
+  final List<CourseItemModel> items;
+
+  const ModuleDetailModel({
+    required this.id,
+    required this.title,
+    required this.elementCount,
+    required this.items,
+  });
+
+  factory ModuleDetailModel.fromJson(Map<String, dynamic> json) {
+    return ModuleDetailModel(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      elementCount: json['element_count'] as int,
+      items: (json['items'] as List<dynamic>? ?? [])
+          .map((e) => CourseItemModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  ModuleDetail toEntity() {
+    return ModuleDetail(
+      id: id,
+      title: title,
+      elementCount: elementCount,
+      items: items.map((i) => i.toEntity()).toList(),
+    );
+  }
+}
+
+class CourseDetailModel {
+  final String id;
+  final String title;
+  final String teacherName;
+  final int moduleCount;
+  final int elementCount;
+  final bool isTeacher;
+  final List<ModuleDetailModel> modules;
+
+  const CourseDetailModel({
+    required this.id,
+    required this.title,
+    required this.teacherName,
+    required this.moduleCount,
+    required this.elementCount,
+    required this.isTeacher,
+    required this.modules,
+  });
+
+  factory CourseDetailModel.fromJson(Map<String, dynamic> json) {
+    return CourseDetailModel(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      teacherName: json['teacher_name'] as String,
+      moduleCount: json['module_count'] as int,
+      elementCount: json['element_count'] as int,
+      isTeacher: json['is_teacher'] as bool,
+      modules: (json['modules'] as List<dynamic>? ?? [])
+          .map((e) => ModuleDetailModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  CourseDetail toEntity() {
+    return CourseDetail(
+      id: id,
+      title: title,
+      teacherName: teacherName,
+      moduleCount: moduleCount,
+      elementCount: elementCount,
+      isTeacher: isTeacher,
+      modules: modules.map((m) => m.toEntity()).toList(),
+    );
+  }
+}

@@ -43,6 +43,7 @@ import 'package:edium/data/repositories/course_repository_impl.dart';
 import 'package:edium/domain/repositories/course_repository.dart';
 import 'package:edium/domain/usecases/course/create_course_usecase.dart';
 import 'package:edium/domain/usecases/course/create_module_usecase.dart';
+import 'package:edium/domain/usecases/course/get_course_detail_usecase.dart';
 import 'package:edium/domain/usecases/class/create_class_usecase.dart';
 import 'package:edium/domain/usecases/class/delete_class_usecase.dart';
 import 'package:edium/domain/usecases/class/delete_course_usecase.dart';
@@ -154,6 +155,7 @@ Future<void> initializeDependencies() async {
   getIt.registerLazySingleton(() => DeleteCourseUsecase(getIt()));
   getIt.registerLazySingleton(() => CreateCourseUsecase(getIt()));
   getIt.registerLazySingleton(() => CreateModuleUsecase(getIt()));
+  getIt.registerLazySingleton(() => GetCourseDetailUsecase(getIt()));
   getIt.registerLazySingleton(() => RemoveMemberUsecase(getIt()));
   getIt.registerLazySingleton(() => GetInviteLinkUsecase(getIt()));
   getIt.registerLazySingleton(() => GetQuizzesUsecase(getIt()));
