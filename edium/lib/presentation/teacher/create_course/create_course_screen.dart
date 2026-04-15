@@ -73,12 +73,23 @@ class _CreateCourseViewState extends State<_CreateCourseView> {
     _moduleFocusNodes.removeAt(index);
   }
 
+  void _reorderModule(int oldIndex, int newIndex) {
+    if (newIndex > oldIndex) newIndex--;
+    context
+        .read<CreateCourseBloc>()
+        .add(ReorderModulesEvent(oldIndex, newIndex));
+    final ctrl = _moduleControllers.removeAt(oldIndex);
+    _moduleControllers.insert(newIndex, ctrl);
+    final focus = _moduleFocusNodes.removeAt(oldIndex);
+    _moduleFocusNodes.insert(newIndex, focus);
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<CreateCourseBloc, CreateCourseState>(
       listener: (context, state) {
-        if (state.success) {
-          context.pop(true);
+        if (state.success && state.courseId != null) {
+          context.pop(state.courseId);
         } else if (state.error != null) {
           EdiumNotification.show(
             context,
@@ -204,20 +215,45 @@ class _CreateCourseViewState extends State<_CreateCourseView> {
               ],
             ),
             const SizedBox(height: 12),
-            ...List.generate(state.modules.length, (i) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _ModuleCard(
-                  index: i,
-                  controller: _moduleControllers[i],
-                  focusNode: _moduleFocusNodes[i],
-                  onChanged: (value) => context
-                      .read<CreateCourseBloc>()
-                      .add(UpdateModuleEvent(i, value)),
-                  onRemove: () => _removeModule(i),
-                ),
-              );
-            }),
+            Theme(
+              data: Theme.of(context).copyWith(
+                canvasColor: Colors.transparent,
+              ),
+              child: ReorderableListView(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              buildDefaultDragHandles: false,
+              proxyDecorator: (child, index, animation) {
+                return Material(
+                  elevation: 6,
+                  color: Colors.transparent,
+                  shadowColor: Colors.black12,
+                  borderRadius:
+                      BorderRadius.circular(AppDimens.radiusLg),
+                  clipBehavior: Clip.antiAlias,
+                  child: child,
+                );
+              },
+              onReorder: _reorderModule,
+              children: List.generate(state.modules.length, (i) {
+                return Padding(
+                  // ObjectKey привязывает виджет к конкретному контроллеру,
+                  // а не к позиции — фокус следует за перемещённой ячейкой.
+                  key: ObjectKey(_moduleControllers[i]),
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _ModuleCard(
+                    index: i,
+                    controller: _moduleControllers[i],
+                    focusNode: _moduleFocusNodes[i],
+                    onChanged: (value) => context
+                        .read<CreateCourseBloc>()
+                        .add(UpdateModuleEvent(i, value)),
+                    onRemove: () => _removeModule(i),
+                  ),
+                );
+              }),
+            ),
+            ),
             const SizedBox(height: 4),
             _buildAddModuleButton(),
           ],
@@ -310,23 +346,19 @@ class _ModuleCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(AppDimens.radiusLg),
         border:
             Border.all(color: AppColors.mono250, width: AppDimens.borderWidth),
       ),
       child: Row(
         children: [
-          const Icon(Icons.drag_indicator, size: 20, color: AppColors.mono300),
-          const SizedBox(width: 8),
-          Text(
-            'Модуль ${index + 1}',
-            style: AppTextStyles.fieldText.copyWith(fontWeight: FontWeight.w600),
+          ReorderableDragStartListener(
+            index: index,
+            child: const Icon(
+                Icons.drag_indicator, size: 20, color: AppColors.mono300),
           ),
-          const SizedBox(width: 6),
-          Text('·',
-              style: AppTextStyles.fieldText
-                  .copyWith(color: AppColors.mono300)),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           Expanded(
             child: TextField(
               controller: controller,

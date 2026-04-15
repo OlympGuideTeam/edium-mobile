@@ -6,6 +6,7 @@ class CreateCourseState extends Equatable {
   final bool isSubmitting;
   final String? error;
   final bool success;
+  final String? courseId;
 
   const CreateCourseState({
     this.title = '',
@@ -13,6 +14,7 @@ class CreateCourseState extends Equatable {
     this.isSubmitting = false,
     this.error,
     this.success = false,
+    this.courseId,
   });
 
   bool get canSubmit => title.trim().isNotEmpty && !isSubmitting;
@@ -23,6 +25,7 @@ class CreateCourseState extends Equatable {
     bool? isSubmitting,
     String? error,
     bool? success,
+    String? courseId,
   }) {
     return CreateCourseState(
       title: title ?? this.title,
@@ -30,9 +33,10 @@ class CreateCourseState extends Equatable {
       isSubmitting: isSubmitting ?? this.isSubmitting,
       error: error,
       success: success ?? this.success,
+      courseId: courseId ?? this.courseId,
     );
   }
 
   @override
-  List<Object?> get props => [title, modules, isSubmitting, error, success];
+  List<Object?> get props => [title, modules, isSubmitting, error, success, courseId];
 }

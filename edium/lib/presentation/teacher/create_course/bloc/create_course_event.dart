@@ -32,6 +32,14 @@ class RemoveModuleEvent extends CreateCourseEvent {
   List<Object?> get props => [index];
 }
 
+class ReorderModulesEvent extends CreateCourseEvent {
+  final int oldIndex;
+  final int newIndex;
+  const ReorderModulesEvent(this.oldIndex, this.newIndex);
+  @override
+  List<Object?> get props => [oldIndex, newIndex];
+}
+
 class SubmitCourseEvent extends CreateCourseEvent {
   final String classId;
   const SubmitCourseEvent(this.classId);

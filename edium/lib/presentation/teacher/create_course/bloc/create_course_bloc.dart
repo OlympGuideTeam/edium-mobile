@@ -23,6 +23,12 @@ class CreateCourseBloc extends Bloc<CreateCourseEvent, CreateCourseState> {
       final updated = List<String>.from(state.modules)..removeAt(e.index);
       emit(state.copyWith(modules: updated));
     });
+    on<ReorderModulesEvent>((e, emit) {
+      final updated = List<String>.from(state.modules);
+      final item = updated.removeAt(e.oldIndex);
+      updated.insert(e.newIndex, item);
+      emit(state.copyWith(modules: updated));
+    });
     on<SubmitCourseEvent>(_onSubmit);
   }
 
@@ -47,7 +53,7 @@ class CreateCourseBloc extends Bloc<CreateCourseEvent, CreateCourseState> {
         );
       }
 
-      emit(state.copyWith(isSubmitting: false, success: true));
+      emit(state.copyWith(isSubmitting: false, success: true, courseId: courseId));
     } catch (e) {
       emit(state.copyWith(isSubmitting: false, error: e.toString()));
     }
