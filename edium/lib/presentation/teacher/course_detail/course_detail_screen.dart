@@ -381,6 +381,7 @@ class _ModuleSectionState extends State<_ModuleSection>
   late final Animation<Color?> _bgAnim;
   late final Animation<Color?> _titleColorAnim;
   late final Animation<Color?> _subtitleColorAnim;
+  late final Animation<Color?> _borderColorAnim;
   bool _expanded = false;
 
   @override
@@ -405,6 +406,10 @@ class _ModuleSectionState extends State<_ModuleSection>
       begin: AppColors.mono400,
       end: const Color(0x80FFFFFF),
     ).animate(_curved);
+    _borderColorAnim = ColorTween(
+      begin: AppColors.mono150,
+      end: AppColors.mono900,
+    ).animate(_curved);
   }
 
   @override
@@ -425,15 +430,19 @@ class _ModuleSectionState extends State<_ModuleSection>
 
   @override
   Widget build(BuildContext context) {
-    // Внешняя карточка — форма фиксирована, border всегда mono150
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-        border: Border.all(
-          color: AppColors.mono150,
-          width: AppDimens.borderWidth,
+    // Внешняя карточка — форма фиксирована, border анимируется mono150 → mono900
+    return AnimatedBuilder(
+      animation: _borderColorAnim,
+      builder: (context, child) => Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+          border: Border.all(
+            color: _borderColorAnim.value!,
+            width: AppDimens.borderWidth,
+          ),
         ),
+        child: child,
       ),
       // ClipRRect прячет цветной хедер внутри скруглений карточки
       child: ClipRRect(

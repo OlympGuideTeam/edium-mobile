@@ -198,6 +198,8 @@ class _ClassDetailViewState extends State<_ClassDetailView>
                   indicatorColor: AppColors.mono900,
                   indicatorWeight: 2.0,
                   dividerColor: AppColors.mono100,
+                  overlayColor: WidgetStateProperty.all(Colors.transparent),
+                  splashFactory: NoSplash.splashFactory,
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppDimens.screenPaddingH,
                   ),
@@ -589,11 +591,12 @@ class _CoursesTab extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () async {
                   final bloc = context.read<ClassDetailBloc>();
-                  final result = await context.push<bool>(
+                  final courseId = await context.push<String>(
                     '/course/create?classId=${bloc.classId}',
                   );
-                  if (result == true && context.mounted) {
+                  if (courseId != null && context.mounted) {
                     bloc.add(LoadClassDetailEvent(bloc.classId));
+                    context.push('/course/$courseId');
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -635,23 +638,35 @@ class _CourseCard extends StatelessWidget {
           width: AppDimens.borderWidth,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            course.title,
-            style: AppTextStyles.fieldText.copyWith(
-              fontWeight: FontWeight.w600,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  course.title,
+                  style: AppTextStyles.fieldText.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${course.teacherName}  ·  ${_modulesLabel(course.moduleCount)}  ·  ${_quizzesLabel(course.quizCount)}',
+                  style: AppTextStyles.helperText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 4),
-          Text(
-            '${course.teacherName}  ·  ${_modulesLabel(course.moduleCount)}  ·  ${_quizzesLabel(course.quizCount)}',
-            style: AppTextStyles.helperText,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          const SizedBox(width: 8),
+          const Icon(
+            Icons.arrow_forward_ios,
+            size: 14,
+            color: AppColors.mono400,
           ),
         ],
       ),
