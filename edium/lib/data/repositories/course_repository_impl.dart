@@ -1,4 +1,5 @@
 import 'package:edium/data/datasources/course/course_datasource.dart';
+import 'package:edium/domain/entities/course_detail.dart';
 import 'package:edium/domain/repositories/course_repository.dart';
 
 class CourseRepositoryImpl implements ICourseRepository {
@@ -20,5 +21,10 @@ class CourseRepositoryImpl implements ICourseRepository {
     required String title,
   }) {
     return _datasource.createModule(courseId: courseId, title: title);
+  }
+
+  @override
+  Future<CourseDetail> getCourseDetail({required String courseId}) {
+    return _datasource.getCourseDetail(courseId: courseId);
   }
 }
