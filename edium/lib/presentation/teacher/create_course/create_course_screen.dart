@@ -214,6 +214,11 @@ class _CreateCourseViewState extends State<_CreateCourseView> {
                 ),
               ],
             ),
+            const SizedBox(height: 6),
+            Text(
+              'Необязательно добавлять сейчас — модули можно создать позже на странице курса.',
+              style: AppTextStyles.helperText.copyWith(fontSize: 11),
+            ),
             const SizedBox(height: 12),
             Theme(
               data: Theme.of(context).copyWith(
@@ -236,19 +241,25 @@ class _CreateCourseViewState extends State<_CreateCourseView> {
               },
               onReorder: _reorderModule,
               children: List.generate(state.modules.length, (i) {
-                return Padding(
+                return _entryAnimation(
                   // ObjectKey привязывает виджет к конкретному контроллеру,
                   // а не к позиции — фокус следует за перемещённой ячейкой.
                   key: ObjectKey(_moduleControllers[i]),
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _ModuleCard(
-                    index: i,
-                    controller: _moduleControllers[i],
-                    focusNode: _moduleFocusNodes[i],
-                    onChanged: (value) => context
-                        .read<CreateCourseBloc>()
-                        .add(UpdateModuleEvent(i, value)),
-                    onRemove: () => _removeModule(i),
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _buildDismissible(
+                      key: ValueKey(_moduleControllers[i]),
+                      canDismiss: true,
+                      onDismissed: () => _removeModule(i),
+                      child: _ModuleCard(
+                        index: i,
+                        controller: _moduleControllers[i],
+                        focusNode: _moduleFocusNodes[i],
+                        onChanged: (value) => context
+                            .read<CreateCourseBloc>()
+                            .add(UpdateModuleEvent(i, value)),
+                      ),
+                    ),
                   ),
                 );
               }),
@@ -326,25 +337,69 @@ class _CreateCourseViewState extends State<_CreateCourseView> {
   }
 }
 
+// ─── Shared helpers ───────────────────────────────────────────────────────────
+
+Widget _entryAnimation({required Key key, required Widget child}) {
+  return TweenAnimationBuilder<double>(
+    key: key,
+    tween: Tween(begin: 0.0, end: 1.0),
+    duration: const Duration(milliseconds: 280),
+    curve: Curves.easeOutCubic,
+    builder: (_, v, c) => Opacity(
+      opacity: v,
+      child: Transform.translate(offset: Offset(0, (1 - v) * 10), child: c),
+    ),
+    child: child,
+  );
+}
+
+Widget _buildDismissible({
+  required Key key,
+  required bool canDismiss,
+  required VoidCallback onDismissed,
+  required Widget child,
+}) {
+  if (!canDismiss) return child;
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+    child: Container(
+      color: AppColors.error,
+      child: Dismissible(
+        key: key,
+        direction: DismissDirection.endToStart,
+        onDismissed: (_) => onDismissed(),
+        background: Container(
+          color: AppColors.error,
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          child: const Icon(Icons.delete_outline, color: Colors.white, size: 18),
+        ),
+        child: child,
+      ),
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _ModuleCard extends StatelessWidget {
   final int index;
   final TextEditingController controller;
   final FocusNode focusNode;
   final ValueChanged<String> onChanged;
-  final VoidCallback onRemove;
 
   const _ModuleCard({
     required this.index,
     required this.controller,
     required this.focusNode,
     required this.onChanged,
-    required this.onRemove,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      height: AppDimens.buttonH,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppDimens.radiusLg),
@@ -352,6 +407,7 @@ class _ModuleCard extends StatelessWidget {
             Border.all(color: AppColors.mono250, width: AppDimens.borderWidth),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           ReorderableDragStartListener(
             index: index,
@@ -375,13 +431,6 @@ class _ModuleCard extends StatelessWidget {
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
               ),
-            ),
-          ),
-          GestureDetector(
-            onTap: onRemove,
-            child: const Padding(
-              padding: EdgeInsets.only(left: 8),
-              child: Icon(Icons.close, size: 18, color: AppColors.mono400),
             ),
           ),
         ],

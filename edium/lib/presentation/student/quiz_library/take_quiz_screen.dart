@@ -1,7 +1,6 @@
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
-import 'package:edium/domain/entities/question.dart';
-import 'package:edium/presentation/shared/widgets/edium_button.dart';
+import 'package:edium/domain/entities/quiz_attempt.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/take_quiz_bloc.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/take_quiz_event.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/take_quiz_state.dart';
@@ -10,13 +9,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class TakeQuizScreen extends StatefulWidget {
-  final String quizId;
-  final String? resumeSessionId;
+  final String sessionId;
+  final String quizTitle;
+  final int? totalTimeLimitSec;
 
   const TakeQuizScreen({
     super.key,
-    required this.quizId,
-    this.resumeSessionId,
+    required this.sessionId,
+    required this.quizTitle,
+    this.totalTimeLimitSec,
   });
 
   @override
@@ -29,9 +30,10 @@ class _TakeQuizScreenState extends State<TakeQuizScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<TakeQuizBloc>().add(StartSessionEvent(
-          widget.quizId,
-          resumeSessionId: widget.resumeSessionId,
+    context.read<TakeQuizBloc>().add(StartAttemptEvent(
+          sessionId: widget.sessionId,
+          quizTitle: widget.quizTitle,
+          totalTimeLimitSec: widget.totalTimeLimitSec,
         ));
   }
 
@@ -49,42 +51,100 @@ class _TakeQuizScreenState extends State<TakeQuizScreen> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (_) => QuizResultScreen(session: state.result),
+              builder: (_) => QuizResultScreen(
+                result: state.result,
+                maxPossibleScore: state.maxPossibleScore,
+              ),
             ),
           );
+        }
+        // Clear text field when question changes
+        if (state is TakeQuizInProgress) {
+          final answer = state.currentAnswer;
+          if (answer == null) {
+            _textController.clear();
+          } else {
+            final text = answer['text'] as String? ?? '';
+            if (_textController.text != text) {
+              _textController.text = text;
+              _textController.selection = TextSelection.fromPosition(
+                TextPosition(offset: _textController.text.length),
+              );
+            }
+          }
         }
       },
       builder: (context, state) {
         if (state is TakeQuizLoading || state is TakeQuizInitial) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            backgroundColor: Colors.white,
+            body: Center(
+              child: CircularProgressIndicator(
+                  color: AppColors.mono700, strokeWidth: 2),
+            ),
           );
         }
+
+        if (state is TakeQuizFinishing) {
+          return const Scaffold(
+            backgroundColor: Colors.white,
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(
+                      color: AppColors.mono700, strokeWidth: 2),
+                  SizedBox(height: 20),
+                  Text('Оцениваем результаты…',
+                      style: AppTextStyles.screenSubtitle),
+                ],
+              ),
+            ),
+          );
+        }
+
         if (state is TakeQuizError) {
           return Scaffold(
-            appBar: AppBar(),
-            body: Center(
+            backgroundColor: Colors.white,
+            body: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(32),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
                       width: 64,
                       height: 64,
                       decoration: BoxDecoration(
-                        color: AppColors.errorLight,
+                        color: const Color(0xFFFEE2E2),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Icon(Icons.error_outline,
-                          color: AppColors.error, size: 32),
+                          color: Color(0xFFEF4444), size: 32),
                     ),
                     const SizedBox(height: 16),
                     Text(
                       state.message,
                       textAlign: TextAlign.center,
-                      style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                      style: AppTextStyles.screenSubtitle,
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.mono150),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: const Text('Назад',
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.mono700)),
+                      ),
                     ),
                   ],
                 ),
@@ -94,140 +154,7 @@ class _TakeQuizScreenState extends State<TakeQuizScreen> {
         }
 
         if (state is TakeQuizInProgress) {
-          final quiz = state.quiz;
-          final question = quiz.questions[state.currentIndex];
-          final progress = (state.currentIndex + 1) / quiz.questions.length;
-
-          return Scaffold(
-            backgroundColor: AppColors.background,
-            appBar: AppBar(
-              title: Text(quiz.title),
-              actions: [
-                if (state.hasTimer)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 16),
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: (state.remainingSeconds ?? 0) < 60
-                              ? AppColors.errorLight
-                              : AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.timer_outlined,
-                              size: 16,
-                              color: (state.remainingSeconds ?? 0) < 60
-                                  ? AppColors.error
-                                  : AppColors.primary,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              state.timerDisplay,
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: (state.remainingSeconds ?? 0) < 60
-                                    ? AppColors.error
-                                    : AppColors.primary,
-                                fontWeight: FontWeight.w700,
-                                fontFamily: 'monospace',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(4),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: AppColors.cardBorder,
-                  color: AppColors.primary,
-                  minHeight: 4,
-                ),
-              ),
-            ),
-            body: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Question counter
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryLight,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'Вопрос ${state.currentIndex + 1} из ${quiz.questions.length}',
-                                style: AppTextStyles.caption.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            const Spacer(),
-                            _TypeBadge(type: question.type),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        // Question text
-                        Text(question.text, style: AppTextStyles.heading3),
-                        const SizedBox(height: 24),
-                        // Answer widget
-                        _buildAnswerWidget(context, question, state),
-                        // Feedback
-                        if (state.answerSubmitted) ...[
-                          const SizedBox(height: 20),
-                          _FeedbackCard(
-                            correct: state.lastCorrect ?? false,
-                            explanation: state.lastExplanation,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-                // Bottom buttons
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                  child: state.answerSubmitted
-                      ? EdiumButton(
-                          label: state.isLastQuestion
-                              ? 'Завершить квиз'
-                              : 'Следующий вопрос',
-                          onPressed: () => context
-                              .read<TakeQuizBloc>()
-                              .add(const NextQuestionEvent()),
-                          icon: state.isLastQuestion
-                              ? Icons.flag_outlined
-                              : Icons.arrow_forward,
-                        )
-                      : EdiumButton(
-                          label: 'Проверить ответ',
-                          onPressed: state.currentAnswer != null
-                              ? () => context
-                                  .read<TakeQuizBloc>()
-                                  .add(const SubmitCurrentAnswerEvent())
-                              : null,
-                        ),
-                ),
-              ],
-            ),
-          );
+          return _buildQuizBody(context, state);
         }
 
         return const SizedBox.shrink();
@@ -235,150 +162,233 @@ class _TakeQuizScreenState extends State<TakeQuizScreen> {
     );
   }
 
-  Widget _buildAnswerWidget(
-      BuildContext context, Question question, TakeQuizInProgress state) {
-    switch (question.type) {
-      case QuestionType.singleChoice:
-        return Column(
-          children: question.options.map((opt) {
-            final isSelected = state.currentAnswer == opt.id;
-            Color? bgColor;
-            Color? borderColor;
-            if (state.answerSubmitted) {
-              if (opt.isCorrect) {
-                bgColor = AppColors.successLight;
-                borderColor = AppColors.success;
-              } else if (isSelected && !opt.isCorrect) {
-                bgColor = AppColors.errorLight;
-                borderColor = AppColors.error;
-              }
-            } else if (isSelected) {
-              bgColor = AppColors.primaryLight;
-              borderColor = AppColors.primary;
-            }
+  Widget _buildQuizBody(BuildContext context, TakeQuizInProgress state) {
+    final question = state.currentQuestion;
+    final total = state.attempt.questions.length;
+    final progress = (state.currentIndex + 1) / total;
 
-            return GestureDetector(
-              onTap: state.answerSubmitted
-                  ? null
-                  : () => context
-                      .read<TakeQuizBloc>()
-                      .add(SetAnswerEvent(opt.id)),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: bgColor ?? AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: borderColor ?? AppColors.cardBorder,
-                    width: isSelected ? 2 : 1,
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top bar: back + timer + progress
+            _TopBar(state: state, onBack: () => Navigator.pop(context)),
+            // Progress bar
+            LinearProgressIndicator(
+              value: progress,
+              backgroundColor: AppColors.mono100,
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppColors.mono900),
+              minHeight: 3,
+            ),
+            // Question content
+            Expanded(
+              child: GestureDetector(
+                onTap: () => FocusScope.of(context).unfocus(),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Counter + type badge
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.mono50,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: AppColors.mono150),
+                            ),
+                            child: Text(
+                              '${state.currentIndex + 1} / $total',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.mono700,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          _TypeBadge(type: question.type),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      // Question text
+                      Text(
+                        question.text,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.mono900,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // Answer input
+                      _buildAnswerWidget(context, question, state),
+                      // Free answer note
+                      if (question.type ==
+                          QuizQuestionType.withFreeAnswer) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.mono50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.mono150),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.auto_awesome_outlined,
+                                  size: 14, color: AppColors.mono400),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Свободный ответ проверяется автоматически с помощью ИИ.',
+                                  style: AppTextStyles.helperText,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Radio<String>(
-                      value: opt.id,
-                      groupValue: state.currentAnswer as String?,
-                      onChanged: state.answerSubmitted
+              ),
+            ),
+            // Bottom buttons
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: state.isSubmitting
                           ? null
-                          : (v) => context
+                          : () => context
                               .read<TakeQuizBloc>()
-                              .add(SetAnswerEvent(v)),
-                      activeColor: AppColors.primary,
+                              .add(const GoNextEvent()),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.mono900,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: AppColors.mono200,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                        textStyle: AppTextStyles.primaryButton,
+                      ),
+                      child: state.isSubmitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : Text(
+                              state.isLastQuestion
+                                  ? 'Завершить квиз'
+                                  : 'Далее',
+                            ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(opt.text, style: AppTextStyles.bodySmall),
+                  ),
+                  if (state.currentIndex > 0) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton(
+                        onPressed: () => context
+                            .read<TakeQuizBloc>()
+                            .add(const GoPrevEvent()),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: AppColors.mono50,
+                          foregroundColor: AppColors.mono600,
+                          side: const BorderSide(color: AppColors.mono150),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                          textStyle: AppTextStyles.secondaryButton,
+                        ),
+                        child: const Text('Назад'),
+                      ),
                     ),
-                    if (state.answerSubmitted && opt.isCorrect)
-                      const Icon(Icons.check_circle,
-                          color: AppColors.success, size: 18),
-                    if (state.answerSubmitted && isSelected && !opt.isCorrect)
-                      const Icon(Icons.cancel,
-                          color: AppColors.error, size: 18),
                   ],
-                ),
+                ],
               ),
-            );
-          }).toList(),
-        );
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-      case QuestionType.multiChoice:
-        final selected = (state.currentAnswer as List<String>?) ?? [];
+  Widget _buildAnswerWidget(
+    BuildContext context,
+    QuizQuestionForStudent question,
+    TakeQuizInProgress state,
+  ) {
+    switch (question.type) {
+      case QuizQuestionType.singleChoice:
+        final selectedId =
+            state.currentAnswer?['selected_option_id'] as String?;
         return Column(
-          children: question.options.map((opt) {
-            final isSelected = selected.contains(opt.id);
-            Color? bgColor;
-            Color? borderColor;
-            if (state.answerSubmitted) {
-              if (opt.isCorrect) {
-                bgColor = AppColors.successLight;
-                borderColor = AppColors.success;
-              } else if (isSelected && !opt.isCorrect) {
-                bgColor = AppColors.errorLight;
-                borderColor = AppColors.error;
-              }
-            } else if (isSelected) {
-              bgColor = AppColors.primaryLight;
-              borderColor = AppColors.primary;
-            }
-
+          children: (question.options ?? []).map((opt) {
+            final isSelected = selectedId == opt.id;
             return GestureDetector(
-              onTap: state.answerSubmitted
-                  ? null
-                  : () {
-                      final newSelected = List<String>.from(selected);
-                      if (isSelected) {
-                        newSelected.remove(opt.id);
-                      } else {
-                        newSelected.add(opt.id);
-                      }
-                      context
-                          .read<TakeQuizBloc>()
-                          .add(SetAnswerEvent(newSelected));
-                    },
+              onTap: () => context.read<TakeQuizBloc>().add(
+                    SetAnswerEvent({'selected_option_id': opt.id}),
+                  ),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
                 margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: bgColor ?? AppColors.surface,
+                  color: isSelected ? Colors.white : AppColors.mono25,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: borderColor ?? AppColors.cardBorder,
-                    width: isSelected ? 2 : 1,
+                    color: isSelected
+                        ? AppColors.mono900
+                        : AppColors.mono150,
+                    width: isSelected ? 2 : 1.5,
                   ),
                 ),
                 child: Row(
                   children: [
-                    Checkbox(
-                      value: isSelected,
-                      onChanged: state.answerSubmitted
-                          ? null
-                          : (v) {
-                              final newSelected =
-                                  List<String>.from(selected);
-                              if (v == true) {
-                                if (!newSelected.contains(opt.id)) {
-                                  newSelected.add(opt.id);
-                                }
-                              } else {
-                                newSelected.remove(opt.id);
-                              }
-                              context
-                                  .read<TakeQuizBloc>()
-                                  .add(SetAnswerEvent(newSelected));
-                            },
-                      activeColor: AppColors.primary,
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.mono900
+                              : AppColors.mono250,
+                          width: isSelected ? 6 : 2,
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: Text(opt.text, style: AppTextStyles.bodySmall),
+                      child: Text(
+                        opt.text,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: isSelected
+                              ? AppColors.mono900
+                              : AppColors.mono700,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                      ),
                     ),
-                    if (state.answerSubmitted && opt.isCorrect)
-                      const Icon(Icons.check_circle,
-                          color: AppColors.success, size: 18),
                   ],
                 ),
               ),
@@ -386,126 +396,564 @@ class _TakeQuizScreenState extends State<TakeQuizScreen> {
           }).toList(),
         );
 
-      case QuestionType.textInput:
-        return TextField(
-          controller: _textController,
-          enabled: !state.answerSubmitted,
-          style: AppTextStyles.body,
-          onChanged: (v) =>
-              context.read<TakeQuizBloc>().add(SetAnswerEvent(v)),
-          decoration: InputDecoration(
-            hintText: 'Введите ваш ответ...',
-            hintStyle: AppTextStyles.body
-                .copyWith(color: AppColors.textSecondary),
-            filled: true,
-            fillColor: state.answerSubmitted
-                ? (state.lastCorrect == true
-                    ? AppColors.successLight
-                    : AppColors.errorLight)
-                : AppColors.surface,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.cardBorder),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.cardBorder),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: AppColors.primary, width: 2),
-            ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      case QuizQuestionType.multipleChoice:
+        final selectedIds =
+            ((state.currentAnswer?['selected_option_ids'] as List<dynamic>?) ??
+                    [])
+                .map((e) => e.toString())
+                .toSet();
+        return Column(
+          children: (question.options ?? []).map((opt) {
+            final isSelected = selectedIds.contains(opt.id);
+            return GestureDetector(
+              onTap: () {
+                final updated = Set<String>.from(selectedIds);
+                if (isSelected) {
+                  updated.remove(opt.id);
+                } else {
+                  updated.add(opt.id);
+                }
+                context.read<TakeQuizBloc>().add(SetAnswerEvent(
+                    {'selected_option_ids': updated.toList()}));
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.white : AppColors.mono25,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppColors.mono900
+                        : AppColors.mono150,
+                    width: isSelected ? 2 : 1.5,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.mono900
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(5),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.mono900
+                              : AppColors.mono250,
+                          width: 2,
+                        ),
+                      ),
+                      child: isSelected
+                          ? const Icon(Icons.check,
+                              size: 13, color: Colors.white)
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        opt.text,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: isSelected
+                              ? AppColors.mono900
+                              : AppColors.mono700,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        );
+
+      case QuizQuestionType.withGivenAnswer:
+      case QuizQuestionType.withFreeAnswer:
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.mono250, width: 1.5),
           ),
+          child: TextField(
+            controller: _textController,
+            maxLines: question.type == QuizQuestionType.withFreeAnswer
+                ? 5
+                : 1,
+            style: const TextStyle(
+                fontSize: 15, color: AppColors.mono700),
+            cursorColor: AppColors.mono900,
+            onChanged: (v) => context
+                .read<TakeQuizBloc>()
+                .add(SetAnswerEvent({'text': v})),
+            decoration: InputDecoration(
+              hintText: question.type == QuizQuestionType.withFreeAnswer
+                  ? 'Введите развёрнутый ответ…'
+                  : 'Введите ответ…',
+              hintStyle: const TextStyle(
+                  fontSize: 15, color: AppColors.mono250),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.all(16),
+            ),
+          ),
+        );
+
+      case QuizQuestionType.drag:
+        return _DragQuestion(
+          question: question,
+          currentOrder: (state.currentAnswer?['order'] as List<dynamic>?)
+                  ?.map((e) => e.toString())
+                  .toList() ??
+              ((question.metadata?['items'] as List<dynamic>?)
+                      ?.map((e) => e.toString())
+                      .toList() ??
+                  []),
+          onReorder: (order) => context
+              .read<TakeQuizBloc>()
+              .add(SetAnswerEvent({'order': order})),
+        );
+
+      case QuizQuestionType.connection:
+        return _ConnectionQuestion(
+          question: question,
+          currentPairs: (state.currentAnswer?['pairs']
+                  as Map<String, dynamic>?)
+              ?.map((k, v) => MapEntry(k, v.toString())),
+          onPairsChanged: (pairs) => context
+              .read<TakeQuizBloc>()
+              .add(SetAnswerEvent({'pairs': pairs})),
         );
     }
   }
 }
 
-class _TypeBadge extends StatelessWidget {
-  final QuestionType type;
+// ── Top Bar ──────────────────────────────────────────────────────────────────
 
-  const _TypeBadge({required this.type});
+class _TopBar extends StatelessWidget {
+  final TakeQuizInProgress state;
+  final VoidCallback onBack;
+
+  const _TopBar({required this.state, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    final labels = {
-      QuestionType.singleChoice: 'Один ответ',
-      QuestionType.multiChoice: 'Несколько',
-      QuestionType.textInput: 'Текст',
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.cardBorder),
-      ),
-      child: Text(
-        labels[type] ?? '',
-        style: AppTextStyles.caption,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.close,
+                size: 22, color: AppColors.mono700),
+            onPressed: onBack,
+          ),
+          Expanded(
+            child: Text(
+              state.quizTitle,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.mono900,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (state.hasTimer)
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: (state.remainingSeconds ?? 0) < 60
+                    ? const Color(0xFFFEE2E2)
+                    : AppColors.mono50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: (state.remainingSeconds ?? 0) < 60
+                      ? const Color(0xFFEF4444)
+                      : AppColors.mono150,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.timer_outlined,
+                    size: 14,
+                    color: (state.remainingSeconds ?? 0) < 60
+                        ? const Color(0xFFEF4444)
+                        : AppColors.mono400,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    state.timerDisplay,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: (state.remainingSeconds ?? 0) < 60
+                          ? const Color(0xFFEF4444)
+                          : AppColors.mono700,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(width: 8),
+        ],
       ),
     );
   }
 }
 
-class _FeedbackCard extends StatelessWidget {
-  final bool correct;
-  final String? explanation;
+// ── Type Badge ───────────────────────────────────────────────────────────────
 
-  const _FeedbackCard({required this.correct, this.explanation});
+class _TypeBadge extends StatelessWidget {
+  final QuizQuestionType type;
+
+  const _TypeBadge({required this.type});
+
+  static const _labels = {
+    QuizQuestionType.singleChoice: 'Один ответ',
+    QuizQuestionType.multipleChoice: 'Несколько',
+    QuizQuestionType.withGivenAnswer: 'Текст',
+    QuizQuestionType.withFreeAnswer: 'Свободный',
+    QuizQuestionType.drag: 'Порядок',
+    QuizQuestionType.connection: 'Соответствие',
+  };
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(16),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: correct ? AppColors.successLight : AppColors.errorLight,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: correct ? AppColors.success : AppColors.error,
-          width: 1.5,
+        color: AppColors.mono50,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.mono150),
+      ),
+      child: Text(
+        _labels[type] ?? '',
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: AppColors.mono400,
         ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            correct ? Icons.check_circle : Icons.cancel,
-            color: correct ? AppColors.success : AppColors.error,
-            size: 20,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  correct ? 'Правильно!' : 'Неправильно',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: correct ? AppColors.success : AppColors.error,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (explanation != null) ...[
-                  const SizedBox(height: 4),
+    );
+  }
+}
+
+// ── Drag Question ────────────────────────────────────────────────────────────
+
+class _DragQuestion extends StatefulWidget {
+  final QuizQuestionForStudent question;
+  final List<String> currentOrder;
+  final ValueChanged<List<String>> onReorder;
+
+  const _DragQuestion({
+    required this.question,
+    required this.currentOrder,
+    required this.onReorder,
+  });
+
+  @override
+  State<_DragQuestion> createState() => _DragQuestionState();
+}
+
+class _DragQuestionState extends State<_DragQuestion> {
+  late List<String> _items;
+
+  @override
+  void initState() {
+    super.initState();
+    _items = List.from(widget.currentOrder);
+  }
+
+  @override
+  void didUpdateWidget(_DragQuestion old) {
+    super.didUpdateWidget(old);
+    if (old.question.id != widget.question.id) {
+      _items = List.from(widget.currentOrder);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const Text(
+          'Перетащите элементы в правильном порядке:',
+          style: TextStyle(fontSize: 13, color: AppColors.mono400),
+        ),
+        const SizedBox(height: 12),
+        ReorderableListView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          onReorder: (oldIndex, newIndex) {
+            setState(() {
+              if (newIndex > oldIndex) newIndex--;
+              final item = _items.removeAt(oldIndex);
+              _items.insert(newIndex, item);
+            });
+            widget.onReorder(List.from(_items));
+          },
+          children: _items.asMap().entries.map((entry) {
+            final i = entry.key;
+            final item = entry.value;
+            return Container(
+              key: ValueKey(item),
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.mono150, width: 1.5),
+              ),
+              child: Row(
+                children: [
                   Text(
-                    explanation!,
-                    style: AppTextStyles.caption.copyWith(
-                      color: correct
-                          ? const Color(0xFF166534)
-                          : const Color(0xFF7F1D1D),
+                    '${i + 1}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.mono350,
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      item,
+                      style: const TextStyle(
+                          fontSize: 15, color: AppColors.mono900),
+                    ),
+                  ),
+                  const Icon(Icons.drag_handle,
+                      color: AppColors.mono250, size: 20),
                 ],
-              ],
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Connection Question ───────────────────────────────────────────────────────
+
+class _ConnectionQuestion extends StatefulWidget {
+  final QuizQuestionForStudent question;
+  final Map<String, String>? currentPairs;
+  final ValueChanged<Map<String, String>> onPairsChanged;
+
+  const _ConnectionQuestion({
+    required this.question,
+    required this.currentPairs,
+    required this.onPairsChanged,
+  });
+
+  @override
+  State<_ConnectionQuestion> createState() => _ConnectionQuestionState();
+}
+
+class _ConnectionQuestionState extends State<_ConnectionQuestion> {
+  String? _selectedLeft;
+  late Map<String, String> _pairs;
+
+  @override
+  void initState() {
+    super.initState();
+    _pairs = Map.from(widget.currentPairs ?? {});
+  }
+
+  @override
+  void didUpdateWidget(_ConnectionQuestion old) {
+    super.didUpdateWidget(old);
+    if (old.question.id != widget.question.id) {
+      _selectedLeft = null;
+      _pairs = Map.from(widget.currentPairs ?? {});
+    }
+  }
+
+  List<String> get _leftItems =>
+      (widget.question.metadata?['left'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList() ??
+      [];
+
+  List<String> get _rightItems =>
+      (widget.question.metadata?['right'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList() ??
+      [];
+
+  void _onTapLeft(String item) {
+    setState(() {
+      _selectedLeft = _selectedLeft == item ? null : item;
+    });
+  }
+
+  void _onTapRight(String item) {
+    if (_selectedLeft == null) return;
+    setState(() {
+      // Remove any existing pair for this right item
+      _pairs.removeWhere((_, v) => v == item);
+      _pairs[_selectedLeft!] = item;
+      _selectedLeft = null;
+    });
+    widget.onPairsChanged(Map.from(_pairs));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Нажмите на элемент слева, затем на соответствующий справа:',
+          style: TextStyle(fontSize: 13, color: AppColors.mono400),
+        ),
+        const SizedBox(height: 14),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left column
+            Expanded(
+              child: Column(
+                children: _leftItems.map((item) {
+                  final isSelected = _selectedLeft == item;
+                  final isPaired = _pairs.containsKey(item);
+                  return GestureDetector(
+                    onTap: () => _onTapLeft(item),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.mono900
+                            : isPaired
+                                ? AppColors.mono50
+                                : Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.mono900
+                              : isPaired
+                                  ? AppColors.mono350
+                                  : AppColors.mono150,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Text(
+                        item,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.mono900,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
-          ),
+            // Connector lines
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Column(
+                children: _leftItems.map((left) {
+                  final paired = _pairs[left];
+                  return Container(
+                    height: 48,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: Center(
+                      child: Icon(
+                        paired != null
+                            ? Icons.arrow_forward
+                            : Icons.more_horiz,
+                        size: 16,
+                        color: paired != null
+                            ? AppColors.mono700
+                            : AppColors.mono200,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            // Right column
+            Expanded(
+              child: Column(
+                children: _rightItems.map((item) {
+                  final isPaired =
+                      _pairs.values.contains(item);
+                  return GestureDetector(
+                    onTap: () => _onTapRight(item),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isPaired
+                            ? AppColors.mono50
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isPaired
+                              ? AppColors.mono350
+                              : AppColors.mono150,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Text(
+                        item,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: isPaired
+                              ? AppColors.mono700
+                              : AppColors.mono900,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+        // Show pairs
+        if (_pairs.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          ...(_pairs.entries.map((e) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle,
+                        size: 14, color: AppColors.mono350),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${e.key} → ${e.value}',
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.mono400),
+                    ),
+                  ],
+                ),
+              ))),
         ],
-      ),
+      ],
     );
   }
 }

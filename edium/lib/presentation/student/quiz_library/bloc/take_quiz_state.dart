@@ -1,5 +1,4 @@
-import 'package:edium/domain/entities/quiz.dart';
-import 'package:edium/domain/entities/quiz_session.dart';
+import 'package:edium/domain/entities/quiz_attempt.dart';
 import 'package:equatable/equatable.dart';
 
 abstract class TakeQuizState extends Equatable {
@@ -17,27 +16,30 @@ class TakeQuizLoading extends TakeQuizState {
 }
 
 class TakeQuizInProgress extends TakeQuizState {
-  final Quiz quiz;
-  final QuizSession session;
+  final QuizAttempt attempt;
+  final String quizTitle;
   final int currentIndex;
-  final dynamic currentAnswer;
-  final bool answerSubmitted;
-  final bool? lastCorrect;
-  final String? lastExplanation;
+  // questionId → answerData (null means not answered yet)
+  final Map<String, Map<String, dynamic>?> answers;
   final int? remainingSeconds;
+  final bool isSubmitting;
 
   const TakeQuizInProgress({
-    required this.quiz,
-    required this.session,
+    required this.attempt,
+    required this.quizTitle,
     required this.currentIndex,
-    this.currentAnswer,
-    this.answerSubmitted = false,
-    this.lastCorrect,
-    this.lastExplanation,
+    required this.answers,
     this.remainingSeconds,
+    this.isSubmitting = false,
   });
 
-  bool get isLastQuestion => currentIndex >= quiz.questions.length - 1;
+  QuizQuestionForStudent get currentQuestion =>
+      attempt.questions[currentIndex];
+
+  Map<String, dynamic>? get currentAnswer =>
+      answers[currentQuestion.id];
+
+  bool get isLastQuestion => currentIndex >= attempt.questions.length - 1;
 
   bool get hasTimer => remainingSeconds != null;
 
@@ -49,47 +51,47 @@ class TakeQuizInProgress extends TakeQuizState {
   }
 
   TakeQuizInProgress copyWith({
-    Quiz? quiz,
-    QuizSession? session,
     int? currentIndex,
-    dynamic currentAnswer,
-    bool? answerSubmitted,
-    bool? lastCorrect,
-    String? lastExplanation,
+    Map<String, Map<String, dynamic>?>? answers,
     int? remainingSeconds,
+    bool? isSubmitting,
   }) {
     return TakeQuizInProgress(
-      quiz: quiz ?? this.quiz,
-      session: session ?? this.session,
+      attempt: attempt,
+      quizTitle: quizTitle,
       currentIndex: currentIndex ?? this.currentIndex,
-      currentAnswer: currentAnswer,
-      answerSubmitted: answerSubmitted ?? this.answerSubmitted,
-      lastCorrect: lastCorrect ?? this.lastCorrect,
-      lastExplanation: lastExplanation ?? this.lastExplanation,
+      answers: answers ?? this.answers,
       remainingSeconds: remainingSeconds ?? this.remainingSeconds,
+      isSubmitting: isSubmitting ?? this.isSubmitting,
     );
   }
 
   @override
   List<Object?> get props => [
-        quiz,
-        session,
+        attempt,
+        quizTitle,
         currentIndex,
-        currentAnswer,
-        answerSubmitted,
-        lastCorrect,
-        lastExplanation,
+        answers,
         remainingSeconds,
+        isSubmitting,
       ];
 }
 
-class TakeQuizCompleted extends TakeQuizState {
-  final QuizSession result;
+class TakeQuizFinishing extends TakeQuizState {
+  const TakeQuizFinishing();
+}
 
-  const TakeQuizCompleted(this.result);
+class TakeQuizCompleted extends TakeQuizState {
+  final AttemptResult result;
+  final int maxPossibleScore;
+
+  const TakeQuizCompleted({
+    required this.result,
+    required this.maxPossibleScore,
+  });
 
   @override
-  List<Object?> get props => [result];
+  List<Object?> get props => [result, maxPossibleScore];
 }
 
 class TakeQuizError extends TakeQuizState {

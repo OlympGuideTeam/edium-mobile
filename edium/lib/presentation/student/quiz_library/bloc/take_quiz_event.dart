@@ -6,31 +6,38 @@ abstract class TakeQuizEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class StartSessionEvent extends TakeQuizEvent {
-  final String quizId;
-  final String? resumeSessionId;
-  const StartSessionEvent(this.quizId, {this.resumeSessionId});
+class StartAttemptEvent extends TakeQuizEvent {
+  final String sessionId;
+  final String quizTitle;
+  final int? totalTimeLimitSec;
+
+  const StartAttemptEvent({
+    required this.sessionId,
+    required this.quizTitle,
+    this.totalTimeLimitSec,
+  });
+
   @override
-  List<Object?> get props => [quizId, resumeSessionId];
+  List<Object?> get props => [sessionId, quizTitle, totalTimeLimitSec];
 }
 
 class SetAnswerEvent extends TakeQuizEvent {
-  final dynamic answer;
-  const SetAnswerEvent(this.answer);
+  final Map<String, dynamic> answerData;
+  const SetAnswerEvent(this.answerData);
   @override
-  List<Object?> get props => [answer];
+  List<Object?> get props => [answerData];
 }
 
-class SubmitCurrentAnswerEvent extends TakeQuizEvent {
-  const SubmitCurrentAnswerEvent();
+class GoNextEvent extends TakeQuizEvent {
+  const GoNextEvent();
 }
 
-class NextQuestionEvent extends TakeQuizEvent {
-  const NextQuestionEvent();
+class GoPrevEvent extends TakeQuizEvent {
+  const GoPrevEvent();
 }
 
-class CompleteSessionEvent extends TakeQuizEvent {
-  const CompleteSessionEvent();
+class FinishAttemptEvent extends TakeQuizEvent {
+  const FinishAttemptEvent();
 }
 
 class TimerTickEvent extends TakeQuizEvent {

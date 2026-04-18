@@ -19,10 +19,3 @@ class StudentSearchChangedEvent extends StudentQuizEvent {
   @override
   List<Object?> get props => [query];
 }
-
-class StudentLikeQuizEvent extends StudentQuizEvent {
-  final String quizId;
-  const StudentLikeQuizEvent(this.quizId);
-  @override
-  List<Object?> get props => [quizId];
-}

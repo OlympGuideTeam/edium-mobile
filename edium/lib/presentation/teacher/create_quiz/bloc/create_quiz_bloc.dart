@@ -8,14 +8,29 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
 
   CreateQuizBloc(this._createQuiz) : super(const CreateQuizState()) {
     on<UpdateTitleEvent>((e, emit) => emit(state.copyWith(title: e.title)));
-    on<UpdateSubjectEvent>((e, emit) => emit(state.copyWith(subject: e.subject)));
-    on<UpdateSettingsEvent>(
-        (e, emit) => emit(state.copyWith(settings: e.settings)));
+    on<UpdateDescriptionEvent>((e, emit) => emit(state.copyWith(description: e.description)));
+    on<UpdateTotalTimeLimitEvent>((e, emit) => emit(
+          e.seconds == null
+              ? state.copyWith(clearTotalTimeLimit: true)
+              : state.copyWith(totalTimeLimitSec: e.seconds),
+        ));
+    on<UpdateQuestionTimeLimitEvent>((e, emit) => emit(
+          e.seconds == null
+              ? state.copyWith(clearQuestionTimeLimit: true)
+              : state.copyWith(questionTimeLimitSec: e.seconds),
+        ));
+    on<UpdateShuffleQuestionsEvent>(
+        (e, emit) => emit(state.copyWith(shuffleQuestions: e.shuffle)));
     on<AddQuestionEvent>((e, emit) =>
         emit(state.copyWith(questions: [...state.questions, e.question])));
     on<RemoveQuestionEvent>((e, emit) {
       final updated = List<Map<String, dynamic>>.from(state.questions)
         ..removeAt(e.index);
+      emit(state.copyWith(questions: updated));
+    });
+    on<ReplaceQuestionEvent>((e, emit) {
+      final updated = List<Map<String, dynamic>>.from(state.questions);
+      updated[e.index] = e.question;
       emit(state.copyWith(questions: updated));
     });
     on<SubmitQuizEvent>(_onSubmit);
@@ -27,12 +42,14 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
     Emitter<CreateQuizState> emit,
   ) async {
     if (!state.canSubmit) return;
-    emit(state.copyWith(isSubmitting: true));
+    emit(state.copyWith(isSubmitting: true, clearError: true));
     try {
       await _createQuiz(
         title: state.title,
-        subject: state.subject,
-        settings: state.settings,
+        description: state.description.isEmpty ? null : state.description,
+        totalTimeLimitSec: state.totalTimeLimitSec,
+        questionTimeLimitSec: state.questionTimeLimitSec,
+        shuffleQuestions: state.shuffleQuestions,
         questions: state.questions,
       );
       emit(state.copyWith(isSubmitting: false, success: true));

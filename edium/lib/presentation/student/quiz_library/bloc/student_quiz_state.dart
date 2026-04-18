@@ -1,4 +1,4 @@
-import 'package:edium/domain/entities/quiz.dart';
+import 'package:edium/domain/entities/library_quiz.dart';
 import 'package:equatable/equatable.dart';
 
 abstract class StudentQuizState extends Equatable {
@@ -16,19 +16,12 @@ class StudentQuizLoading extends StudentQuizState {
 }
 
 class StudentQuizLoaded extends StudentQuizState {
-  final List<Quiz> quizzes;
-  final Map<String, ({int score, int total})> completedSessions;
-  final Map<String, String> inProgressSessions; // quizId → sessionId
+  final List<LibraryQuiz> quizzes;
 
-  const StudentQuizLoaded(
-    this.quizzes,
-    this.completedSessions,
-    this.inProgressSessions,
-  );
+  const StudentQuizLoaded(this.quizzes);
 
   @override
-  List<Object?> get props =>
-      [quizzes, completedSessions, inProgressSessions];
+  List<Object?> get props => [quizzes];
 }
 
 class StudentQuizError extends StudentQuizState {

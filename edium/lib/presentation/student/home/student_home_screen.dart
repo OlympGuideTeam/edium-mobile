@@ -32,9 +32,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       providers: [
         BlocProvider(
           create: (_) => StudentQuizBloc(
-            getQuizzes: getIt(),
-            likeQuiz: getIt(),
-            getMySessions: getIt(),
+            getPublicQuizzes: getIt(),
           )..add(const LoadStudentQuizzesEvent()),
         ),
       ],
