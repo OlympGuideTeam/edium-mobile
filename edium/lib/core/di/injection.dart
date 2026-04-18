@@ -4,6 +4,9 @@ import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/data/datasources/class/class_datasource.dart';
 import 'package:edium/data/datasources/class/class_datasource_impl.dart';
 import 'package:edium/data/datasources/class/class_datasource_mock.dart';
+import 'package:edium/data/datasources/library_quiz/library_quiz_datasource.dart';
+import 'package:edium/data/datasources/library_quiz/library_quiz_datasource_impl.dart';
+import 'package:edium/data/datasources/library_quiz/library_quiz_datasource_mock.dart';
 import 'package:edium/data/datasources/quiz/quiz_datasource.dart';
 import 'package:edium/data/datasources/quiz/quiz_datasource_hive.dart';
 import 'package:edium/data/datasources/quiz/quiz_datasource_impl.dart';
@@ -16,11 +19,13 @@ import 'package:edium/data/datasources/user/user_datasource_mock.dart';
 import 'package:edium/data/repositories/auth_repository_impl.dart';
 import 'package:edium/data/repositories/auth_repository_mock.dart';
 import 'package:edium/data/repositories/class_repository_impl.dart';
+import 'package:edium/data/repositories/library_quiz_repository_impl.dart';
 import 'package:edium/data/repositories/quiz_repository_impl.dart';
 import 'package:edium/data/repositories/quiz_session_repository_impl.dart';
 import 'package:edium/data/repositories/user_repository_impl.dart';
 import 'package:edium/domain/repositories/auth_repository.dart';
 import 'package:edium/domain/repositories/class_repository.dart';
+import 'package:edium/domain/repositories/library_quiz_repository.dart';
 import 'package:edium/domain/repositories/quiz_repository.dart';
 import 'package:edium/domain/repositories/quiz_session_repository.dart';
 import 'package:edium/domain/repositories/user_repository.dart';
@@ -28,6 +33,12 @@ import 'package:edium/domain/usecases/auth/logout_usecase.dart';
 import 'package:edium/domain/usecases/auth/register_usecase.dart';
 import 'package:edium/domain/usecases/auth/send_otp_usecase.dart';
 import 'package:edium/domain/usecases/auth/verify_otp_usecase.dart';
+import 'package:edium/domain/usecases/library_quiz/create_attempt_usecase.dart';
+import 'package:edium/domain/usecases/library_quiz/finish_attempt_usecase.dart';
+import 'package:edium/domain/usecases/library_quiz/get_attempt_result_usecase.dart';
+import 'package:edium/domain/usecases/library_quiz/get_public_quizzes_usecase.dart';
+import 'package:edium/domain/usecases/library_quiz/get_quiz_for_student_usecase.dart';
+import 'package:edium/domain/usecases/library_quiz/submit_attempt_answer_usecase.dart';
 import 'package:edium/domain/usecases/quiz/create_quiz_usecase.dart';
 import 'package:edium/domain/usecases/quiz/get_quiz_results_usecase.dart';
 import 'package:edium/domain/usecases/quiz/get_quizzes_usecase.dart';
@@ -94,6 +105,8 @@ Future<void> initializeDependencies() async {
         () => QuizDatasourceHive(getIt<ProfileStorage>()));
     getIt.registerLazySingleton<IQuizSessionDatasource>(
         () => QuizSessionDatasourceHive());
+    getIt.registerLazySingleton<ILibraryQuizDatasource>(
+        () => LibraryQuizDatasourceMock());
     getIt.registerLazySingleton<IClassDatasource>(
         () => ClassDatasourceMock());
     getIt.registerLazySingleton<ICourseDatasource>(
@@ -105,6 +118,8 @@ Future<void> initializeDependencies() async {
         () => QuizDatasourceImpl(getIt<DioHandler>().dio));
     getIt.registerLazySingleton<IQuizSessionDatasource>(
         () => QuizSessionDatasourceImpl(getIt<DioHandler>().dio));
+    getIt.registerLazySingleton<ILibraryQuizDatasource>(
+        () => LibraryQuizDatasourceImpl(getIt<DioHandler>().dio));
     getIt.registerLazySingleton<IClassDatasource>(
         () => ClassDatasourceImpl(getIt<DioHandler>().dio));
     getIt.registerLazySingleton<ICourseDatasource>(
@@ -130,6 +145,9 @@ Future<void> initializeDependencies() async {
   );
   getIt.registerLazySingleton<IQuizSessionRepository>(
     () => QuizSessionRepositoryImpl(getIt()),
+  );
+  getIt.registerLazySingleton<ILibraryQuizRepository>(
+    () => LibraryQuizRepositoryImpl(getIt()),
   );
   getIt.registerLazySingleton<IClassRepository>(
     () => ClassRepositoryImpl(getIt()),
@@ -166,6 +184,12 @@ Future<void> initializeDependencies() async {
   getIt.registerLazySingleton(() => SubmitAnswerUsecase(getIt()));
   getIt.registerLazySingleton(() => CompleteQuizUsecase(getIt()));
   getIt.registerLazySingleton(() => GetMySessionsUsecase(getIt()));
+  getIt.registerLazySingleton(() => GetPublicQuizzesUsecase(getIt()));
+  getIt.registerLazySingleton(() => GetQuizForStudentUsecase(getIt()));
+  getIt.registerLazySingleton(() => CreateAttemptUsecase(getIt()));
+  getIt.registerLazySingleton(() => SubmitAttemptAnswerUsecase(getIt()));
+  getIt.registerLazySingleton(() => FinishAttemptUsecase(getIt()));
+  getIt.registerLazySingleton(() => GetAttemptResultUsecase(getIt()));
 
   getIt.registerSingleton<AuthBloc>(
     AuthBloc(

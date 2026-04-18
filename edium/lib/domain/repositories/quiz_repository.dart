@@ -8,10 +8,12 @@ abstract class IQuizRepository {
     int limit,
   });
 
-  Future<Quiz> createQuiz({
+  Future<String> createQuiz({
     required String title,
-    required String subject,
-    required QuizSettings settings,
+    String? description,
+    int? totalTimeLimitSec,
+    int? questionTimeLimitSec,
+    bool shuffleQuestions,
     required List<Map<String, dynamic>> questions,
   });
 

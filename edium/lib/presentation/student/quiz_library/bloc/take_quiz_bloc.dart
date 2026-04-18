@@ -1,40 +1,35 @@
 import 'dart:async';
 
-import 'package:edium/domain/entities/quiz_session.dart';
-import 'package:edium/domain/repositories/quiz_session_repository.dart';
-import 'package:edium/domain/usecases/quiz/get_quizzes_usecase.dart';
-import 'package:edium/domain/usecases/quiz_session/complete_quiz_usecase.dart';
-import 'package:edium/domain/usecases/quiz_session/start_quiz_usecase.dart';
-import 'package:edium/domain/usecases/quiz_session/submit_answer_usecase.dart';
+import 'package:edium/domain/usecases/library_quiz/create_attempt_usecase.dart';
+import 'package:edium/domain/usecases/library_quiz/finish_attempt_usecase.dart';
+import 'package:edium/domain/usecases/library_quiz/get_attempt_result_usecase.dart';
+import 'package:edium/domain/usecases/library_quiz/submit_attempt_answer_usecase.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/take_quiz_event.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/take_quiz_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
-  final StartQuizUsecase _startSession;
-  final SubmitAnswerUsecase _submitAnswer;
-  final CompleteQuizUsecase _completeSession;
-  final GetQuizzesUsecase _getQuizzes;
-  final IQuizSessionRepository _sessionRepo;
+  final CreateAttemptUsecase _createAttempt;
+  final SubmitAttemptAnswerUsecase _submitAnswer;
+  final FinishAttemptUsecase _finishAttempt;
+  final GetAttemptResultUsecase _getResult;
   Timer? _timer;
 
   TakeQuizBloc({
-    required StartQuizUsecase startSession,
-    required SubmitAnswerUsecase submitAnswer,
-    required CompleteQuizUsecase completeSession,
-    required GetQuizzesUsecase getQuizzes,
-    required IQuizSessionRepository sessionRepo,
-  })  : _startSession = startSession,
+    required CreateAttemptUsecase createAttempt,
+    required SubmitAttemptAnswerUsecase submitAnswer,
+    required FinishAttemptUsecase finishAttempt,
+    required GetAttemptResultUsecase getResult,
+  })  : _createAttempt = createAttempt,
         _submitAnswer = submitAnswer,
-        _completeSession = completeSession,
-        _getQuizzes = getQuizzes,
-        _sessionRepo = sessionRepo,
+        _finishAttempt = finishAttempt,
+        _getResult = getResult,
         super(const TakeQuizInitial()) {
-    on<StartSessionEvent>(_onStart);
+    on<StartAttemptEvent>(_onStart);
     on<SetAnswerEvent>(_onSetAnswer);
-    on<SubmitCurrentAnswerEvent>(_onSubmit);
-    on<NextQuestionEvent>(_onNext);
-    on<CompleteSessionEvent>(_onComplete);
+    on<GoNextEvent>(_onGoNext);
+    on<GoPrevEvent>(_onGoPrev);
+    on<FinishAttemptEvent>(_onFinish);
     on<TimerTickEvent>(_onTimerTick);
   }
 
@@ -44,12 +39,12 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
     return super.close();
   }
 
-  void _startTimer(int remainingSeconds) {
+  void _startTimer(int totalSec) {
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      final remaining = remainingSeconds - timer.tick;
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      final remaining = totalSec - t.tick;
       if (remaining <= 0) {
-        timer.cancel();
+        t.cancel();
         add(const TimerTickEvent(0));
       } else {
         add(TimerTickEvent(remaining));
@@ -58,55 +53,24 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
   }
 
   Future<void> _onStart(
-    StartSessionEvent event,
+    StartAttemptEvent event,
     Emitter<TakeQuizState> emit,
   ) async {
     emit(const TakeQuizLoading());
     try {
-      final quizzes = await _getQuizzes(scope: 'global');
-      final quiz = quizzes.firstWhere((q) => q.id == event.quizId);
+      final attempt = await _createAttempt(event.sessionId);
 
-      if (quiz.status.name == 'draft') {
-        emit(const TakeQuizError('Этот квиз ещё не опубликован'));
-        return;
-      }
-
-      QuizSession session;
-
-      if (event.resumeSessionId != null) {
-        // Resume existing session
-        session = await _sessionRepo.getSession(event.resumeSessionId!);
-      } else {
-        // Always create a fresh session
-        session = await _startSession(event.quizId);
-      }
-
-      // Calculate remaining time based on session start time
-      final timeLimitMinutes = quiz.settings.timeLimitMinutes;
       int? remainingSeconds;
-      if (timeLimitMinutes != null) {
-        final totalSeconds = timeLimitMinutes * 60;
-        final elapsed =
-            DateTime.now().difference(session.startedAt).inSeconds;
-        remainingSeconds = totalSeconds - elapsed;
-        if (remainingSeconds <= 0) {
-          // Time expired — auto-complete
-          final result = await _completeSession(session.id);
-          emit(TakeQuizCompleted(result));
-          return;
-        }
+      if (event.totalTimeLimitSec != null) {
+        remainingSeconds = event.totalTimeLimitSec!;
         _startTimer(remainingSeconds);
       }
 
-      // Determine current question index from answered questions
-      final answeredCount = session.answers.length;
-      final currentIndex =
-          answeredCount < quiz.questions.length ? answeredCount : 0;
-
       emit(TakeQuizInProgress(
-        quiz: quiz,
-        session: session,
-        currentIndex: currentIndex,
+        attempt: attempt,
+        quizTitle: event.quizTitle,
+        currentIndex: 0,
+        answers: {},
         remainingSeconds: remainingSeconds,
       ));
     } catch (e) {
@@ -117,48 +81,54 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
   void _onSetAnswer(SetAnswerEvent event, Emitter<TakeQuizState> emit) {
     if (state is! TakeQuizInProgress) return;
     final s = state as TakeQuizInProgress;
-    if (s.answerSubmitted) return;
-    emit(s.copyWith(currentAnswer: event.answer));
+    final updated = Map<String, Map<String, dynamic>?>.from(s.answers);
+    updated[s.currentQuestion.id] = event.answerData;
+    emit(s.copyWith(answers: updated));
   }
 
-  Future<void> _onSubmit(
-    SubmitCurrentAnswerEvent event,
+  Future<void> _onGoNext(
+    GoNextEvent event,
     Emitter<TakeQuizState> emit,
   ) async {
     if (state is! TakeQuizInProgress) return;
     final s = state as TakeQuizInProgress;
-    if (s.currentAnswer == null || s.answerSubmitted) return;
 
-    final question = s.quiz.questions[s.currentIndex];
-    try {
-      final result = await _submitAnswer(
-        sessionId: s.session.id,
-        questionId: question.id,
-        answer: s.currentAnswer,
-      );
-      emit(s.copyWith(
-        answerSubmitted: true,
-        lastCorrect: result.correct,
-        lastExplanation: result.explanation,
-        remainingSeconds: s.remainingSeconds,
-      ));
-    } catch (e) {
-      emit(TakeQuizError(e.toString()));
+    await _submitCurrentIfAnswered(s);
+
+    if (s.isLastQuestion) {
+      add(const FinishAttemptEvent());
+    } else {
+      emit(s.copyWith(currentIndex: s.currentIndex + 1));
     }
   }
 
-  void _onNext(NextQuestionEvent event, Emitter<TakeQuizState> emit) {
+  void _onGoPrev(GoPrevEvent event, Emitter<TakeQuizState> emit) {
     if (state is! TakeQuizInProgress) return;
     final s = state as TakeQuizInProgress;
-    if (s.isLastQuestion) {
-      add(const CompleteSessionEvent());
-    } else {
-      emit(TakeQuizInProgress(
-        quiz: s.quiz,
-        session: s.session,
-        currentIndex: s.currentIndex + 1,
-        remainingSeconds: s.remainingSeconds,
+    if (s.currentIndex == 0) return;
+    emit(s.copyWith(currentIndex: s.currentIndex - 1));
+  }
+
+  Future<void> _onFinish(
+    FinishAttemptEvent event,
+    Emitter<TakeQuizState> emit,
+  ) async {
+    if (state is! TakeQuizInProgress) return;
+    final s = state as TakeQuizInProgress;
+    _timer?.cancel();
+
+    await _submitCurrentIfAnswered(s);
+
+    emit(const TakeQuizFinishing());
+    try {
+      await _finishAttempt(s.attempt.attemptId);
+      final result = await _getResult(s.attempt.attemptId);
+      emit(TakeQuizCompleted(
+        result: result,
+        maxPossibleScore: s.attempt.maxPossibleScore,
       ));
+    } catch (e) {
+      emit(TakeQuizError(e.toString()));
     }
   }
 
@@ -167,30 +137,23 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
     final s = state as TakeQuizInProgress;
     if (event.remainingSeconds <= 0) {
       _timer?.cancel();
-      add(const CompleteSessionEvent());
+      add(const FinishAttemptEvent());
     } else {
-      emit(s.copyWith(
-        remainingSeconds: event.remainingSeconds,
-        currentAnswer: s.currentAnswer,
-        answerSubmitted: s.answerSubmitted,
-        lastCorrect: s.lastCorrect,
-        lastExplanation: s.lastExplanation,
-      ));
+      emit(s.copyWith(remainingSeconds: event.remainingSeconds));
     }
   }
 
-  Future<void> _onComplete(
-    CompleteSessionEvent event,
-    Emitter<TakeQuizState> emit,
-  ) async {
-    _timer?.cancel();
-    if (state is! TakeQuizInProgress) return;
-    final s = state as TakeQuizInProgress;
+  Future<void> _submitCurrentIfAnswered(TakeQuizInProgress s) async {
+    final answer = s.answers[s.currentQuestion.id];
+    if (answer == null) return;
     try {
-      final result = await _completeSession(s.session.id);
-      emit(TakeQuizCompleted(result));
-    } catch (e) {
-      emit(TakeQuizError(e.toString()));
+      await _submitAnswer(
+        attemptId: s.attempt.attemptId,
+        questionId: s.currentQuestion.id,
+        answerData: answer,
+      );
+    } catch (_) {
+      // upsert — best effort, don't block navigation
     }
   }
 }

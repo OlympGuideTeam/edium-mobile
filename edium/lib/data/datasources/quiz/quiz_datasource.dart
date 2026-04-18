@@ -8,10 +8,13 @@ abstract class IQuizDatasource {
     int limit,
   });
 
-  Future<QuizModel> createQuiz({
+  /// Returns quiz id.
+  Future<String> createQuiz({
     required String title,
-    required String subject,
-    required Map<String, dynamic> settings,
+    String? description,
+    int? totalTimeLimitSec,
+    int? questionTimeLimitSec,
+    bool shuffleQuestions,
     required List<Map<String, dynamic>> questions,
   });
 

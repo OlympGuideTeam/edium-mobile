@@ -1,10 +1,11 @@
-import 'package:edium/domain/entities/quiz.dart';
 import 'package:equatable/equatable.dart';
 
 class CreateQuizState extends Equatable {
   final String title;
-  final String subject;
-  final QuizSettings settings;
+  final String description;
+  final int? totalTimeLimitSec;
+  final int? questionTimeLimitSec;
+  final bool shuffleQuestions;
   final List<Map<String, dynamic>> questions;
   final bool isSubmitting;
   final String? error;
@@ -12,44 +13,55 @@ class CreateQuizState extends Equatable {
 
   const CreateQuizState({
     this.title = '',
-    this.subject = '',
-    this.settings = const QuizSettings(),
+    this.description = '',
+    this.totalTimeLimitSec,
+    this.questionTimeLimitSec,
+    this.shuffleQuestions = false,
     this.questions = const [],
     this.isSubmitting = false,
     this.error,
     this.success = false,
   });
 
-  bool get canSubmit =>
-      title.isNotEmpty &&
-      subject.isNotEmpty &&
-      questions.isNotEmpty &&
-      (settings.timeLimitMinutes != null || settings.deadline != null);
-
-  bool get needsTimeOrDeadline =>
-      settings.timeLimitMinutes == null && settings.deadline == null;
+  bool get canSubmit => title.isNotEmpty && questions.isNotEmpty;
 
   CreateQuizState copyWith({
     String? title,
-    String? subject,
-    QuizSettings? settings,
+    String? description,
+    int? totalTimeLimitSec,
+    bool clearTotalTimeLimit = false,
+    int? questionTimeLimitSec,
+    bool clearQuestionTimeLimit = false,
+    bool? shuffleQuestions,
     List<Map<String, dynamic>>? questions,
     bool? isSubmitting,
     String? error,
+    bool clearError = false,
     bool? success,
   }) {
     return CreateQuizState(
       title: title ?? this.title,
-      subject: subject ?? this.subject,
-      settings: settings ?? this.settings,
+      description: description ?? this.description,
+      totalTimeLimitSec: clearTotalTimeLimit ? null : (totalTimeLimitSec ?? this.totalTimeLimitSec),
+      questionTimeLimitSec: clearQuestionTimeLimit ? null : (questionTimeLimitSec ?? this.questionTimeLimitSec),
+      shuffleQuestions: shuffleQuestions ?? this.shuffleQuestions,
       questions: questions ?? this.questions,
       isSubmitting: isSubmitting ?? this.isSubmitting,
-      error: error,
+      error: clearError ? null : (error ?? this.error),
       success: success ?? this.success,
     );
   }
 
   @override
-  List<Object?> get props =>
-      [title, subject, settings, questions, isSubmitting, error, success];
+  List<Object?> get props => [
+        title,
+        description,
+        totalTimeLimitSec,
+        questionTimeLimitSec,
+        shuffleQuestions,
+        questions,
+        isSubmitting,
+        error,
+        success,
+      ];
 }

@@ -1,4 +1,3 @@
-import 'package:edium/domain/entities/quiz.dart';
 import 'package:edium/domain/repositories/quiz_repository.dart';
 
 class CreateQuizUsecase {
@@ -6,16 +5,20 @@ class CreateQuizUsecase {
 
   CreateQuizUsecase(this._repository);
 
-  Future<Quiz> call({
+  Future<String> call({
     required String title,
-    required String subject,
-    required QuizSettings settings,
+    String? description,
+    int? totalTimeLimitSec,
+    int? questionTimeLimitSec,
+    bool shuffleQuestions = false,
     required List<Map<String, dynamic>> questions,
   }) {
     return _repository.createQuiz(
       title: title,
-      subject: subject,
-      settings: settings,
+      description: description,
+      totalTimeLimitSec: totalTimeLimitSec,
+      questionTimeLimitSec: questionTimeLimitSec,
+      shuffleQuestions: shuffleQuestions,
       questions: questions,
     );
   }
