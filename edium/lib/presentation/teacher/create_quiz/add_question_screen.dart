@@ -4,7 +4,7 @@ import 'package:edium/presentation/shared/widgets/edium_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-// ─── Question types (Riddler API) ─────────────────────────────────────────────
+// ─── Question types ───────────────────────────────────────────────────────────
 
 enum _QType {
   singleChoice,
@@ -56,6 +56,10 @@ class AddQuestionScreen extends StatefulWidget {
 
 class _AddQuestionScreenState extends State<AddQuestionScreen> {
   late _QType _type;
+  late _QType _displayed; // the type whose form is actually rendered
+  double _formOpacity = 1.0;
+  bool _switching = false;
+
   final _textCtrl = TextEditingController();
   String? _error;
 
@@ -70,6 +74,7 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
     final q = widget.initialQuestion;
     if (q == null) {
       _type = _QType.singleChoice;
+      _displayed = _QType.singleChoice;
       _options = [_OptionDraft(), _OptionDraft()];
       _correctAnswers = [TextEditingController()];
       _dragItems = [TextEditingController(), TextEditingController(), TextEditingController()];
@@ -81,6 +86,7 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
       (t) => t.apiValue == q['type'],
       orElse: () => _QType.singleChoice,
     );
+    _displayed = _type;
     _textCtrl.text = q['text'] as String? ?? '';
 
     final rawOpts = q['answer_options'] as List? ?? [];
@@ -131,17 +137,33 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
   }
 
   void _changeType(_QType t) {
-    if (_type == t) return;
+    if (_type == t || _switching) return;
     setState(() {
       _type = t;
+      _switching = true;
       _error = null;
-      // При переключении на одиночный — оставить только один выбранный вариант
-      if (t == _QType.singleChoice) {
-        final firstCorrect = _options.indexWhere((o) => o.isCorrect);
-        for (var i = 0; i < _options.length; i++) {
-          _options[i].isCorrect = firstCorrect != -1 && i == firstCorrect;
+      _formOpacity = 0.0;
+    });
+    // Phase 1 done → swap form while invisible so AnimatedSize animates the height change
+    Future.delayed(const Duration(milliseconds: 140), () {
+      if (!mounted) return;
+      setState(() {
+        _displayed = t;
+        if (t == _QType.singleChoice) {
+          final firstCorrect = _options.indexWhere((o) => o.isCorrect);
+          for (var i = 0; i < _options.length; i++) {
+            _options[i].isCorrect = firstCorrect != -1 && i == firstCorrect;
+          }
         }
-      }
+      });
+      // Phase 2: let layout settle one frame, then fade in
+      Future.delayed(const Duration(milliseconds: 60), () {
+        if (!mounted) return;
+        setState(() {
+          _formOpacity = 1.0;
+          _switching = false;
+        });
+      });
     });
   }
 
@@ -172,10 +194,7 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
           'text': text,
           'max_score': 10,
           'answer_options': _options
-              .map((o) => {
-                    'text': o.ctrl.text.trim(),
-                    'is_correct': o.isCorrect,
-                  })
+              .map((o) => {'text': o.ctrl.text.trim(), 'is_correct': o.isCorrect})
               .toList(),
         };
 
@@ -224,17 +243,16 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
 
       case _QType.connection:
         for (final p in _pairs) {
-          if (p.leftCtrl.text.trim().isEmpty ||
-              p.rightCtrl.text.trim().isEmpty) {
+          if (p.leftCtrl.text.trim().isEmpty || p.rightCtrl.text.trim().isEmpty) {
             setState(() => _error = 'Заполните все пары соответствия');
             return null;
           }
         }
         final left = _pairs.map((p) => p.leftCtrl.text.trim()).toList();
         final right = _pairs.map((p) => p.rightCtrl.text.trim()).toList();
-        final pairs = <String, String>{};
+        final pairsMap = <String, String>{};
         for (var i = 0; i < _pairs.length; i++) {
-          pairs[left[i]] = right[i];
+          pairsMap[left[i]] = right[i];
         }
         setState(() => _error = null);
         return {
@@ -242,11 +260,7 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
           'text': text,
           'max_score': 10,
           'answer_options': [],
-          'metadata': {
-            'left': left,
-            'right': right,
-            'correct_pairs': pairs,
-          },
+          'metadata': {'left': left, 'right': right, 'correct_pairs': pairsMap},
         };
     }
   }
@@ -280,44 +294,37 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 8),
                     _TypeSelector(selected: _type, onSelect: _changeType),
                     const SizedBox(height: 24),
-                    _QuestionTextField(controller: _textCtrl),
-                    const SizedBox(height: 24),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 260),
-                      switchInCurve: Curves.easeOutCubic,
-                      switchOutCurve: Curves.easeInCubic,
-                      transitionBuilder: (child, animation) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0, 0.06),
-                              end: Offset.zero,
-                            ).animate(CurvedAnimation(
-                              parent: animation,
-                              curve: Curves.easeOutCubic,
-                            )),
-                            child: child,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _QuestionTextField(controller: _textCtrl),
+                          const SizedBox(height: 24),
+                          AnimatedSize(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOutCubic,
+                            alignment: Alignment.topCenter,
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 140),
+                              opacity: _formOpacity,
+                              child: _buildFormForType(),
+                            ),
                           ),
-                        );
-                      },
-                      child: KeyedSubtree(
-                        key: ValueKey(_type),
-                        child: _buildFormForType(),
+                          if (_error != null) ...[
+                            const SizedBox(height: 16),
+                            _ErrorBanner(message: _error!),
+                          ],
+                          const SizedBox(height: 100),
+                        ],
                       ),
                     ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 16),
-                      _ErrorBanner(message: _error!),
-                    ],
-                    const SizedBox(height: 100),
                   ],
                 ),
               ),
@@ -336,7 +343,7 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
   }
 
   Widget _buildFormForType() {
-    return switch (_type) {
+    return switch (_displayed) {
       _QType.singleChoice => _ChoiceForm(
           options: _options,
           isMulti: false,
@@ -364,6 +371,81 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
   }
 }
 
+// ─── Shared helpers ───────────────────────────────────────────────────────────
+
+// Widget _entryAnimation({required Key key, required Widget child}) {
+//   return TweenAnimationBuilder<double>(
+//     key: key,
+//     tween: Tween(begin: 0.0, end: 1.0),
+//     duration: const Duration(milliseconds: 280),
+//     curve: Curves.easeOutCubic,
+//     builder: (_, v, c) => Opacity(
+//       opacity: v,
+//       child: Transform.translate(offset: Offset(0, (1 - v) * 10), child: c),
+//     ),
+//     child: child,
+//   );
+// }
+
+// Widget _dismissBackground() => Container(
+//       alignment: Alignment.centerRight,
+//       padding: const EdgeInsets.only(right: 20),
+//       decoration: BoxDecoration(
+//         color: AppColors.error,
+//         borderRadius: BorderRadius.circular(12),
+//       ),
+//       child: const Icon(Icons.delete_outline, color: Colors.white, size: 18),
+//     );
+
+// ─── Shared helpers ───────────────────────────────────────────────────────────
+
+Widget _entryAnimation({required Key key, required Widget child}) {
+  return TweenAnimationBuilder<double>(
+    key: key,
+    tween: Tween(begin: 0.0, end: 1.0),
+    duration: const Duration(milliseconds: 280),
+    curve: Curves.easeOutCubic,
+    builder: (_, v, c) => Opacity(
+      opacity: v,
+      child: Transform.translate(offset: Offset(0, (1 - v) * 10), child: c),
+    ),
+    child: child,
+  );
+}
+
+/// Обёртка для Dismissible с правильной обрезкой
+/// Обёртка для Dismissible без белых зазоров
+Widget _buildDismissible({
+  required Key key,
+  required bool canDismiss,
+  required VoidCallback onDismissed,
+  required Widget child,
+}) {
+  if (!canDismiss) {
+    return child;
+  }
+
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(12),
+    child: Container(
+      // Этот цвет будет виден в зазоре между child и background
+      color: AppColors.error,
+      child: Dismissible(
+        key: key,
+        direction: DismissDirection.endToStart,
+        onDismissed: (_) => onDismissed(),
+        background: Container(
+          color: AppColors.error,
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          child: const Icon(Icons.delete_outline, color: Colors.white, size: 18),
+        ),
+        child: child,
+      ),
+    ),
+  );
+}
+
 // ─── Type selector ────────────────────────────────────────────────────────────
 
 class _TypeSelector extends StatelessWidget {
@@ -378,6 +460,7 @@ class _TypeSelector extends StatelessWidget {
       height: 40,
       child: ListView(
         scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         children: _QType.values.map((t) {
           final isSelected = t == selected;
           return Padding(
@@ -397,11 +480,9 @@ class _TypeSelector extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      t.icon,
-                      size: 13,
-                      color: isSelected ? Colors.white : AppColors.mono400,
-                    ),
+                    Icon(t.icon,
+                        size: 13,
+                        color: isSelected ? Colors.white : AppColors.mono400),
                     const SizedBox(width: 5),
                     Text(
                       t.label,
@@ -482,7 +563,7 @@ class _QuestionTextFieldState extends State<_QuestionTextField> {
   }
 }
 
-// ─── Choice form (single & multiple) ─────────────────────────────────────────
+// ─── Choice form ──────────────────────────────────────────────────────────────
 
 class _ChoiceForm extends StatefulWidget {
   final List<_OptionDraft> options;
@@ -562,19 +643,26 @@ class _ChoiceFormState extends State<_ChoiceForm> {
           ],
         ),
         const SizedBox(height: 10),
-        ...List.generate(widget.options.length, (i) {
-          final opt = widget.options[i];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _OptionTile(
-              controller: opt.ctrl,
-              isCorrect: opt.isCorrect,
-              isMulti: widget.isMulti,
-              onToggle: () => _toggleCorrect(i),
-              onRemove: widget.options.length > 2 ? () => _removeOption(i) : null,
-            ),
-          );
-        }),
+          ...List.generate(widget.options.length, (i) {
+            final opt = widget.options[i];
+            return _entryAnimation(
+              key: ValueKey(opt.id),
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _buildDismissible(
+                  key: ValueKey(opt.id),
+                  canDismiss: widget.options.length > 2,
+                  onDismissed: () => _removeOption(i),
+                  child: _OptionTile(
+                    controller: opt.ctrl,
+                    isCorrect: opt.isCorrect,
+                    isMulti: widget.isMulti,
+                    onToggle: () => _toggleCorrect(i),
+                  ),
+                ),
+              ),
+            );
+          }),
         const SizedBox(height: 8),
         Text(
           widget.isMulti
@@ -587,79 +675,97 @@ class _ChoiceFormState extends State<_ChoiceForm> {
   }
 }
 
-class _OptionTile extends StatelessWidget {
+// ─── Option tile ──────────────────────────────────────────────────────────────
+
+class _OptionTile extends StatefulWidget {
   final TextEditingController controller;
   final bool isCorrect;
   final bool isMulti;
   final VoidCallback onToggle;
-  final VoidCallback? onRemove;
 
   const _OptionTile({
     required this.controller,
     required this.isCorrect,
     required this.isMulti,
     required this.onToggle,
-    required this.onRemove,
   });
 
   @override
+  State<_OptionTile> createState() => _OptionTileState();
+}
+
+class _OptionTileState extends State<_OptionTile> {
+  late final FocusNode _focus;
+
+  @override
+  void initState() {
+    super.initState();
+    _focus = FocusNode()..addListener(_onFocus);
+  }
+
+  void _onFocus() => setState(() {});
+
+  @override
+  void dispose() {
+    _focus.removeListener(_onFocus);
+    _focus.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final focused = _focus.hasFocus;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: AppColors.mono25,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isCorrect ? AppColors.mono900 : AppColors.mono150,
-          width: isCorrect ? 1.5 : 1.0,
+          color: widget.isCorrect
+              ? AppColors.mono900
+              : focused
+                  ? AppColors.mono700
+                  : AppColors.mono150,
+          width: widget.isCorrect || focused ? 1.5 : 1.0,
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           GestureDetector(
-            onTap: onToggle,
+            onTap: widget.onToggle,
             behavior: HitTestBehavior.opaque,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              child: isMulti
-                  ? _CheckboxIcon(isCorrect: isCorrect)
-                  : _RadioIcon(isCorrect: isCorrect),
+              child: widget.isMulti
+                  ? _CheckboxIcon(isCorrect: widget.isCorrect)
+                  : _RadioIcon(isCorrect: widget.isCorrect),
             ),
           ),
           Expanded(
             child: TextField(
-              controller: controller,
+              focusNode: _focus,
+              controller: widget.controller,
               style: AppTextStyles.bodySmall.copyWith(color: AppColors.mono900),
               maxLength: 50,
               maxLengthEnforcement: MaxLengthEnforcement.enforced,
               minLines: 1,
               maxLines: null,
+              cursorColor: AppColors.mono900,
               decoration: InputDecoration(
                 hintText: 'Вариант ответа...',
-                hintStyle: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.mono300,
-                ),
+                hintStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.mono300),
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
                 isDense: true,
                 counterText: '',
-                contentPadding: const EdgeInsets.only(
-                  right: 14,
-                  top: 14,
-                  bottom: 14,
-                ),
+                filled: false,
+                contentPadding: const EdgeInsets.only(right: 14, top: 14, bottom: 14),
               ),
-              cursorColor: AppColors.mono900,
             ),
           ),
-          if (onRemove != null)
-            GestureDetector(
-              onTap: onRemove,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                child: Icon(Icons.close, size: 16, color: AppColors.mono350),
-              ),
-            ),
         ],
       ),
     );
@@ -769,22 +875,32 @@ class _GivenAnswerFormState extends State<_GivenAnswerForm> {
                   const SizedBox(width: 2),
                   Text('Добавить',
                       style: AppTextStyles.caption.copyWith(
-                          color: AppColors.mono700,
-                          fontWeight: FontWeight.w600)),
+                          color: AppColors.mono700, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
           ],
         ),
         const SizedBox(height: 10),
-        ...List.generate(widget.answers.length, (i) => Padding(
+        ...List.generate(widget.answers.length, (i) {
+          final ctrl = widget.answers[i];
+          return _entryAnimation(
+            key: ValueKey(ctrl),
+            child: Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: _TextInputTile(
-                controller: widget.answers[i],
-                hint: 'Принимаемый ответ ${i + 1}',
-                onRemove: widget.answers.length > 1 ? () => _remove(i) : null,
+              child: _buildDismissible(
+                key: ValueKey(ctrl),
+                canDismiss: widget.answers.length > 1,
+                onDismissed: () => _remove(i),
+                child: _TextInputTile(
+                  controller: ctrl,
+                  hint: 'Принимаемый ответ ${i + 1}',
+                ),
               ),
-            )),
+            ),
+          );
+        }),
+
         const SizedBox(height: 8),
         Text(
           'Система примет любой из указанных вариантов написания',
@@ -818,8 +934,7 @@ class _FreeAnswerForm extends StatelessWidget {
               color: AppColors.mono100,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.edit_outlined,
-                size: 20, color: AppColors.mono400),
+            child: const Icon(Icons.edit_outlined, size: 20, color: AppColors.mono400),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -828,8 +943,7 @@ class _FreeAnswerForm extends StatelessWidget {
               children: [
                 Text(
                   'Свободный ответ',
-                  style: AppTextStyles.bodySmall
-                      .copyWith(fontWeight: FontWeight.w600),
+                  style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -872,8 +986,18 @@ class _DragFormState extends State<_DragForm> {
     widget.onChanged();
   }
 
+  void _reorder(int oldIndex, int newIndex) {
+    if (newIndex > oldIndex) newIndex--;
+    setState(() {
+      final ctrl = widget.items.removeAt(oldIndex);
+      widget.items.insert(newIndex, ctrl);
+    });
+    widget.onChanged();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final canDelete = widget.items.length > 2;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -889,22 +1013,45 @@ class _DragFormState extends State<_DragForm> {
                   const SizedBox(width: 2),
                   Text('Добавить',
                       style: AppTextStyles.caption.copyWith(
-                          color: AppColors.mono700,
-                          fontWeight: FontWeight.w600)),
+                          color: AppColors.mono700, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
           ],
         ),
         const SizedBox(height: 10),
-        ...List.generate(widget.items.length, (i) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _DragItemTile(
-                index: i,
-                controller: widget.items[i],
-                onRemove: widget.items.length > 2 ? () => _remove(i) : null,
-              ),
-            )),
+        Theme(
+          data: Theme.of(context).copyWith(canvasColor: Colors.transparent),
+          child: ReorderableListView(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
+            proxyDecorator: (child, _, animation) => Material(
+              elevation: 4,
+              color: Colors.transparent,
+              shadowColor: Colors.black12,
+              borderRadius: BorderRadius.circular(12),
+              clipBehavior: Clip.antiAlias,
+              child: child,
+            ),
+            onReorder: _reorder,
+            children: List.generate(widget.items.length, (i) {
+              final ctrl = widget.items[i];
+              return _entryAnimation(
+                key: ObjectKey(ctrl),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _buildDismissible(
+                    key: ValueKey(ctrl),
+                    canDismiss: canDelete,
+                    onDismissed: () => _remove(i),
+                    child: _DragItemTile(index: i, controller: ctrl),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
         const SizedBox(height: 8),
         Text(
           'Студент расставит элементы в нужном порядке перетаскиванием',
@@ -915,70 +1062,88 @@ class _DragFormState extends State<_DragForm> {
   }
 }
 
-class _DragItemTile extends StatelessWidget {
+// ─── Drag item tile ───────────────────────────────────────────────────────────
+
+class _DragItemTile extends StatefulWidget {
   final int index;
   final TextEditingController controller;
-  final VoidCallback? onRemove;
 
-  const _DragItemTile({
-    required this.index,
-    required this.controller,
-    required this.onRemove,
-  });
+  const _DragItemTile({required this.index, required this.controller});
+
+  @override
+  State<_DragItemTile> createState() => _DragItemTileState();
+}
+
+class _DragItemTileState extends State<_DragItemTile> {
+  late final FocusNode _focus;
+
+  @override
+  void initState() {
+    super.initState();
+    _focus = FocusNode()..addListener(_onFocus);
+  }
+
+  void _onFocus() => setState(() {});
+
+  @override
+  void dispose() {
+    _focus.removeListener(_onFocus);
+    _focus.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final focused = _focus.hasFocus;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: AppColors.mono25,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.mono150),
+        border: Border.all(
+          color: focused ? AppColors.mono700 : AppColors.mono150,
+          width: focused ? 1.5 : 1.0,
+        ),
       ),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              width: 44,
-              alignment: Alignment.center,
-              decoration: const BoxDecoration(
-                border: Border(right: BorderSide(color: AppColors.mono150)),
-              ),
-              child: Text(
-                '${index + 1}',
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.mono400,
-                  fontWeight: FontWeight.w700,
+            ReorderableDragStartListener(
+              index: widget.index,
+              child: Container(
+                width: 44,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  border: Border(right: BorderSide(color: AppColors.mono150)),
                 ),
+                child: const Icon(Icons.drag_indicator, size: 18, color: AppColors.mono300),
               ),
             ),
             Expanded(
               child: TextField(
-                controller: controller,
+                focusNode: _focus,
+                controller: widget.controller,
                 style: AppTextStyles.bodySmall.copyWith(color: AppColors.mono900),
                 maxLength: 50,
                 maxLengthEnforcement: MaxLengthEnforcement.enforced,
                 minLines: 1,
                 maxLines: null,
+                cursorColor: AppColors.mono900,
                 decoration: InputDecoration(
-                  hintText: 'Элемент ${index + 1}',
+                  hintText: 'Элемент ${widget.index + 1}',
                   hintStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.mono300),
                   border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
                   isDense: true,
                   counterText: '',
+                  filled: false,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                 ),
-                cursorColor: AppColors.mono900,
               ),
             ),
-            if (onRemove != null)
-              GestureDetector(
-                onTap: onRemove,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 13),
-                  child: Icon(Icons.close, size: 16, color: AppColors.mono350),
-                ),
-              ),
           ],
         ),
       ),
@@ -1016,6 +1181,7 @@ class _ConnectionFormState extends State<_ConnectionForm> {
 
   @override
   Widget build(BuildContext context) {
+    final canDelete = widget.pairs.length > 2;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1031,8 +1197,7 @@ class _ConnectionFormState extends State<_ConnectionForm> {
                   const SizedBox(width: 2),
                   Text('Добавить',
                       style: AppTextStyles.caption.copyWith(
-                          color: AppColors.mono700,
-                          fontWeight: FontWeight.w600)),
+                          color: AppColors.mono700, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
@@ -1043,65 +1208,70 @@ class _ConnectionFormState extends State<_ConnectionForm> {
           children: [
             Expanded(
               child: Text('Левая колонка',
-                  style: AppTextStyles.caption.copyWith(
-                      color: AppColors.mono400,
-                      fontWeight: FontWeight.w600)),
+                  style: AppTextStyles.caption
+                      .copyWith(color: AppColors.mono400, fontWeight: FontWeight.w600)),
             ),
             const SizedBox(width: 36),
             Expanded(
               child: Text('Правая колонка',
-                  style: AppTextStyles.caption.copyWith(
-                      color: AppColors.mono400,
-                      fontWeight: FontWeight.w600)),
+                  style: AppTextStyles.caption
+                      .copyWith(color: AppColors.mono400, fontWeight: FontWeight.w600)),
             ),
+            // Место под кнопку удаления (для выравнивания)
+            if (canDelete) const SizedBox(width: 32),
           ],
         ),
         const SizedBox(height: 8),
-        ...List.generate(widget.pairs.length, (i) => Padding(
+        ...List.generate(widget.pairs.length, (i) {
+          final pair = widget.pairs[i];
+          return _entryAnimation(
+            key: ValueKey(pair.id),
+            child: Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _TextInputTile(
-                          controller: widget.pairs[i].leftCtrl,
-                          hint: 'Термин ${i + 1}',
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Container(
-                          width: 20,
-                          height: 1,
-                          color: AppColors.mono300,
-                        ),
-                      ),
-                      Expanded(
-                        child: _TextInputTile(
-                          controller: widget.pairs[i].rightCtrl,
-                          hint: 'Определение ${i + 1}',
-                        ),
-                      ),
-                    ],
+                  Expanded(
+                    child: _TextInputTile(
+                      controller: pair.leftCtrl,
+                      hint: 'Термин ${i + 1}',
+                    ),
                   ),
-                  if (widget.pairs.length > 2)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Container(width: 20, height: 1, color: AppColors.mono300),
+                  ),
+                  Expanded(
+                    child: _TextInputTile(
+                      controller: pair.rightCtrl,
+                      hint: 'Определение ${i + 1}',
+                    ),
+                  ),
+                  // Кнопка удаления вместо Dismissible
+                  if (canDelete) ...[
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () => _remove(i),
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          'Удалить пару',
-                          style: AppTextStyles.caption.copyWith(
-                            color: AppColors.mono400,
-                          ),
+                      child: Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: AppColors.mono100,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          size: 14,
+                          color: AppColors.mono400,
                         ),
                       ),
                     ),
+                  ],
                 ],
               ),
-            )),
+            ),
+          );
+        }),
         const SizedBox(height: 8),
         Text(
           'Студент соединит левые элементы с правыми',
@@ -1112,58 +1282,76 @@ class _ConnectionFormState extends State<_ConnectionForm> {
   }
 }
 
-// ─── Shared widgets ───────────────────────────────────────────────────────────
+// ─── Text input tile ──────────────────────────────────────────────────────────
 
-class _TextInputTile extends StatelessWidget {
+class _TextInputTile extends StatefulWidget {
   final TextEditingController controller;
   final String hint;
-  final VoidCallback? onRemove;
 
-  const _TextInputTile({
-    required this.controller,
-    required this.hint,
-    this.onRemove,
-  });
+  const _TextInputTile({required this.controller, required this.hint});
+
+  @override
+  State<_TextInputTile> createState() => _TextInputTileState();
+}
+
+class _TextInputTileState extends State<_TextInputTile> {
+  late final FocusNode _focus;
+
+  @override
+  void initState() {
+    super.initState();
+    _focus = FocusNode()..addListener(_onFocus);
+  }
+
+  void _onFocus() => setState(() {});
+
+  @override
+  void dispose() {
+    _focus.removeListener(_onFocus);
+    _focus.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      style: AppTextStyles.bodySmall.copyWith(color: AppColors.mono900),
-      maxLength: 50,
-      maxLengthEnforcement: MaxLengthEnforcement.enforced,
-      minLines: 1,
-      maxLines: null,
-      cursorColor: AppColors.mono900,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.mono300),
-        filled: true,
-        fillColor: AppColors.mono25,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-        suffixIcon: onRemove != null
-            ? GestureDetector(
-                onTap: onRemove,
-                child: const Icon(Icons.close, size: 16, color: AppColors.mono350),
-              )
-            : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.mono150),
+    final focused = _focus.hasFocus;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.mono25,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: focused ? AppColors.mono700 : AppColors.mono150,
+          width: focused ? 1.5 : 1.0,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.mono150),
+      ),
+      child: TextField(
+        focusNode: _focus,
+        controller: widget.controller,
+        style: AppTextStyles.bodySmall.copyWith(color: AppColors.mono900),
+        maxLength: 50,
+        maxLengthEnforcement: MaxLengthEnforcement.enforced,
+        minLines: 1,
+        maxLines: null,
+        cursorColor: AppColors.mono900,
+        decoration: InputDecoration(
+          hintText: widget.hint,
+          hintStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.mono300),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          isDense: true,
+          counterText: '',
+          filled: false,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.mono700, width: 1.5),
-        ),
-        counterText: '',
       ),
     );
   }
 }
+
+// ─── Error banner ─────────────────────────────────────────────────────────────
 
 class _ErrorBanner extends StatelessWidget {
   final String message;
@@ -1185,8 +1373,7 @@ class _ErrorBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: AppTextStyles.caption
-                  .copyWith(color: const Color(0xFFEF4444)),
+              style: AppTextStyles.caption.copyWith(color: const Color(0xFFEF4444)),
             ),
           ),
         ],
@@ -1214,10 +1401,7 @@ class _BottomBar extends StatelessWidget {
         color: Colors.white,
         border: Border(top: BorderSide(color: AppColors.mono100)),
       ),
-      child: EdiumButton(
-        label: 'Сохранить вопрос',
-        onPressed: onSave,
-      ),
+      child: EdiumButton(label: 'Сохранить вопрос', onPressed: onSave),
     );
   }
 }
@@ -1225,11 +1409,13 @@ class _BottomBar extends StatelessWidget {
 // ─── Data classes ─────────────────────────────────────────────────────────────
 
 class _OptionDraft {
+  final id = UniqueKey();
   final ctrl = TextEditingController();
   bool isCorrect = false;
 }
 
 class _ConnectionPair {
+  final id = UniqueKey();
   final leftCtrl = TextEditingController();
   final rightCtrl = TextEditingController();
 }
