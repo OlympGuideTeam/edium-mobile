@@ -398,24 +398,26 @@ class _ClassDetailViewState extends State<_ClassDetailView>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppDimens.radiusLg),
           ),
-          title: const Text(
+          title: Text(
             'Удалить класс?',
-            style: TextStyle(
+            style: AppTextStyles.heading3.copyWith(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: AppColors.mono900,
             ),
           ),
-          content: const Text(
+          content: Text(
             'Это действие необратимо. Все данные класса будут удалены.',
-            style: TextStyle(fontSize: 14, color: AppColors.mono400),
+            style: AppTextStyles.screenSubtitle,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text(
+              child: Text(
                 'Отмена',
-                style: TextStyle(color: AppColors.mono400),
+                style: AppTextStyles.secondaryButton.copyWith(
+                  color: AppColors.mono400,
+                ),
               ),
             ),
             TextButton(
@@ -423,9 +425,11 @@ class _ClassDetailViewState extends State<_ClassDetailView>
                 Navigator.of(dialogContext).pop();
                 bloc.add(const DeleteClassEvent());
               },
-              child: const Text(
+              child: Text(
                 'Удалить',
-                style: TextStyle(color: AppColors.error),
+                style: AppTextStyles.secondaryButton.copyWith(
+                  color: AppColors.error,
+                ),
               ),
             ),
           ],
@@ -469,9 +473,9 @@ class _CoursesTab extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppDimens.radiusLg),
           ),
-          title: const Text(
+          title: Text(
             'Удалить курс?',
-            style: TextStyle(
+            style: AppTextStyles.heading3.copyWith(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: AppColors.mono900,
@@ -479,21 +483,25 @@ class _CoursesTab extends StatelessWidget {
           ),
           content: Text(
             'Курс «$title» будет удалён. Это действие необратимо.',
-            style: const TextStyle(fontSize: 14, color: AppColors.mono400),
+            style: AppTextStyles.screenSubtitle,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text(
+              child: Text(
                 'Отмена',
-                style: TextStyle(color: AppColors.mono400),
+                style: AppTextStyles.secondaryButton.copyWith(
+                  color: AppColors.mono400,
+                ),
               ),
             ),
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text(
+              child: Text(
                 'Удалить',
-                style: TextStyle(color: AppColors.error),
+                style: AppTextStyles.secondaryButton.copyWith(
+                  color: AppColors.error,
+                ),
               ),
             ),
           ],
@@ -530,49 +538,16 @@ class _CoursesTab extends StatelessWidget {
 
                     if (!canDelete) return card;
 
-                    return ClipRRect(
-                      borderRadius:
-                          BorderRadius.circular(AppDimens.radiusLg),
-                      child: Dismissible(
-                        key: ValueKey(course.id),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
-                          decoration: BoxDecoration(
-                            color: AppColors.error,
-                            borderRadius:
-                                BorderRadius.circular(AppDimens.radiusLg),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Удалить',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                              Icon(
-                                Icons.delete_outline,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ],
-                          ),
-                        ),
-                        confirmDismiss: (_) =>
-                            _confirmDeleteCourse(context, course.title),
-                        onDismissed: (_) {
-                          context
-                              .read<ClassDetailBloc>()
-                              .add(DeleteCourseEvent(course.id));
-                        },
-                        child: card,
-                      ),
+                    return _buildDismissible(
+                      key: ValueKey(course.id),
+                      confirmDismiss: (_) =>
+                          _confirmDeleteCourse(context, course.title),
+                      onDismissed: () {
+                        context
+                            .read<ClassDetailBloc>()
+                            .add(DeleteCourseEvent(course.id));
+                      },
+                      child: card,
                     );
                   },
                 ),
@@ -632,6 +607,7 @@ class _CourseCard extends StatelessWidget {
       child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(AppDimens.radiusLg),
         border: Border.all(
           color: course.isTeacher ? AppColors.mono150 : AppColors.mono200,
@@ -761,6 +737,7 @@ class _MembersTab extends StatelessWidget {
                         vertical: 12,
                       ),
                       decoration: BoxDecoration(
+                        color: Colors.white,
                         borderRadius:
                             BorderRadius.circular(AppDimens.radiusLg),
                         border: Border.all(
@@ -806,51 +783,18 @@ class _MembersTab extends StatelessWidget {
 
                     if (!canDelete) return tile;
 
-                    return ClipRRect(
-                      borderRadius:
-                          BorderRadius.circular(AppDimens.radiusLg),
-                      child: Dismissible(
-                        key: ValueKey(member.id),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
-                          decoration: BoxDecoration(
-                            color: AppColors.error,
-                            borderRadius:
-                                BorderRadius.circular(AppDimens.radiusLg),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Удалить',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                              Icon(
-                                Icons.delete_outline,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ],
-                          ),
-                        ),
-                        confirmDismiss: (_) => _confirmRemoveMember(
-                          context,
-                          member.name,
-                        ),
-                        onDismissed: (_) {
-                          context
-                              .read<ClassDetailBloc>()
-                              .add(RemoveMemberEvent(member.id));
-                        },
-                        child: tile,
+                    return _buildDismissible(
+                      key: ValueKey(member.id),
+                      confirmDismiss: (_) => _confirmRemoveMember(
+                        context,
+                        member.name,
                       ),
+                      onDismissed: () {
+                        context
+                            .read<ClassDetailBloc>()
+                            .add(RemoveMemberEvent(member.id));
+                      },
+                      child: tile,
                     );
                   },
                 ),
@@ -899,9 +843,9 @@ class _MembersTab extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppDimens.radiusLg),
           ),
-          title: const Text(
+          title: Text(
             'Удалить ученика?',
-            style: TextStyle(
+            style: AppTextStyles.heading3.copyWith(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: AppColors.mono900,
@@ -909,21 +853,25 @@ class _MembersTab extends StatelessWidget {
           ),
           content: Text(
             'Вы уверены, что хотите удалить $memberName из класса?',
-            style: const TextStyle(fontSize: 14, color: AppColors.mono400),
+            style: AppTextStyles.screenSubtitle,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text(
+              child: Text(
                 'Отмена',
-                style: TextStyle(color: AppColors.mono400),
+                style: AppTextStyles.secondaryButton.copyWith(
+                  color: AppColors.mono400,
+                ),
               ),
             ),
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text(
+              child: Text(
                 'Удалить',
-                style: TextStyle(color: AppColors.error),
+                style: AppTextStyles.secondaryButton.copyWith(
+                  color: AppColors.error,
+                ),
               ),
             ),
           ],
@@ -931,4 +879,36 @@ class _MembersTab extends StatelessWidget {
       },
     );
   }
+}
+
+/// Обёртка для Dismissible как на экране создания курса: без зазоров, только иконка.
+Widget _buildDismissible({
+  required Key key,
+  required Widget child,
+  required VoidCallback onDismissed,
+  Future<bool?> Function(DismissDirection direction)? confirmDismiss,
+}) {
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+    child: Container(
+      color: AppColors.error,
+      child: Dismissible(
+        key: key,
+        direction: DismissDirection.endToStart,
+        confirmDismiss: confirmDismiss,
+        onDismissed: (_) => onDismissed(),
+        background: Container(
+          color: AppColors.error,
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          child: const Icon(
+            Icons.delete_outline,
+            color: Colors.white,
+            size: 18,
+          ),
+        ),
+        child: child,
+      ),
+    ),
+  );
 }

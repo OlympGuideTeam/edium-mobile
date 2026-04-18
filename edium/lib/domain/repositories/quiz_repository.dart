@@ -23,7 +23,9 @@ abstract class IQuizRepository {
 
   Future<Map<String, dynamic>> getQuizResults(String id);
 
-  Future<void> updateQuizStatus(String id, String status);
+  Future<void> publishQuiz(String id, {required bool isPublic});
+
+  Future<String> copyQuiz(String id);
 
   Future<void> deleteQuiz(String id);
 }

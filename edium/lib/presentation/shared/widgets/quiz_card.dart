@@ -56,8 +56,10 @@ class QuizCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _SubjectChip(subject: quiz.subject),
-                        const SizedBox(height: 8),
+                        if (quiz.subject.trim().isNotEmpty) ...[
+                          _SubjectChip(subject: quiz.subject),
+                          const SizedBox(height: 8),
+                        ],
                         Text(
                           quiz.title,
                           style: AppTextStyles.subtitle,

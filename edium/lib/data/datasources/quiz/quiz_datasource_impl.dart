@@ -12,13 +12,28 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
     String? search,
     int page = 1,
     int limit = 20,
-  }) {
+  }) async {
+    if (scope == 'mine') {
+      final list = await request<List<QuizModel>>(
+        'riddler/v1/quizzes/my',
+        method: HttpMethod.get,
+        parser: (data) => (data as List<dynamic>)
+            .map((e) => QuizModel.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+      final q = search?.trim().toLowerCase();
+      if (q == null || q.isEmpty) return list;
+      return list
+          .where((quiz) => quiz.title.toLowerCase().contains(q))
+          .toList();
+    }
+
     return request(
       'riddler/v1/quizzes',
       method: HttpMethod.get,
       query: {
-        'role': scope == 'mine' ? 'teacher' : 'teacher',
-        if (search != null) 'search': search,
+        'role': 'teacher',
+        if (search != null && search.trim().isNotEmpty) 'search': search,
       },
       parser: (data) => (data as List<dynamic>)
           .map((e) => QuizModel.fromJson(e as Map<String, dynamic>))
@@ -93,12 +108,21 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
   }
 
   @override
-  Future<void> updateQuizStatus(String id, String status) {
+  Future<void> publishQuiz(String id, {required bool isPublic}) {
     return request(
       'riddler/v1/quizzes/$id/publish',
       method: HttpMethod.post,
-      req: {'is_public': status == 'active'},
+      req: {'is_public': isPublic},
       parser: (_) {},
+    );
+  }
+
+  @override
+  Future<String> copyQuiz(String id) {
+    return request(
+      'riddler/v1/quizzes/$id/copy',
+      method: HttpMethod.post,
+      parser: (data) => (data as Map<String, dynamic>)['id'] as String,
     );
   }
 

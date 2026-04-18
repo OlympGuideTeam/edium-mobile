@@ -33,7 +33,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     return BlocConsumer<CreateQuizBloc, CreateQuizState>(
       listener: (context, state) {
         if (state.success) {
-          EdiumNotification.show(context, 'Квиз создан как черновик');
+          EdiumNotification.show(context, 'Шаблон создан');
           Navigator.pop(context, true);
           context.read<CreateQuizBloc>().add(const ResetCreateQuizEvent());
         }
@@ -104,7 +104,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
         icon: const Icon(Icons.close, color: AppColors.mono700, size: 22),
         onPressed: () => Navigator.pop(context),
       ),
-      title: Text('Новый квиз', style: AppTextStyles.screenTitle),
+      title: Text('Новый шаблон', style: AppTextStyles.screenTitle),
       centerTitle: false,
       systemOverlayStyle: SystemUiOverlayStyle.dark,
     );
@@ -221,7 +221,7 @@ class _DescriptionField extends StatelessWidget {
   static const _maxLength = 200;
 
   static const _inputDecoration = InputDecoration(
-    hintText: 'Краткое описание квиза...',
+    hintText: 'Краткое описание шаблона...',
     border: InputBorder.none,
     enabledBorder: InputBorder.none,
     focusedBorder: InputBorder.none,
@@ -299,6 +299,7 @@ class _SettingsCard extends StatelessWidget {
         children: [
           _TimeRow(
             label: 'Время на весь квиз',
+            subtitle: 'Применяется только в режиме «Тест»',
             valueSec: state.totalTimeLimitSec,
             unit: 'мин',
             unitDivisor: 60,
@@ -316,6 +317,7 @@ class _SettingsCard extends StatelessWidget {
           _CardDivider(),
           _TimeRow(
             label: 'Время на вопрос',
+            subtitle: 'Применяется только в режиме «Лайв»',
             valueSec: state.questionTimeLimitSec,
             unit: 'сек',
             unitDivisor: 1,
@@ -329,14 +331,6 @@ class _SettingsCard extends StatelessWidget {
             onValueChanged: (sec) => context
                 .read<CreateQuizBloc>()
                 .add(UpdateQuestionTimeLimitEvent(sec)),
-          ),
-          _CardDivider(),
-          _ToggleRow(
-            label: 'Перемешать вопросы',
-            value: state.shuffleQuestions,
-            onChanged: (v) => context
-                .read<CreateQuizBloc>()
-                .add(UpdateShuffleQuestionsEvent(v)),
           ),
         ],
       ),
@@ -354,37 +348,12 @@ class _CardDivider extends StatelessWidget {
   }
 }
 
-class _ToggleRow extends StatelessWidget {
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  const _ToggleRow({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label,
-              style: AppTextStyles.bodySmall.copyWith(color: AppColors.mono700)),
-          _MonoSwitch(value: value, onChanged: onChanged),
-        ],
-      ),
-    );
-  }
-}
 
 // ─── Time row with stepped slider + tap-to-input ─────────────────────────────
 
 class _TimeRow extends StatelessWidget {
   final String label;
+  final String? subtitle;
   final int? valueSec;
   final String unit;
   final int unitDivisor;
@@ -397,6 +366,7 @@ class _TimeRow extends StatelessWidget {
 
   const _TimeRow({
     required this.label,
+    this.subtitle,
     required this.valueSec,
     required this.unit,
     required this.unitDivisor,
@@ -441,9 +411,22 @@ class _TimeRow extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label,
-                  style: AppTextStyles.bodySmall
-                      .copyWith(color: AppColors.mono700)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label,
+                        style: AppTextStyles.bodySmall
+                            .copyWith(color: AppColors.mono700)),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(subtitle!,
+                          style: AppTextStyles.caption.copyWith(
+                              color: AppColors.mono400, fontSize: 11)),
+                    ],
+                  ],
+                ),
+              ),
               Row(
                 children: [
                   if (valueSec != null)
@@ -977,7 +960,7 @@ class _BottomBar extends StatelessWidget {
               child: Text(
                 state.questions.isEmpty
                     ? 'Добавьте хотя бы один вопрос'
-                    : 'Введите название квиза',
+                    : 'Введите название шаблона',
                 style: AppTextStyles.helperText,
                 textAlign: TextAlign.center,
               ),
@@ -1011,7 +994,7 @@ class _BottomBar extends StatelessWidget {
                         color: Colors.white,
                       ),
                     )
-                  : const Text('Создать квиз'),
+                  : const Text('Создать шаблон'),
             ),
           ),
         ],

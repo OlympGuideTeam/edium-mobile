@@ -214,6 +214,11 @@ class _CreateCourseViewState extends State<_CreateCourseView> {
                 ),
               ],
             ),
+            const SizedBox(height: 6),
+            Text(
+              'Необязательно добавлять сейчас — модули можно создать позже на странице курса.',
+              style: AppTextStyles.helperText.copyWith(fontSize: 11),
+            ),
             const SizedBox(height: 12),
             Theme(
               data: Theme.of(context).copyWith(
@@ -244,7 +249,7 @@ class _CreateCourseViewState extends State<_CreateCourseView> {
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _buildDismissible(
                       key: ValueKey(_moduleControllers[i]),
-                      canDismiss: state.modules.length > 1,
+                      canDismiss: true,
                       onDismissed: () => _removeModule(i),
                       child: _ModuleCard(
                         index: i,
@@ -393,7 +398,8 @@ class _ModuleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      height: AppDimens.buttonH,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppDimens.radiusLg),
@@ -401,6 +407,7 @@ class _ModuleCard extends StatelessWidget {
             Border.all(color: AppColors.mono250, width: AppDimens.borderWidth),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           ReorderableDragStartListener(
             index: index,

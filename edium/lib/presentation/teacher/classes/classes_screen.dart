@@ -140,9 +140,9 @@ class _ClassesView extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppDimens.radiusLg),
           ),
-          title: const Text(
+          title: Text(
             'Удалить класс?',
-            style: TextStyle(
+            style: AppTextStyles.heading3.copyWith(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: AppColors.mono900,
@@ -150,21 +150,25 @@ class _ClassesView extends StatelessWidget {
           ),
           content: Text(
             'Класс «$title» будет удалён. Это действие необратимо.',
-            style: const TextStyle(fontSize: 14, color: AppColors.mono400),
+            style: AppTextStyles.screenSubtitle,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text(
+              child: Text(
                 'Отмена',
-                style: TextStyle(color: AppColors.mono400),
+                style: AppTextStyles.secondaryButton.copyWith(
+                  color: AppColors.mono400,
+                ),
               ),
             ),
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text(
+              child: Text(
                 'Удалить',
-                style: TextStyle(color: AppColors.error),
+                style: AppTextStyles.secondaryButton.copyWith(
+                  color: AppColors.error,
+                ),
               ),
             ),
           ],
@@ -328,47 +332,16 @@ class _ClassesView extends StatelessWidget {
 
                         if (!item.isOwner) return tile;
 
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: Dismissible(
-                            key: ValueKey(item.id),
-                            direction: DismissDirection.endToStart,
-                            background: Container(
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.only(right: 20),
-                              decoration: BoxDecoration(
-                                color: AppColors.error,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'Удалить',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  SizedBox(width: 8),
-                                  Icon(
-                                    Icons.delete_outline,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            confirmDismiss: (_) =>
-                                _confirmDeleteClass(context, item.title),
-                            onDismissed: (_) {
-                              context
-                                  .read<ClassesBloc>()
-                                  .add(DeleteClassEvent(item.id));
-                            },
-                            child: tile,
-                          ),
+                        return _buildDismissible(
+                          key: ValueKey(item.id),
+                          confirmDismiss: (_) =>
+                              _confirmDeleteClass(context, item.title),
+                          onDismissed: () {
+                            context
+                                .read<ClassesBloc>()
+                                .add(DeleteClassEvent(item.id));
+                          },
+                          child: tile,
                         );
                       },
                     );
@@ -488,4 +461,36 @@ class _ClassTile extends StatelessWidget {
         return '$count учеников';
     }
   }
+}
+
+/// Обёртка для Dismissible как на экране создания курса: без зазоров, только иконка.
+Widget _buildDismissible({
+  required Key key,
+  required Widget child,
+  required VoidCallback onDismissed,
+  Future<bool?> Function(DismissDirection direction)? confirmDismiss,
+}) {
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+    child: Container(
+      color: AppColors.error,
+      child: Dismissible(
+        key: key,
+        direction: DismissDirection.endToStart,
+        confirmDismiss: confirmDismiss,
+        onDismissed: (_) => onDismissed(),
+        background: Container(
+          color: AppColors.error,
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          child: const Icon(
+            Icons.delete_outline,
+            color: Colors.white,
+            size: 18,
+          ),
+        ),
+        child: child,
+      ),
+    ),
+  );
 }

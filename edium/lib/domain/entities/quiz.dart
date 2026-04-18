@@ -43,6 +43,9 @@ class Quiz {
   final bool isLiked;
   final DateTime createdAt;
 
+  /// Riddler list endpoints return [question_count] without embedding questions.
+  final int? listedQuestionCount;
+
   const Quiz({
     required this.id,
     required this.title,
@@ -55,9 +58,10 @@ class Quiz {
     required this.likesCount,
     required this.isLiked,
     required this.createdAt,
+    this.listedQuestionCount,
   });
 
-  int get questionsCount => questions.length;
+  int get questionsCount => listedQuestionCount ?? questions.length;
 
   Quiz copyWith({
     String? id,
@@ -71,6 +75,7 @@ class Quiz {
     int? likesCount,
     bool? isLiked,
     DateTime? createdAt,
+    int? listedQuestionCount,
   }) {
     return Quiz(
       id: id ?? this.id,
@@ -84,6 +89,7 @@ class Quiz {
       likesCount: likesCount ?? this.likesCount,
       isLiked: isLiked ?? this.isLiked,
       createdAt: createdAt ?? this.createdAt,
+      listedQuestionCount: listedQuestionCount ?? this.listedQuestionCount,
     );
   }
 }
