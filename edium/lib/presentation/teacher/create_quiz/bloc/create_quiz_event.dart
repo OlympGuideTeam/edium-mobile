@@ -1,4 +1,3 @@
-import 'package:edium/domain/entities/quiz.dart';
 import 'package:equatable/equatable.dart';
 
 abstract class CreateQuizEvent extends Equatable {
@@ -14,18 +13,32 @@ class UpdateTitleEvent extends CreateQuizEvent {
   List<Object?> get props => [title];
 }
 
-class UpdateSubjectEvent extends CreateQuizEvent {
-  final String subject;
-  const UpdateSubjectEvent(this.subject);
+class UpdateDescriptionEvent extends CreateQuizEvent {
+  final String description;
+  const UpdateDescriptionEvent(this.description);
   @override
-  List<Object?> get props => [subject];
+  List<Object?> get props => [description];
 }
 
-class UpdateSettingsEvent extends CreateQuizEvent {
-  final QuizSettings settings;
-  const UpdateSettingsEvent(this.settings);
+class UpdateTotalTimeLimitEvent extends CreateQuizEvent {
+  final int? seconds;
+  const UpdateTotalTimeLimitEvent(this.seconds);
   @override
-  List<Object?> get props => [settings];
+  List<Object?> get props => [seconds];
+}
+
+class UpdateQuestionTimeLimitEvent extends CreateQuizEvent {
+  final int? seconds;
+  const UpdateQuestionTimeLimitEvent(this.seconds);
+  @override
+  List<Object?> get props => [seconds];
+}
+
+class UpdateShuffleQuestionsEvent extends CreateQuizEvent {
+  final bool shuffle;
+  const UpdateShuffleQuestionsEvent(this.shuffle);
+  @override
+  List<Object?> get props => [shuffle];
 }
 
 class AddQuestionEvent extends CreateQuizEvent {
@@ -44,6 +57,14 @@ class RemoveQuestionEvent extends CreateQuizEvent {
 
 class SubmitQuizEvent extends CreateQuizEvent {
   const SubmitQuizEvent();
+}
+
+class ReplaceQuestionEvent extends CreateQuizEvent {
+  final int index;
+  final Map<String, dynamic> question;
+  const ReplaceQuestionEvent(this.index, this.question);
+  @override
+  List<Object?> get props => [index, question];
 }
 
 class ResetCreateQuizEvent extends CreateQuizEvent {

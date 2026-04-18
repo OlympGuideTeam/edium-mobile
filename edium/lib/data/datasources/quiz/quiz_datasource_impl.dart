@@ -14,45 +14,62 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
     int limit = 20,
   }) {
     return request(
-      'api/v1/quizzes',
+      'riddler/v1/quizzes',
       method: HttpMethod.get,
       query: {
-        'scope': scope,
+        'role': scope == 'mine' ? 'teacher' : 'teacher',
         if (search != null) 'search': search,
-        'page': page,
-        'limit': limit,
       },
-      parser: (data) => (data['items'] as List<dynamic>)
+      parser: (data) => (data as List<dynamic>)
           .map((e) => QuizModel.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
   }
 
   @override
-  Future<QuizModel> createQuiz({
+  Future<String> createQuiz({
     required String title,
-    required String subject,
-    required Map<String, dynamic> settings,
+    String? description,
+    int? totalTimeLimitSec,
+    int? questionTimeLimitSec,
+    bool shuffleQuestions = false,
     required List<Map<String, dynamic>> questions,
-  }) {
-    return request(
-      'api/v1/quizzes',
+  }) async {
+    final id = await request<String>(
+      'riddler/v1/quizzes',
       method: HttpMethod.post,
       req: {
         'title': title,
-        'subject': subject,
-        'settings': settings,
-        'questions': questions,
+        if (description != null) 'description': description,
+        'default_settings': {
+          if (totalTimeLimitSec != null)
+            'total_time_limit_sec': totalTimeLimitSec,
+          if (questionTimeLimitSec != null)
+            'question_time_limit_sec': questionTimeLimitSec,
+          'shuffle_questions': shuffleQuestions,
+        },
       },
-      parser: (data) => QuizModel.fromJson(data as Map<String, dynamic>),
+      parser: (data) => (data as Map<String, dynamic>)['id'] as String,
     );
+
+    for (final q in questions) {
+      await request<void>(
+        'riddler/v1/quizzes/$id/questions',
+        method: HttpMethod.post,
+        req: q,
+        parser: (_) {},
+      );
+    }
+
+    return id;
   }
 
   @override
   Future<QuizModel> getQuizById(String id) {
     return request(
-      'api/v1/quizzes/$id',
+      'riddler/v1/quizzes/$id',
       method: HttpMethod.get,
+      query: {'role': 'teacher'},
       parser: (data) => QuizModel.fromJson(data as Map<String, dynamic>),
     );
   }
@@ -78,9 +95,9 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
   @override
   Future<void> updateQuizStatus(String id, String status) {
     return request(
-      'api/v1/quizzes/$id',
-      method: HttpMethod.patch,
-      req: {'status': status},
+      'riddler/v1/quizzes/$id/publish',
+      method: HttpMethod.post,
+      req: {'is_public': status == 'active'},
       parser: (_) {},
     );
   }
@@ -88,7 +105,7 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
   @override
   Future<void> deleteQuiz(String id) {
     return request(
-      'api/v1/quizzes/$id',
+      'riddler/v1/quizzes/$id',
       method: HttpMethod.delete,
       parser: (_) {},
     );

@@ -161,33 +161,42 @@ class QuizDatasourceMock implements IQuizDatasource {
   }
 
   @override
-  Future<QuizModel> createQuiz({
+  Future<String> createQuiz({
     required String title,
-    required String subject,
-    required Map<String, dynamic> settings,
+    String? description,
+    int? totalTimeLimitSec,
+    int? questionTimeLimitSec,
+    bool shuffleQuestions = false,
     required List<Map<String, dynamic>> questions,
   }) async {
     await Future.delayed(const Duration(milliseconds: 600));
     final id = '${++_nextId}';
+    final timeLimitMinutes =
+        totalTimeLimitSec != null ? (totalTimeLimitSec / 60).round() : null;
     final newQuiz = QuizModel(
       id: id,
       title: title,
-      subject: subject,
+      subject: '',
       authorId: 'mock-user-1',
       authorName: 'Алексей Иванов',
       status: 'draft',
-      settings: QuizSettingsModel.fromJson(settings),
+      settings: QuizSettingsModel(
+        timeLimitMinutes: timeLimitMinutes,
+        shuffleQuestions: shuffleQuestions,
+        showExplanations: false,
+      ),
       questions: questions
           .asMap()
           .entries
-          .map((e) => QuestionModel.fromJson({...e.value, 'id': 'nq${e.key}', 'order_index': e.key}))
+          .map((e) => QuestionModel.fromJson(
+              {...e.value, 'id': 'nq${e.key}', 'order_index': e.key}))
           .toList(),
       likesCount: 0,
       isLiked: false,
       createdAt: DateTime.now().toIso8601String(),
     );
     _quizzes.add(newQuiz);
-    return newQuiz;
+    return id;
   }
 
   @override
