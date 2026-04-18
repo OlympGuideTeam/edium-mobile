@@ -57,6 +57,7 @@ class QuizDatasourceHive implements IQuizDatasource {
           likesCount: quiz.likesCount,
           isLiked: quiz.isLiked,
           createdAt: quiz.createdAt,
+          summaryQuestionCount: quiz.summaryQuestionCount,
         );
         await box.put(quiz.id, jsonEncode(updated.toJson()));
       }
@@ -216,6 +217,7 @@ class QuizDatasourceHive implements IQuizDatasource {
       likesCount: liked ? quiz.likesCount + 1 : quiz.likesCount - 1,
       isLiked: liked,
       createdAt: quiz.createdAt,
+      summaryQuestionCount: quiz.summaryQuestionCount,
     );
     await HiveStorage.quizzesBox.put(id, jsonEncode(updated.toJson()));
     return {'liked': liked, 'likes_count': updated.likesCount};
@@ -228,7 +230,7 @@ class QuizDatasourceHive implements IQuizDatasource {
   }
 
   @override
-  Future<void> updateQuizStatus(String id, String status) async {
+  Future<void> publishQuiz(String id, {required bool isPublic}) async {
     await _ensureSeeded();
     final all = _readAll();
     final idx = all.indexWhere((q) => q.id == id);
@@ -240,14 +242,37 @@ class QuizDatasourceHive implements IQuizDatasource {
       subject: quiz.subject,
       authorId: quiz.authorId,
       authorName: quiz.authorName,
-      status: status,
+      status: 'active',
       settings: quiz.settings,
       questions: quiz.questions,
       likesCount: quiz.likesCount,
       isLiked: quiz.isLiked,
       createdAt: quiz.createdAt,
+      summaryQuestionCount: quiz.summaryQuestionCount,
     );
     await HiveStorage.quizzesBox.put(id, jsonEncode(updated.toJson()));
+  }
+
+  @override
+  Future<String> copyQuiz(String id) async {
+    await _ensureSeeded();
+    final original = _readAll().firstWhere((q) => q.id == id);
+    final newId = _nextId();
+    final copy = QuizModel(
+      id: newId,
+      title: '${original.title} (копия)',
+      subject: original.subject,
+      authorId: original.authorId,
+      authorName: original.authorName,
+      status: 'draft',
+      settings: original.settings,
+      questions: original.questions,
+      likesCount: 0,
+      isLiked: false,
+      createdAt: DateTime.now().toIso8601String(),
+    );
+    await HiveStorage.quizzesBox.put(newId, jsonEncode(copy.toJson()));
+    return newId;
   }
 
   @override

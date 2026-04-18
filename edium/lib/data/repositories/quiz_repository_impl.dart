@@ -63,8 +63,13 @@ class QuizRepositoryImpl implements IQuizRepository {
   }
 
   @override
-  Future<void> updateQuizStatus(String id, String status) {
-    return _datasource.updateQuizStatus(id, status);
+  Future<void> publishQuiz(String id, {required bool isPublic}) {
+    return _datasource.publishQuiz(id, isPublic: isPublic);
+  }
+
+  @override
+  Future<String> copyQuiz(String id) {
+    return _datasource.copyQuiz(id);
   }
 
   @override

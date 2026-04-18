@@ -152,9 +152,7 @@ class QuizDatasourceMock implements IQuizDatasource {
     if (search != null && search.isNotEmpty) {
       final q = search.toLowerCase();
       result = result
-          .where((quiz) =>
-              quiz.title.toLowerCase().contains(q) ||
-              quiz.subject.toLowerCase().contains(q))
+          .where((quiz) => quiz.title.toLowerCase().contains(q))
           .toList();
     }
     return result;
@@ -224,12 +222,13 @@ class QuizDatasourceMock implements IQuizDatasource {
       likesCount: liked ? quiz.likesCount + 1 : quiz.likesCount - 1,
       isLiked: liked,
       createdAt: quiz.createdAt,
+      summaryQuestionCount: quiz.summaryQuestionCount,
     );
     return {'liked': liked, 'likes_count': _quizzes[idx].likesCount};
   }
 
   @override
-  Future<void> updateQuizStatus(String id, String status) async {
+  Future<void> publishQuiz(String id, {required bool isPublic}) async {
     await Future.delayed(const Duration(milliseconds: 200));
     final idx = _quizzes.indexWhere((q) => q.id == id);
     if (idx == -1) return;
@@ -240,13 +239,35 @@ class QuizDatasourceMock implements IQuizDatasource {
       subject: quiz.subject,
       authorId: quiz.authorId,
       authorName: quiz.authorName,
-      status: status,
+      status: isPublic ? 'active' : 'active',
       settings: quiz.settings,
       questions: quiz.questions,
       likesCount: quiz.likesCount,
       isLiked: quiz.isLiked,
       createdAt: quiz.createdAt,
+      summaryQuestionCount: quiz.summaryQuestionCount,
     );
+  }
+
+  @override
+  Future<String> copyQuiz(String id) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final original = _quizzes.firstWhere((q) => q.id == id);
+    final newId = '${++_nextId}';
+    _quizzes.add(QuizModel(
+      id: newId,
+      title: '${original.title} (копия)',
+      subject: original.subject,
+      authorId: original.authorId,
+      authorName: original.authorName,
+      status: 'draft',
+      settings: original.settings,
+      questions: original.questions,
+      likesCount: 0,
+      isLiked: false,
+      createdAt: DateTime.now().toIso8601String(),
+    ));
+    return newId;
   }
 
   @override
