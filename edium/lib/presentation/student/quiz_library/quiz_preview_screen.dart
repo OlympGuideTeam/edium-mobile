@@ -1,289 +1,214 @@
 import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
-import 'package:edium/domain/entities/quiz.dart';
-import 'package:edium/presentation/shared/widgets/edium_button.dart';
+import 'package:edium/domain/entities/library_quiz.dart';
+import 'package:edium/domain/usecases/library_quiz/create_attempt_usecase.dart';
+import 'package:edium/domain/usecases/library_quiz/finish_attempt_usecase.dart';
+import 'package:edium/domain/usecases/library_quiz/get_attempt_result_usecase.dart';
+import 'package:edium/domain/usecases/library_quiz/get_quiz_for_student_usecase.dart';
+import 'package:edium/domain/usecases/library_quiz/submit_attempt_answer_usecase.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/take_quiz_bloc.dart';
 import 'package:edium/presentation/student/quiz_library/take_quiz_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-enum QuizUserStatus { notStarted, inProgress, completed }
+class QuizPreviewScreen extends StatefulWidget {
+  final LibraryQuiz quiz;
 
-class QuizPreviewScreen extends StatelessWidget {
-  final Quiz quiz;
-  final QuizUserStatus userStatus;
-  final String? sessionId; // for resuming in-progress
-  final int? userScore;
-  final int? userTotal;
+  const QuizPreviewScreen({super.key, required this.quiz});
 
-  const QuizPreviewScreen({
-    super.key,
-    required this.quiz,
-    this.userStatus = QuizUserStatus.notStarted,
-    this.sessionId,
-    this.userScore,
-    this.userTotal,
-  });
+  @override
+  State<QuizPreviewScreen> createState() => _QuizPreviewScreenState();
+}
+
+class _QuizPreviewScreenState extends State<QuizPreviewScreen> {
+  late Future<LibraryQuiz> _detailFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _detailFuture =
+        getIt<GetQuizForStudentUsecase>().call(widget.quiz.id);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final isCompleted = userStatus == QuizUserStatus.completed;
-    final isInProgress = userStatus == QuizUserStatus.inProgress;
-
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('О квизе'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+      backgroundColor: Colors.white,
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Subject chip
-            Container(
+            // Back button row
+            Padding(
               padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                quiz.subject,
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(quiz.title, style: AppTextStyles.heading2),
-            const SizedBox(height: 8),
-            Text(
-              'Автор: ${quiz.authorName}',
-              style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 28),
-            // Info cards
-            _InfoRow(
-              icon: Icons.quiz_outlined,
-              label: 'Количество вопросов',
-              value: '${quiz.questionsCount}',
-              color: AppColors.primary,
-            ),
-            if (quiz.settings.timeLimitMinutes != null) ...[
-              const SizedBox(height: 12),
-              _InfoRow(
-                icon: Icons.timer_outlined,
-                label: 'Ограничение по времени',
-                value: '${quiz.settings.timeLimitMinutes} мин',
-                color: AppColors.secondary,
-              ),
-            ],
-            if (quiz.settings.deadline != null) ...[
-              const SizedBox(height: 12),
-              _InfoRow(
-                icon: Icons.event_outlined,
-                label: 'Дедлайн',
-                value: _formatDeadline(quiz.settings.deadline!),
-                color: AppColors.error,
-              ),
-            ],
-            const SizedBox(height: 12),
-            _InfoRow(
-              icon: Icons.shuffle_outlined,
-              label: 'Перемешивание вопросов',
-              value: quiz.settings.shuffleQuestions ? 'Да' : 'Нет',
-              color: AppColors.textSecondary,
-            ),
-
-            // Completed — show results
-            if (isCompleted && userScore != null && userTotal != null) ...[
-              const SizedBox(height: 24),
-              _ResultCard(score: userScore!, total: userTotal!),
-            ],
-
-            // In-progress warning
-            if (isInProgress &&
-                quiz.settings.timeLimitMinutes != null) ...[
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.secondaryLight,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.timer_outlined,
-                        color: AppColors.secondary, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Таймер продолжает идти. Вернитесь к квизу, чтобы завершить его.',
-                        style: AppTextStyles.caption
-                            .copyWith(color: AppColors.secondary),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-
-            // Not started — timer warning
-            if (!isInProgress &&
-                !isCompleted &&
-                quiz.settings.timeLimitMinutes != null) ...[
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.secondaryLight,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning_amber_outlined,
-                        color: AppColors.secondary, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Таймер начнётся сразу после нажатия «Начать» и не остановится, даже если вы покинете экран.',
-                        style: AppTextStyles.caption
-                            .copyWith(color: AppColors.secondary),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            const Spacer(),
-            // Bottom action
-            if (isCompleted)
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: OutlinedButton.icon(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back),
-                  label: const Text('Вернуться к квизам'),
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                  const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new,
+                        size: 20, color: AppColors.mono900),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                ),
-              )
-            else if (isInProgress)
-              EdiumButton(
-                label: 'Продолжить квиз',
-                icon: Icons.play_arrow_outlined,
-                onPressed: () => _navigateToQuiz(context, sessionId),
-              )
-            else
-              EdiumButton(
-                label: 'Начать квиз',
-                icon: Icons.play_arrow_outlined,
-                onPressed: () => _navigateToQuiz(context, null),
+                ],
               ),
-            const SizedBox(height: 32),
+            ),
+            Expanded(
+              child: FutureBuilder<LibraryQuiz>(
+                future: _detailFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return _buildContent(context, widget.quiz,
+                        isLoading: true);
+                  }
+                  if (snapshot.hasError) {
+                    return _buildContent(context, widget.quiz,
+                        error: snapshot.error.toString());
+                  }
+                  return _buildContent(context, snapshot.data!);
+                },
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  void _navigateToQuiz(BuildContext context, String? resumeId) {
+  Widget _buildContent(
+    BuildContext context,
+    LibraryQuiz quiz, {
+    bool isLoading = false,
+    String? error,
+  }) {
+    final sessionId = quiz.libraryTestSessionId;
+    final canStart = sessionId != null && !isLoading && error == null;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8),
+          // Title
+          Text(
+            quiz.title,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: AppColors.mono900,
+            ),
+          ),
+          if (quiz.description != null &&
+              quiz.description!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              quiz.description!,
+              style: AppTextStyles.screenSubtitle,
+            ),
+          ],
+          const SizedBox(height: 28),
+          // Info cards
+          _InfoCard(
+            icon: Icons.quiz_outlined,
+            title: 'Количество вопросов',
+            value: '${quiz.questionCount}',
+          ),
+          if (quiz.hasTimeLimit) ...[
+            const SizedBox(height: 10),
+            _InfoCard(
+              icon: Icons.timer_outlined,
+              title: 'Ограничение по времени',
+              value: '${quiz.timeLimitMinutes} мин',
+            ),
+          ],
+          if (quiz.needEvaluation) ...[
+            const SizedBox(height: 10),
+            _InfoCard(
+              icon: Icons.auto_awesome_outlined,
+              title: 'Проверка ответов',
+              value: 'Автоматически + ИИ',
+            ),
+          ],
+          const SizedBox(height: 24),
+          // Warning for timed quiz
+          if (quiz.hasTimeLimit)
+            _WarningBlock(
+              text:
+                  'Таймер запустится сразу после нажатия «Начать». Он не остановится, если вы покинете экран.',
+            ),
+          if (error != null)
+            _WarningBlock(
+              text: 'Не удалось загрузить квиз: $error',
+              isError: true,
+            ),
+          const Spacer(),
+          // Start button
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: canStart
+                  ? () => _navigateToQuiz(context, quiz, sessionId)
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.mono900,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: AppColors.mono200,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                elevation: 0,
+                textStyle: AppTextStyles.primaryButton,
+              ),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Начать квиз'),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  void _navigateToQuiz(
+      BuildContext context, LibraryQuiz quiz, String? sessionId) {
+    if (sessionId == null) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (_) => BlocProvider(
           create: (_) => TakeQuizBloc(
-            startSession: getIt(),
-            submitAnswer: getIt(),
-            completeSession: getIt(),
-            getQuizzes: getIt(),
-            sessionRepo: getIt(),
+            createAttempt: getIt<CreateAttemptUsecase>(),
+            submitAnswer: getIt<SubmitAttemptAnswerUsecase>(),
+            finishAttempt: getIt<FinishAttemptUsecase>(),
+            getResult: getIt<GetAttemptResultUsecase>(),
           ),
           child: TakeQuizScreen(
-            quizId: quiz.id,
-            resumeSessionId: resumeId,
+            sessionId: sessionId,
+            quizTitle: quiz.title,
+            totalTimeLimitSec: quiz.defaultSettings.totalTimeLimitSec,
           ),
         ),
       ),
     );
   }
-
-  String _formatDeadline(DateTime dt) {
-    return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
-  }
 }
 
-class _ResultCard extends StatelessWidget {
-  final int score;
-  final int total;
-
-  const _ResultCard({required this.score, required this.total});
-
-  @override
-  Widget build(BuildContext context) {
-    final pct = total > 0 ? (score / total * 100).round() : 0;
-    final passed = pct >= 60;
-    final color = passed ? AppColors.success : AppColors.error;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: color.withAlpha(15),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withAlpha(60)),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            passed ? Icons.emoji_events : Icons.refresh_outlined,
-            color: color,
-            size: 36,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '$pct%',
-            style: AppTextStyles.heading1.copyWith(
-              color: color,
-              fontSize: 36,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '$score из $total правильных',
-            style:
-                AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            passed ? 'Квиз пройден!' : 'Не сдавайтесь!',
-            style: AppTextStyles.subtitle.copyWith(color: color),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
+class _InfoCard extends StatelessWidget {
   final IconData icon;
-  final String label;
+  final String title;
   final String value;
-  final Color color;
 
-  const _InfoRow({
+  const _InfoCard({
     required this.icon,
-    required this.label,
+    required this.title,
     required this.value,
-    required this.color,
   });
 
   @override
@@ -291,9 +216,9 @@ class _InfoRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.mono50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.cardBorder),
+        border: Border.all(color: AppColors.mono150),
       ),
       child: Row(
         children: [
@@ -301,20 +226,81 @@ class _InfoRow extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: color.withAlpha(20),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.mono150),
             ),
-            child: Icon(icon, color: color, size: 18),
+            child: Icon(icon, size: 18, color: AppColors.mono700),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(label, style: AppTextStyles.bodySmall),
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.mono400,
+              ),
+            ),
           ),
           Text(
             value,
-            style: AppTextStyles.bodySmall.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.mono900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WarningBlock extends StatelessWidget {
+  final String text;
+  final bool isError;
+
+  const _WarningBlock({required this.text, this.isError = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isError
+            ? const Color(0xFFFEE2E2)
+            : AppColors.mono50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isError
+              ? const Color(0xFFEF4444)
+              : AppColors.mono150,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            isError
+                ? Icons.error_outline
+                : Icons.info_outline,
+            size: 16,
+            color: isError
+                ? const Color(0xFFEF4444)
+                : AppColors.mono400,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.5,
+                color: isError
+                    ? const Color(0xFFEF4444)
+                    : AppColors.mono400,
+              ),
             ),
           ),
         ],

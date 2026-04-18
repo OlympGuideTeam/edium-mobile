@@ -152,42 +152,49 @@ class QuizDatasourceMock implements IQuizDatasource {
     if (search != null && search.isNotEmpty) {
       final q = search.toLowerCase();
       result = result
-          .where((quiz) =>
-              quiz.title.toLowerCase().contains(q) ||
-              quiz.subject.toLowerCase().contains(q))
+          .where((quiz) => quiz.title.toLowerCase().contains(q))
           .toList();
     }
     return result;
   }
 
   @override
-  Future<QuizModel> createQuiz({
+  Future<String> createQuiz({
     required String title,
-    required String subject,
-    required Map<String, dynamic> settings,
+    String? description,
+    int? totalTimeLimitSec,
+    int? questionTimeLimitSec,
+    bool shuffleQuestions = false,
     required List<Map<String, dynamic>> questions,
   }) async {
     await Future.delayed(const Duration(milliseconds: 600));
     final id = '${++_nextId}';
+    final timeLimitMinutes =
+        totalTimeLimitSec != null ? (totalTimeLimitSec / 60).round() : null;
     final newQuiz = QuizModel(
       id: id,
       title: title,
-      subject: subject,
+      subject: '',
       authorId: 'mock-user-1',
       authorName: 'Алексей Иванов',
       status: 'draft',
-      settings: QuizSettingsModel.fromJson(settings),
+      settings: QuizSettingsModel(
+        timeLimitMinutes: timeLimitMinutes,
+        shuffleQuestions: shuffleQuestions,
+        showExplanations: false,
+      ),
       questions: questions
           .asMap()
           .entries
-          .map((e) => QuestionModel.fromJson({...e.value, 'id': 'nq${e.key}', 'order_index': e.key}))
+          .map((e) => QuestionModel.fromJson(
+              {...e.value, 'id': 'nq${e.key}', 'order_index': e.key}))
           .toList(),
       likesCount: 0,
       isLiked: false,
       createdAt: DateTime.now().toIso8601String(),
     );
     _quizzes.add(newQuiz);
-    return newQuiz;
+    return id;
   }
 
   @override
@@ -215,12 +222,13 @@ class QuizDatasourceMock implements IQuizDatasource {
       likesCount: liked ? quiz.likesCount + 1 : quiz.likesCount - 1,
       isLiked: liked,
       createdAt: quiz.createdAt,
+      summaryQuestionCount: quiz.summaryQuestionCount,
     );
     return {'liked': liked, 'likes_count': _quizzes[idx].likesCount};
   }
 
   @override
-  Future<void> updateQuizStatus(String id, String status) async {
+  Future<void> publishQuiz(String id, {required bool isPublic}) async {
     await Future.delayed(const Duration(milliseconds: 200));
     final idx = _quizzes.indexWhere((q) => q.id == id);
     if (idx == -1) return;
@@ -231,13 +239,35 @@ class QuizDatasourceMock implements IQuizDatasource {
       subject: quiz.subject,
       authorId: quiz.authorId,
       authorName: quiz.authorName,
-      status: status,
+      status: isPublic ? 'active' : 'active',
       settings: quiz.settings,
       questions: quiz.questions,
       likesCount: quiz.likesCount,
       isLiked: quiz.isLiked,
       createdAt: quiz.createdAt,
+      summaryQuestionCount: quiz.summaryQuestionCount,
     );
+  }
+
+  @override
+  Future<String> copyQuiz(String id) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final original = _quizzes.firstWhere((q) => q.id == id);
+    final newId = '${++_nextId}';
+    _quizzes.add(QuizModel(
+      id: newId,
+      title: '${original.title} (копия)',
+      subject: original.subject,
+      authorId: original.authorId,
+      authorName: original.authorName,
+      status: 'draft',
+      settings: original.settings,
+      questions: original.questions,
+      likesCount: 0,
+      isLiked: false,
+      createdAt: DateTime.now().toIso8601String(),
+    ));
+    return newId;
   }
 
   @override

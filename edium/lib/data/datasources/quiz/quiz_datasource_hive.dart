@@ -36,7 +36,6 @@ class QuizDatasourceHive implements IQuizDatasource {
     return result;
   }
 
-  /// Check deadlines and auto-expire quizzes past their deadline.
   Future<void> _autoExpireDeadlines() async {
     final box = HiveStorage.quizzesBox;
     final now = DateTime.now();
@@ -58,6 +57,7 @@ class QuizDatasourceHive implements IQuizDatasource {
           likesCount: quiz.likesCount,
           isLiked: quiz.isLiked,
           createdAt: quiz.createdAt,
+          summaryQuestionCount: quiz.summaryQuestionCount,
         );
         await box.put(quiz.id, jsonEncode(updated.toJson()));
       }
@@ -74,7 +74,6 @@ class QuizDatasourceHive implements IQuizDatasource {
     return '${keys.reduce((a, b) => a > b ? a : b) + 1}';
   }
 
-  /// Build real statistics from sessions stored in Hive.
   Map<String, dynamic> _buildRealResults(String quizId) {
     final sessionsBox = HiveStorage.sessionsBox;
     final sessions = <QuizSessionModel>[];
@@ -151,23 +150,32 @@ class QuizDatasourceHive implements IQuizDatasource {
   }
 
   @override
-  Future<QuizModel> createQuiz({
+  Future<String> createQuiz({
     required String title,
-    required String subject,
-    required Map<String, dynamic> settings,
+    String? description,
+    int? totalTimeLimitSec,
+    int? questionTimeLimitSec,
+    bool shuffleQuestions = false,
     required List<Map<String, dynamic>> questions,
   }) async {
     await _ensureSeeded();
     final id = _nextId();
     final authorName = _profileStorage.getName() ?? 'Преподаватель';
+    final timeLimitMinutes = totalTimeLimitSec != null
+        ? (totalTimeLimitSec / 60).round()
+        : null;
     final newQuiz = QuizModel(
       id: id,
       title: title,
-      subject: subject,
+      subject: '',
       authorId: 'mock-user-1',
       authorName: authorName,
       status: 'draft',
-      settings: QuizSettingsModel.fromJson(settings),
+      settings: QuizSettingsModel(
+        timeLimitMinutes: timeLimitMinutes,
+        shuffleQuestions: shuffleQuestions,
+        showExplanations: false,
+      ),
       questions: questions
           .asMap()
           .entries
@@ -179,7 +187,7 @@ class QuizDatasourceHive implements IQuizDatasource {
       createdAt: DateTime.now().toIso8601String(),
     );
     await HiveStorage.quizzesBox.put(id, jsonEncode(newQuiz.toJson()));
-    return newQuiz;
+    return id;
   }
 
   @override
@@ -209,6 +217,7 @@ class QuizDatasourceHive implements IQuizDatasource {
       likesCount: liked ? quiz.likesCount + 1 : quiz.likesCount - 1,
       isLiked: liked,
       createdAt: quiz.createdAt,
+      summaryQuestionCount: quiz.summaryQuestionCount,
     );
     await HiveStorage.quizzesBox.put(id, jsonEncode(updated.toJson()));
     return {'liked': liked, 'likes_count': updated.likesCount};
@@ -221,7 +230,7 @@ class QuizDatasourceHive implements IQuizDatasource {
   }
 
   @override
-  Future<void> updateQuizStatus(String id, String status) async {
+  Future<void> publishQuiz(String id, {required bool isPublic}) async {
     await _ensureSeeded();
     final all = _readAll();
     final idx = all.indexWhere((q) => q.id == id);
@@ -233,14 +242,37 @@ class QuizDatasourceHive implements IQuizDatasource {
       subject: quiz.subject,
       authorId: quiz.authorId,
       authorName: quiz.authorName,
-      status: status,
+      status: 'active',
       settings: quiz.settings,
       questions: quiz.questions,
       likesCount: quiz.likesCount,
       isLiked: quiz.isLiked,
       createdAt: quiz.createdAt,
+      summaryQuestionCount: quiz.summaryQuestionCount,
     );
     await HiveStorage.quizzesBox.put(id, jsonEncode(updated.toJson()));
+  }
+
+  @override
+  Future<String> copyQuiz(String id) async {
+    await _ensureSeeded();
+    final original = _readAll().firstWhere((q) => q.id == id);
+    final newId = _nextId();
+    final copy = QuizModel(
+      id: newId,
+      title: '${original.title} (копия)',
+      subject: original.subject,
+      authorId: original.authorId,
+      authorName: original.authorName,
+      status: 'draft',
+      settings: original.settings,
+      questions: original.questions,
+      likesCount: 0,
+      isLiked: false,
+      createdAt: DateTime.now().toIso8601String(),
+    );
+    await HiveStorage.quizzesBox.put(newId, jsonEncode(copy.toJson()));
+    return newId;
   }
 
   @override
@@ -283,7 +315,7 @@ class QuizDatasourceHive implements IQuizDatasource {
             QuestionModel(
               id: 'q2',
               text: 'Найдите корни уравнения x² - 4 = 0',
-              type: 'multi_choice',
+              type: 'multiple_choice',
               options: [
                 const AnswerOptionModel(
                     id: 'a', text: 'x = 2', isCorrect: true),
@@ -300,7 +332,7 @@ class QuizDatasourceHive implements IQuizDatasource {
             QuestionModel(
               id: 'q3',
               text: 'Чему равна сумма корней уравнения x² - 7x + 12 = 0?',
-              type: 'text_input',
+              type: 'with_given_answer',
               options: [],
               explanation: 'По теореме Виета: сумма корней = 7',
               correctAnswer: '7',
@@ -341,24 +373,6 @@ class QuizDatasourceHive implements IQuizDatasource {
               explanation:
                   'Крестьянская реформа 1861 года — манифест Александра II.',
               orderIndex: 0,
-            ),
-            QuestionModel(
-              id: 'q5',
-              text: 'Кто из перечисленных правил Россией в XIX веке?',
-              type: 'multi_choice',
-              options: [
-                const AnswerOptionModel(
-                    id: 'a', text: 'Александр I', isCorrect: true),
-                const AnswerOptionModel(
-                    id: 'b', text: 'Николай I', isCorrect: true),
-                const AnswerOptionModel(
-                    id: 'c', text: 'Пётр I', isCorrect: false),
-                const AnswerOptionModel(
-                    id: 'd', text: 'Александр II', isCorrect: true),
-              ],
-              explanation:
-                  'В XIX веке правили: Александр I, Николай I, Александр II, Александр III.',
-              orderIndex: 1,
             ),
           ],
           likesCount: 7,

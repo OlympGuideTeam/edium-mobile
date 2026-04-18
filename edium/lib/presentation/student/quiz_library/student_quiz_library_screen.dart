@@ -1,7 +1,6 @@
 import 'package:edium/core/theme/app_colors.dart';
-import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
-import 'package:edium/presentation/shared/widgets/quiz_card.dart';
+import 'package:edium/presentation/shared/widgets/library_quiz_card.dart';
 import 'package:edium/presentation/shared/widgets/search_bar_widget.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/student_quiz_bloc.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/student_quiz_event.dart';
@@ -21,17 +20,13 @@ class StudentQuizLibraryScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             const Padding(
-              padding: EdgeInsets.fromLTRB(
-                  AppDimens.screenPaddingH, 16, AppDimens.screenPaddingH, 0),
+              padding: EdgeInsets.fromLTRB(24, 16, 24, 0),
               child: Text('Квизы', style: AppTextStyles.screenTitle),
             ),
             const SizedBox(height: 16),
-            // Search bar
             Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimens.screenPaddingH),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: SearchBarWidget(
                 hint: 'Найти квиз...',
                 onChanged: (q) => context
@@ -40,7 +35,6 @@ class StudentQuizLibraryScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            // Quiz list
             Expanded(
               child: BlocBuilder<StudentQuizBloc, StudentQuizState>(
                 builder: (context, state) {
@@ -54,15 +48,44 @@ class StudentQuizLibraryScreen extends StatelessWidget {
                   }
                   if (state is StudentQuizError) {
                     return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.error_outline,
-                              color: AppColors.mono400, size: 48),
-                          const SizedBox(height: 12),
-                          Text(state.message,
-                              style: AppTextStyles.screenSubtitle),
-                        ],
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.error_outline,
+                                color: AppColors.mono200, size: 48),
+                            const SizedBox(height: 12),
+                            Text(state.message,
+                                style: AppTextStyles.screenSubtitle,
+                                textAlign: TextAlign.center),
+                            const SizedBox(height: 20),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: OutlinedButton(
+                                onPressed: () => context
+                                    .read<StudentQuizBloc>()
+                                    .add(const LoadStudentQuizzesEvent()),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                      color: AppColors.mono150),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(14)),
+                                ),
+                                child: const Text(
+                                  'Попробовать снова',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.mono700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   }
@@ -72,79 +95,52 @@ class StudentQuizLibraryScreen extends StatelessWidget {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.quiz_outlined,
+                            const Icon(Icons.quiz_outlined,
                                 size: 48, color: AppColors.mono200),
                             const SizedBox(height: 12),
-                            Text('Квизы не найдены',
-                                style: AppTextStyles.fieldText
-                                    .copyWith(fontWeight: FontWeight.w600)),
+                            const Text(
+                              'Квизы не найдены',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.mono900,
+                              ),
+                            ),
                             const SizedBox(height: 4),
                             const Text(
-                                'Попробуйте изменить поисковый запрос',
-                                style: AppTextStyles.screenSubtitle),
+                              'Попробуйте изменить поисковый запрос',
+                              style: AppTextStyles.screenSubtitle,
+                            ),
                           ],
                         ),
                       );
                     }
                     return RefreshIndicator(
                       color: AppColors.mono700,
-                      onRefresh: () async {
-                        context
-                            .read<StudentQuizBloc>()
-                            .add(const LoadStudentQuizzesEvent());
-                      },
+                      onRefresh: () async => context
+                          .read<StudentQuizBloc>()
+                          .add(const LoadStudentQuizzesEvent()),
                       child: ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(
-                            AppDimens.screenPaddingH,
-                            8,
-                            AppDimens.screenPaddingH,
-                            24),
+                        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
                         itemCount: state.quizzes.length,
                         separatorBuilder: (_, __) =>
                             const SizedBox(height: 10),
                         itemBuilder: (context, i) {
                           final quiz = state.quizzes[i];
-                          final completed =
-                              state.completedSessions[quiz.id];
-                          final inProgressId =
-                              state.inProgressSessions[quiz.id];
-                          final isInProgress =
-                              inProgressId != null && completed == null;
-
-                          QuizUserStatus userStatus;
-                          if (completed != null) {
-                            userStatus = QuizUserStatus.completed;
-                          } else if (isInProgress) {
-                            userStatus = QuizUserStatus.inProgress;
-                          } else {
-                            userStatus = QuizUserStatus.notStarted;
-                          }
-
-                          return QuizCard(
+                          return LibraryQuizCard(
                             quiz: quiz,
-                            userScore: completed?.score,
-                            userTotal: completed?.total,
-                            isInProgress: isInProgress,
                             onTap: () {
                               final bloc =
                                   context.read<StudentQuizBloc>();
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => QuizPreviewScreen(
-                                    quiz: quiz,
-                                    userStatus: userStatus,
-                                    sessionId: inProgressId,
-                                    userScore: completed?.score,
-                                    userTotal: completed?.total,
-                                  ),
+                                  builder: (_) =>
+                                      QuizPreviewScreen(quiz: quiz),
                                 ),
-                              ).then((_) => bloc
-                                  .add(const LoadStudentQuizzesEvent()));
+                              ).then((_) => bloc.add(
+                                  const LoadStudentQuizzesEvent()));
                             },
-                            onLike: () => context
-                                .read<StudentQuizBloc>()
-                                .add(StudentLikeQuizEvent(quiz.id)),
                           );
                         },
                       ),

@@ -22,16 +22,6 @@ class QuizLibraryScreen extends StatefulWidget {
 class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
   final _searchCtrl = TextEditingController();
   int _tabIndex = 0;
-  String? _selectedSubject;
-
-  static const _subjects = [
-    'Все',
-    'Математика',
-    'История',
-    'Информатика',
-    'Физика',
-    'Химия',
-  ];
 
   @override
   void dispose() {
@@ -41,10 +31,7 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
 
   void _switchTab(int index) {
     if (index == _tabIndex) return;
-    setState(() {
-      _tabIndex = index;
-      _selectedSubject = null;
-    });
+    setState(() => _tabIndex = index);
     _searchCtrl.clear();
     final scope = index == 0 ? 'global' : 'mine';
     context.read<QuizLibraryBloc>().add(LoadQuizzesEvent(scope: scope));
@@ -52,13 +39,13 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
 
   void _search() {
     final scope = _tabIndex == 0 ? 'global' : 'mine';
-    String query = _searchCtrl.text.trim();
-    if (_selectedSubject != null && _selectedSubject != 'Все') {
-      query = query.isEmpty ? _selectedSubject! : '$query $_selectedSubject';
-    }
-    context
-        .read<QuizLibraryBloc>()
-        .add(LoadQuizzesEvent(scope: scope, search: query.isEmpty ? null : query));
+    final query = _searchCtrl.text.trim();
+    context.read<QuizLibraryBloc>().add(
+          LoadQuizzesEvent(
+            scope: scope,
+            search: query.isEmpty ? null : query,
+          ),
+        );
   }
 
   @override
@@ -174,53 +161,7 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            // Subject filter chips
-            SizedBox(
-              height: 40,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppDimens.screenPaddingH, vertical: 4),
-                itemCount: _subjects.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 6),
-                itemBuilder: (context, i) {
-                  final subject = _subjects[i];
-                  final isSelected =
-                      (_selectedSubject == null && subject == 'Все') ||
-                          _selectedSubject == subject;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedSubject = subject == 'Все' ? null : subject;
-                      });
-                      _search();
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 5),
-                      decoration: BoxDecoration(
-                        color:
-                            isSelected ? AppColors.mono900 : AppColors.mono50,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        subject,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.w400,
-                          color:
-                              isSelected ? Colors.white : AppColors.mono400,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 12),
             // Quiz list
             Expanded(
               child: BlocBuilder<QuizLibraryBloc, QuizLibraryState>(
@@ -260,7 +201,7 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
                                 style: AppTextStyles.fieldText.copyWith(
                                     fontWeight: FontWeight.w600)),
                             const SizedBox(height: 4),
-                            const Text('Попробуйте изменить фильтры',
+                            const Text('Попробуйте изменить поиск',
                                 style: AppTextStyles.screenSubtitle),
                           ],
                         ),

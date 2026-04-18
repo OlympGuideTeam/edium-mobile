@@ -1,5 +1,4 @@
 import 'package:edium/data/datasources/quiz/quiz_datasource.dart';
-import 'package:edium/data/models/quiz_model.dart';
 import 'package:edium/domain/entities/quiz.dart';
 import 'package:edium/domain/repositories/quiz_repository.dart';
 
@@ -25,19 +24,22 @@ class QuizRepositoryImpl implements IQuizRepository {
   }
 
   @override
-  Future<Quiz> createQuiz({
+  Future<String> createQuiz({
     required String title,
-    required String subject,
-    required QuizSettings settings,
+    String? description,
+    int? totalTimeLimitSec,
+    int? questionTimeLimitSec,
+    bool shuffleQuestions = false,
     required List<Map<String, dynamic>> questions,
-  }) async {
-    final model = await _datasource.createQuiz(
+  }) {
+    return _datasource.createQuiz(
       title: title,
-      subject: subject,
-      settings: QuizSettingsModel.fromEntity(settings).toJson(),
+      description: description,
+      totalTimeLimitSec: totalTimeLimitSec,
+      questionTimeLimitSec: questionTimeLimitSec,
+      shuffleQuestions: shuffleQuestions,
       questions: questions,
     );
-    return model.toEntity();
   }
 
   @override
@@ -61,8 +63,13 @@ class QuizRepositoryImpl implements IQuizRepository {
   }
 
   @override
-  Future<void> updateQuizStatus(String id, String status) {
-    return _datasource.updateQuizStatus(id, status);
+  Future<void> publishQuiz(String id, {required bool isPublic}) {
+    return _datasource.publishQuiz(id, isPublic: isPublic);
+  }
+
+  @override
+  Future<String> copyQuiz(String id) {
+    return _datasource.copyQuiz(id);
   }
 
   @override
