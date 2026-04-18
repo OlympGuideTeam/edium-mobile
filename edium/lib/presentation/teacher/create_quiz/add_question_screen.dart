@@ -42,6 +42,11 @@ extension _QTypeX on _QType {
         _QType.drag => Icons.swap_vert_outlined,
         _QType.connection => Icons.device_hub_outlined,
       };
+
+  int get maxCharsPerField => switch (this) {
+        _QType.connection => 50, // Для соответствия - 50 символов
+        _ => 100, // Для всех остальных типов - 100 символов
+      };
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -77,7 +82,7 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
       _displayed = _QType.singleChoice;
       _options = [_OptionDraft(), _OptionDraft()];
       _correctAnswers = [TextEditingController()];
-      _dragItems = [TextEditingController(), TextEditingController(), TextEditingController()];
+      _dragItems = [TextEditingController(), TextEditingController()];
       _pairs = [_ConnectionPair(), _ConnectionPair()];
       return;
     }
@@ -347,24 +352,29 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
       _QType.singleChoice => _ChoiceForm(
           options: _options,
           isMulti: false,
+          maxChars: _type.maxCharsPerField,
           onChanged: () => setState(() {}),
         ),
       _QType.multipleChoice => _ChoiceForm(
           options: _options,
           isMulti: true,
+          maxChars: _type.maxCharsPerField,
           onChanged: () => setState(() {}),
         ),
       _QType.withGivenAnswer => _GivenAnswerForm(
           answers: _correctAnswers,
+          maxChars: _type.maxCharsPerField,
           onChanged: () => setState(() {}),
         ),
       _QType.withFreeAnswer => const _FreeAnswerForm(),
       _QType.drag => _DragForm(
           items: _dragItems,
+          maxChars: _type.maxCharsPerField,
           onChanged: () => setState(() {}),
         ),
       _QType.connection => _ConnectionForm(
           pairs: _pairs,
+          maxChars: _type.maxCharsPerField,
           onChanged: () => setState(() {}),
         ),
     };
@@ -524,6 +534,7 @@ class _QuestionTextFieldState extends State<_QuestionTextField> {
         const SizedBox(height: 8),
         TextField(
           controller: widget.controller,
+          textCapitalization: TextCapitalization.sentences,
           style: AppTextStyles.subtitle.copyWith(color: AppColors.mono900),
           decoration: InputDecoration(
             hintText: 'Введите вопрос...',
@@ -568,12 +579,14 @@ class _QuestionTextFieldState extends State<_QuestionTextField> {
 class _ChoiceForm extends StatefulWidget {
   final List<_OptionDraft> options;
   final bool isMulti;
+  final int maxChars;
   final VoidCallback onChanged;
 
   const _ChoiceForm({
     required this.options,
     required this.isMulti,
     required this.onChanged,
+    required this.maxChars,
   });
 
   @override
@@ -658,6 +671,7 @@ class _ChoiceFormState extends State<_ChoiceForm> {
                     isCorrect: opt.isCorrect,
                     isMulti: widget.isMulti,
                     onToggle: () => _toggleCorrect(i),
+                    maxChars: widget.maxChars,
                   ),
                 ),
               ),
@@ -682,12 +696,14 @@ class _OptionTile extends StatefulWidget {
   final bool isCorrect;
   final bool isMulti;
   final VoidCallback onToggle;
+  final int maxChars;
 
   const _OptionTile({
     required this.controller,
     required this.isCorrect,
     required this.isMulti,
     required this.onToggle,
+    required this.maxChars,
   });
 
   @override
@@ -747,8 +763,9 @@ class _OptionTileState extends State<_OptionTile> {
             child: TextField(
               focusNode: _focus,
               controller: widget.controller,
+              textCapitalization: TextCapitalization.sentences,
               style: AppTextStyles.bodySmall.copyWith(color: AppColors.mono900),
-              maxLength: 50,
+              maxLength: widget.maxChars,
               maxLengthEnforcement: MaxLengthEnforcement.enforced,
               minLines: 1,
               maxLines: null,
@@ -835,9 +852,14 @@ class _CheckboxIcon extends StatelessWidget {
 
 class _GivenAnswerForm extends StatefulWidget {
   final List<TextEditingController> answers;
+  final int maxChars;
   final VoidCallback onChanged;
 
-  const _GivenAnswerForm({required this.answers, required this.onChanged});
+  const _GivenAnswerForm({
+    required this.answers,
+    required this.maxChars,
+    required this.onChanged,
+  });
 
   @override
   State<_GivenAnswerForm> createState() => _GivenAnswerFormState();
@@ -895,6 +917,7 @@ class _GivenAnswerFormState extends State<_GivenAnswerForm> {
                 child: _TextInputTile(
                   controller: ctrl,
                   hint: 'Принимаемый ответ ${i + 1}',
+                  maxChars: widget.maxChars,
                 ),
               ),
             ),
@@ -963,9 +986,14 @@ class _FreeAnswerForm extends StatelessWidget {
 
 class _DragForm extends StatefulWidget {
   final List<TextEditingController> items;
+  final int maxChars;
   final VoidCallback onChanged;
 
-  const _DragForm({required this.items, required this.onChanged});
+  const _DragForm({
+    required this.items,
+    required this.maxChars,
+    required this.onChanged,
+  });
 
   @override
   State<_DragForm> createState() => _DragFormState();
@@ -1045,7 +1073,7 @@ class _DragFormState extends State<_DragForm> {
                     key: ValueKey(ctrl),
                     canDismiss: canDelete,
                     onDismissed: () => _remove(i),
-                    child: _DragItemTile(index: i, controller: ctrl),
+                    child: _DragItemTile(index: i, controller: ctrl, maxChars: widget.maxChars),
                   ),
                 ),
               );
@@ -1067,8 +1095,9 @@ class _DragFormState extends State<_DragForm> {
 class _DragItemTile extends StatefulWidget {
   final int index;
   final TextEditingController controller;
+  final int maxChars;
 
-  const _DragItemTile({required this.index, required this.controller});
+  const _DragItemTile({required this.index, required this.controller, required this.maxChars});
 
   @override
   State<_DragItemTile> createState() => _DragItemTileState();
@@ -1125,8 +1154,9 @@ class _DragItemTileState extends State<_DragItemTile> {
               child: TextField(
                 focusNode: _focus,
                 controller: widget.controller,
+                textCapitalization: TextCapitalization.sentences,
                 style: AppTextStyles.bodySmall.copyWith(color: AppColors.mono900),
-                maxLength: 50,
+                maxLength: widget.maxChars,
                 maxLengthEnforcement: MaxLengthEnforcement.enforced,
                 minLines: 1,
                 maxLines: null,
@@ -1155,9 +1185,14 @@ class _DragItemTileState extends State<_DragItemTile> {
 
 class _ConnectionForm extends StatefulWidget {
   final List<_ConnectionPair> pairs;
+  final int maxChars;
   final VoidCallback onChanged;
 
-  const _ConnectionForm({required this.pairs, required this.onChanged});
+  const _ConnectionForm({
+    required this.pairs,
+    required this.maxChars,
+    required this.onChanged,
+  });
 
   @override
   State<_ConnectionForm> createState() => _ConnectionFormState();
@@ -1217,8 +1252,6 @@ class _ConnectionFormState extends State<_ConnectionForm> {
                   style: AppTextStyles.caption
                       .copyWith(color: AppColors.mono400, fontWeight: FontWeight.w600)),
             ),
-            // Место под кнопку удаления (для выравнивания)
-            if (canDelete) const SizedBox(width: 32),
           ],
         ),
         const SizedBox(height: 8),
@@ -1228,46 +1261,17 @@ class _ConnectionFormState extends State<_ConnectionForm> {
             key: ValueKey(pair.id),
             child: Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: _TextInputTile(
-                      controller: pair.leftCtrl,
-                      hint: 'Термин ${i + 1}',
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Container(width: 20, height: 1, color: AppColors.mono300),
-                  ),
-                  Expanded(
-                    child: _TextInputTile(
-                      controller: pair.rightCtrl,
-                      hint: 'Определение ${i + 1}',
-                    ),
-                  ),
-                  // Кнопка удаления вместо Dismissible
-                  if (canDelete) ...[
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () => _remove(i),
-                      child: Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: AppColors.mono100,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          size: 14,
-                          color: AppColors.mono400,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
+              child: _buildDismissible(
+                key: ValueKey(pair.id),
+                canDismiss: canDelete,
+                onDismissed: () => _remove(i),
+                // Единый контейнер для всей пары
+                child: _ConnectionPairTile(
+                  leftController: pair.leftCtrl,
+                  rightController: pair.rightCtrl,
+                  index: i,
+                  maxChars: widget.maxChars,
+                ),
               ),
             ),
           );
@@ -1282,13 +1286,146 @@ class _ConnectionFormState extends State<_ConnectionForm> {
   }
 }
 
+class _ConnectionPairTile extends StatelessWidget {
+  final TextEditingController leftController;
+  final TextEditingController rightController;
+  final int index;
+  final int maxChars;
+
+  const _ConnectionPairTile({
+    required this.leftController,
+    required this.rightController,
+    required this.index,
+    required this.maxChars,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: IntrinsicHeight(  // ← Добавить
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,  // ← Изменить
+          children: [
+            Expanded(
+              child: _ConnectionInputField(
+                controller: leftController,
+                hint: 'Термин ${index + 1}',
+                isLeft: true,
+                maxChars: maxChars,
+              ),
+            ),
+            // Разделитель растянется на всю высоту Row
+            Container(
+              width: 36,  // ширина области с линией
+              color: Colors.white,  // фон белый
+              alignment: Alignment.center,
+              child: Container(
+                width: 20,
+                height: 1,
+                color: AppColors.mono300,
+              ),
+            ),
+            Expanded(
+              child: _ConnectionInputField(
+                controller: rightController,
+                hint: 'Определение ${index + 1}',
+                isLeft: false,
+                maxChars: maxChars,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ConnectionInputField extends StatefulWidget {
+  final TextEditingController controller;
+  final String hint;
+  final bool isLeft;
+  final int maxChars;
+  const _ConnectionInputField({
+    required this.controller,
+    required this.hint,
+    required this.isLeft,
+    required this.maxChars,
+  });
+
+  @override
+  State<_ConnectionInputField> createState() => _ConnectionInputFieldState();
+}
+
+class _ConnectionInputFieldState extends State<_ConnectionInputField> {
+  late final FocusNode _focus;
+
+  @override
+  void initState() {
+    super.initState();
+    _focus = FocusNode()..addListener(_onFocus);
+  }
+
+  void _onFocus() => setState(() {});
+
+  @override
+  void dispose() {
+    _focus.removeListener(_onFocus);
+    _focus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final focused = _focus.hasFocus;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      decoration: BoxDecoration(
+        color: AppColors.mono25,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: focused ? AppColors.mono700 : AppColors.mono150,
+          width: focused ? 1.5 : 1.0,
+        ),
+      ),
+      child: TextField(
+        focusNode: _focus,
+        controller: widget.controller,
+        textCapitalization: TextCapitalization.sentences,
+        style: AppTextStyles.bodySmall.copyWith(color: AppColors.mono900),
+        maxLength: widget.maxChars,
+        maxLengthEnforcement: MaxLengthEnforcement.enforced,
+        minLines: 1,
+        maxLines: null,
+        cursorColor: AppColors.mono900,
+        decoration: InputDecoration(
+          hintText: widget.hint,
+          hintStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.mono300),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          isDense: true,
+          counterText: '',
+          filled: false,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        ),
+      ),
+    );
+  }
+}
+
+
 // ─── Text input tile ──────────────────────────────────────────────────────────
 
 class _TextInputTile extends StatefulWidget {
   final TextEditingController controller;
   final String hint;
+  final int maxChars;
 
-  const _TextInputTile({required this.controller, required this.hint});
+  const _TextInputTile({required this.controller, required this.hint, required this.maxChars});
 
   @override
   State<_TextInputTile> createState() => _TextInputTileState();
@@ -1329,8 +1466,9 @@ class _TextInputTileState extends State<_TextInputTile> {
       child: TextField(
         focusNode: _focus,
         controller: widget.controller,
+        textCapitalization: TextCapitalization.sentences,
         style: AppTextStyles.bodySmall.copyWith(color: AppColors.mono900),
-        maxLength: 50,
+        maxLength: widget.maxChars,
         maxLengthEnforcement: MaxLengthEnforcement.enforced,
         minLines: 1,
         maxLines: null,

@@ -1,4 +1,5 @@
 import 'package:edium/core/theme/app_colors.dart';
+import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
@@ -11,67 +12,102 @@ class EdiumButton extends StatelessWidget {
   final bool isLoading;
   final IconData? icon;
   final double? width;
+  final double? height;
 
   const EdiumButton({
     super.key,
     required this.label,
-    required this.onPressed,
+    this.onPressed,
     this.variant = EdiumButtonVariant.primary,
     this.isLoading = false,
     this.icon,
     this.width,
+    this.height,
   });
 
   @override
   Widget build(BuildContext context) {
-    final child = isLoading
-        ? const SizedBox(
-            height: 20,
-            width: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: Colors.white,
+    return SizedBox(
+      width: width ?? double.infinity,
+      height: height ?? AppDimens.buttonH,
+      child: _buildButton(),
+    );
+  }
+
+  Widget _buildButton() {
+    final child = _buildChild();
+
+    return switch (variant) {
+      EdiumButtonVariant.primary => ElevatedButton(
+          onPressed: isLoading ? null : onPressed,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.mono900,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: AppColors.mono200,
+            disabledForegroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppDimens.radiusLg),
             ),
-          )
-        : Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 18),
-                const SizedBox(width: 8),
-              ],
-              Text(label),
-            ],
-          );
-
-    Widget button;
-    switch (variant) {
-      case EdiumButtonVariant.primary:
-        button = ElevatedButton(
-          onPressed: isLoading ? null : onPressed,
-          child: child,
-        );
-        break;
-      case EdiumButtonVariant.outline:
-        button = OutlinedButton(
-          onPressed: isLoading ? null : onPressed,
-          child: DefaultTextStyle.merge(
-            style: AppTextStyles.button.copyWith(color: AppColors.primary),
-            child: child,
+            textStyle: AppTextStyles.primaryButton,
           ),
-        );
-        break;
-      case EdiumButtonVariant.ghost:
-        button = TextButton(
-          onPressed: isLoading ? null : onPressed,
           child: child,
-        );
-        break;
+        ),
+      EdiumButtonVariant.outline => OutlinedButton(
+          onPressed: isLoading ? null : onPressed,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.mono900,
+            disabledForegroundColor: AppColors.mono200,
+            elevation: 0,
+            side: BorderSide(
+              color: onPressed != null ? AppColors.mono900 : AppColors.mono200,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+            ),
+            textStyle: AppTextStyles.primaryButton,
+          ),
+          child: child,
+        ),
+      EdiumButtonVariant.ghost => TextButton(
+          onPressed: isLoading ? null : onPressed,
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.mono900,
+            disabledForegroundColor: AppColors.mono200,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+            ),
+            textStyle: AppTextStyles.primaryButton,
+          ),
+          child: child,
+        ),
+    };
+  }
+
+  Widget _buildChild() {
+    if (isLoading) {
+      return const SizedBox(
+        height: 20,
+        width: 20,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: Colors.white,
+        ),
+      );
     }
 
-    if (width != null) {
-      return SizedBox(width: width, child: button);
+    if (icon != null) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 8),
+          Text(label),
+        ],
+      );
     }
-    return button;
+
+    return Text(label);
   }
 }
