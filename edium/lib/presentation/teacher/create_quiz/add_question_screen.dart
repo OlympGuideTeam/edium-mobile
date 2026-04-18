@@ -135,6 +135,13 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
     setState(() {
       _type = t;
       _error = null;
+      // При переключении на одиночный — оставить только один выбранный вариант
+      if (t == _QType.singleChoice) {
+        final firstCorrect = _options.indexWhere((o) => o.isCorrect);
+        for (var i = 0; i < _options.length; i++) {
+          _options[i].isCorrect = firstCorrect != -1 && i == firstCorrect;
+        }
+      }
     });
   }
 
@@ -254,7 +261,10 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
           icon: const Icon(Icons.close, color: AppColors.mono700, size: 22),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            FocusScope.of(context).unfocus();
+            Navigator.pop(context);
+          },
         ),
         title: Text(
           widget.initialQuestion != null ? 'Редактировать вопрос' : 'Добавить вопрос',
@@ -263,59 +273,64 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
         centerTitle: false,
         systemOverlayStyle: SystemUiOverlayStyle.dark,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 8),
-                  _TypeSelector(selected: _type, onSelect: _changeType),
-                  const SizedBox(height: 24),
-                  _QuestionTextField(controller: _textCtrl),
-                  const SizedBox(height: 24),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 260),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeInCubic,
-                    transitionBuilder: (child, animation) {
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0, 0.06),
-                            end: Offset.zero,
-                          ).animate(CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeOutCubic,
-                          )),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: KeyedSubtree(
-                      key: ValueKey(_type),
-                      child: _buildFormForType(),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 8),
+                    _TypeSelector(selected: _type, onSelect: _changeType),
+                    const SizedBox(height: 24),
+                    _QuestionTextField(controller: _textCtrl),
+                    const SizedBox(height: 24),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 260),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0, 0.06),
+                              end: Offset.zero,
+                            ).animate(CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeOutCubic,
+                            )),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: KeyedSubtree(
+                        key: ValueKey(_type),
+                        child: _buildFormForType(),
+                      ),
                     ),
-                  ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 16),
-                    _ErrorBanner(message: _error!),
+                    if (_error != null) ...[
+                      const SizedBox(height: 16),
+                      _ErrorBanner(message: _error!),
+                    ],
+                    const SizedBox(height: 100),
                   ],
-                  const SizedBox(height: 100),
-                ],
+                ),
               ),
             ),
-          ),
-          _BottomBar(
-            onSave: () {
-              final q = _buildQuestion();
-              if (q != null) Navigator.pop(context, q);
-            },
-          ),
-        ],
+            _BottomBar(
+              onSave: () {
+                FocusScope.of(context).unfocus();
+                final q = _buildQuestion();
+                if (q != null) Navigator.pop(context, q);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -385,9 +400,7 @@ class _TypeSelector extends StatelessWidget {
                     Icon(
                       t.icon,
                       size: 13,
-                      color: isSelected
-                          ? Colors.white
-                          : AppColors.mono400,
+                      color: isSelected ? Colors.white : AppColors.mono400,
                     ),
                     const SizedBox(width: 5),
                     Text(
@@ -410,42 +423,59 @@ class _TypeSelector extends StatelessWidget {
 
 // ─── Question text field ──────────────────────────────────────────────────────
 
-class _QuestionTextField extends StatelessWidget {
+class _QuestionTextField extends StatefulWidget {
   final TextEditingController controller;
   const _QuestionTextField({required this.controller});
+
+  @override
+  State<_QuestionTextField> createState() => _QuestionTextFieldState();
+}
+
+class _QuestionTextFieldState extends State<_QuestionTextField> {
+  static const _maxLength = 300;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Текст вопроса', style: AppTextStyles.sectionTag),
-        const SizedBox(height: 10),
+        Text('ТЕКСТ ВОПРОСА', style: AppTextStyles.sectionTag),
+        const SizedBox(height: 8),
         TextField(
-          controller: controller,
-          style: AppTextStyles.body.copyWith(color: AppColors.mono900),
-          maxLines: 3,
+          controller: widget.controller,
+          style: AppTextStyles.subtitle.copyWith(color: AppColors.mono900),
           decoration: InputDecoration(
             hintText: 'Введите вопрос...',
-            hintStyle: AppTextStyles.body.copyWith(color: AppColors.mono250),
-            filled: true,
-            fillColor: AppColors.mono25,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.mono150),
+            hintStyle: AppTextStyles.subtitle.copyWith(
+              color: AppColors.mono300,
+              fontWeight: FontWeight.w400,
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.mono150),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  const BorderSide(color: AppColors.mono700, width: 1.5),
-            ),
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            contentPadding: EdgeInsets.zero,
+            isDense: true,
+            counterText: '',
           ),
+          cursorColor: AppColors.mono900,
+          minLines: 1,
+          maxLines: null,
+          maxLength: _maxLength,
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(child: Container(height: 1, color: AppColors.mono100)),
+            const SizedBox(width: 8),
+            ListenableBuilder(
+              listenable: widget.controller,
+              builder: (_, __) => Text(
+                '${widget.controller.text.length}/$_maxLength',
+                style: AppTextStyles.caption
+                    .copyWith(color: AppColors.mono300, fontSize: 11),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -577,71 +607,120 @@ class _OptionTile extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
       decoration: BoxDecoration(
-        color: isCorrect ? AppColors.mono900 : AppColors.mono25,
-        borderRadius: BorderRadius.circular(10),
+        color: AppColors.mono25,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isCorrect ? AppColors.mono900 : AppColors.mono150,
+          width: isCorrect ? 1.5 : 1.0,
         ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           GestureDetector(
             onTap: onToggle,
+            behavior: HitTestBehavior.opaque,
             child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 150),
-                child: isMulti
-                    ? Icon(
-                        isCorrect
-                            ? Icons.check_box
-                            : Icons.check_box_outline_blank,
-                        key: ValueKey(isCorrect),
-                        size: 20,
-                        color: isCorrect ? Colors.white : AppColors.mono400,
-                      )
-                    : Icon(
-                        isCorrect
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_unchecked,
-                        key: ValueKey(isCorrect),
-                        size: 20,
-                        color: isCorrect ? Colors.white : AppColors.mono400,
-                      ),
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              child: isMulti
+                  ? _CheckboxIcon(isCorrect: isCorrect)
+                  : _RadioIcon(isCorrect: isCorrect),
             ),
           ),
           Expanded(
             child: TextField(
               controller: controller,
-              style: AppTextStyles.bodySmall.copyWith(
-                color: isCorrect ? Colors.white : AppColors.mono900,
-              ),
+              style: AppTextStyles.bodySmall.copyWith(color: AppColors.mono900),
+              maxLength: 50,
+              maxLengthEnforcement: MaxLengthEnforcement.enforced,
+              minLines: 1,
+              maxLines: null,
               decoration: InputDecoration(
                 hintText: 'Вариант ответа...',
                 hintStyle: AppTextStyles.bodySmall.copyWith(
-                  color: isCorrect ? Colors.white54 : AppColors.mono300,
+                  color: AppColors.mono300,
                 ),
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                counterText: '',
+                contentPadding: const EdgeInsets.only(
+                  right: 14,
+                  top: 14,
+                  bottom: 14,
+                ),
               ),
+              cursorColor: AppColors.mono900,
             ),
           ),
           if (onRemove != null)
             GestureDetector(
               onTap: onRemove,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Icon(
-                  Icons.close,
-                  size: 16,
-                  color: isCorrect ? Colors.white54 : AppColors.mono350,
-                ),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                child: Icon(Icons.close, size: 16, color: AppColors.mono350),
               ),
             ),
         ],
       ),
+    );
+  }
+}
+
+class _RadioIcon extends StatelessWidget {
+  final bool isCorrect;
+  const _RadioIcon({required this.isCorrect});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      width: 20,
+      height: 20,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isCorrect ? AppColors.mono900 : Colors.transparent,
+        border: Border.all(
+          color: isCorrect ? AppColors.mono900 : AppColors.mono300,
+          width: 1.5,
+        ),
+      ),
+      child: isCorrect
+          ? Center(
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                ),
+              ),
+            )
+          : null,
+    );
+  }
+}
+
+class _CheckboxIcon extends StatelessWidget {
+  final bool isCorrect;
+  const _CheckboxIcon({required this.isCorrect});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      width: 20,
+      height: 20,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(5),
+        color: isCorrect ? AppColors.mono900 : Colors.transparent,
+        border: Border.all(
+          color: isCorrect ? AppColors.mono900 : AppColors.mono300,
+          width: 1.5,
+        ),
+      ),
+      child: isCorrect
+          ? const Icon(Icons.check, size: 13, color: Colors.white)
+          : null,
     );
   }
 }
@@ -852,18 +931,19 @@ class _DragItemTile extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.mono25,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.mono150),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: const BoxDecoration(
-              border: Border(right: BorderSide(color: AppColors.mono150)),
-            ),
-            child: Center(
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              width: 44,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                border: Border(right: BorderSide(color: AppColors.mono150)),
+              ),
               child: Text(
                 '${index + 1}',
                 style: AppTextStyles.caption.copyWith(
@@ -872,31 +952,35 @@ class _DragItemTile extends StatelessWidget {
                 ),
               ),
             ),
-          ),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              style: AppTextStyles.bodySmall.copyWith(color: AppColors.mono900),
-              decoration: InputDecoration(
-                hintText: 'Элемент ${index + 1}',
-                hintStyle:
-                    AppTextStyles.bodySmall.copyWith(color: AppColors.mono300),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            Expanded(
+              child: TextField(
+                controller: controller,
+                style: AppTextStyles.bodySmall.copyWith(color: AppColors.mono900),
+                maxLength: 50,
+                maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                minLines: 1,
+                maxLines: null,
+                decoration: InputDecoration(
+                  hintText: 'Элемент ${index + 1}',
+                  hintStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.mono300),
+                  border: InputBorder.none,
+                  isDense: true,
+                  counterText: '',
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                ),
+                cursorColor: AppColors.mono900,
               ),
             ),
-          ),
-          if (onRemove != null)
-            GestureDetector(
-              onTap: onRemove,
-              child: const Padding(
-                padding: EdgeInsets.all(10),
-                child: Icon(Icons.close, size: 16, color: AppColors.mono350),
+            if (onRemove != null)
+              GestureDetector(
+                onTap: onRemove,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 13),
+                  child: Icon(Icons.close, size: 16, color: AppColors.mono350),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -963,54 +1047,58 @@ class _ConnectionFormState extends State<_ConnectionForm> {
                       color: AppColors.mono400,
                       fontWeight: FontWeight.w600)),
             ),
-            const SizedBox(width: 8),
-            const Icon(Icons.arrow_forward, size: 14, color: AppColors.mono300),
-            const SizedBox(width: 8),
+            const SizedBox(width: 36),
             Expanded(
               child: Text('Правая колонка',
                   style: AppTextStyles.caption.copyWith(
                       color: AppColors.mono400,
                       fontWeight: FontWeight.w600)),
             ),
-            const SizedBox(width: 32),
           ],
         ),
         const SizedBox(height: 8),
         ...List.generate(widget.pairs.length, (i) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Expanded(
-                    child: _TextInputTile(
-                      controller: widget.pairs[i].leftCtrl,
-                      hint: 'Термин ${i + 1}',
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Container(
-                      width: 20,
-                      height: 1,
-                      color: AppColors.mono300,
-                    ),
-                  ),
-                  Expanded(
-                    child: _TextInputTile(
-                      controller: widget.pairs[i].rightCtrl,
-                      hint: 'Определение ${i + 1}',
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _TextInputTile(
+                          controller: widget.pairs[i].leftCtrl,
+                          hint: 'Термин ${i + 1}',
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Container(
+                          width: 20,
+                          height: 1,
+                          color: AppColors.mono300,
+                        ),
+                      ),
+                      Expanded(
+                        child: _TextInputTile(
+                          controller: widget.pairs[i].rightCtrl,
+                          hint: 'Определение ${i + 1}',
+                        ),
+                      ),
+                    ],
                   ),
                   if (widget.pairs.length > 2)
                     GestureDetector(
                       onTap: () => _remove(i),
-                      child: const Padding(
-                        padding: EdgeInsets.only(left: 8),
-                        child: Icon(Icons.close,
-                            size: 16, color: AppColors.mono350),
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          'Удалить пару',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.mono400,
+                          ),
+                        ),
                       ),
-                    )
-                  else
-                    const SizedBox(width: 24),
+                    ),
                 ],
               ),
             )),
@@ -1039,38 +1127,39 @@ class _TextInputTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.mono25,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.mono150),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              style: AppTextStyles.bodySmall.copyWith(color: AppColors.mono900),
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle:
-                    AppTextStyles.bodySmall.copyWith(color: AppColors.mono300),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              ),
-            ),
-          ),
-          if (onRemove != null)
-            GestureDetector(
-              onTap: onRemove,
-              child: const Padding(
-                padding: EdgeInsets.all(8),
-                child: Icon(Icons.close, size: 16, color: AppColors.mono350),
-              ),
-            ),
-        ],
+    return TextField(
+      controller: controller,
+      style: AppTextStyles.bodySmall.copyWith(color: AppColors.mono900),
+      maxLength: 50,
+      maxLengthEnforcement: MaxLengthEnforcement.enforced,
+      minLines: 1,
+      maxLines: null,
+      cursorColor: AppColors.mono900,
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.mono300),
+        filled: true,
+        fillColor: AppColors.mono25,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        suffixIcon: onRemove != null
+            ? GestureDetector(
+                onTap: onRemove,
+                child: const Icon(Icons.close, size: 16, color: AppColors.mono350),
+              )
+            : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.mono150),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.mono150),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.mono700, width: 1.5),
+        ),
+        counterText: '',
       ),
     );
   }
@@ -1144,4 +1233,3 @@ class _ConnectionPair {
   final leftCtrl = TextEditingController();
   final rightCtrl = TextEditingController();
 }
-
