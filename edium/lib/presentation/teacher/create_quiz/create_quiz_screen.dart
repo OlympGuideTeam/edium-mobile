@@ -176,6 +176,7 @@ class _TitleField extends StatelessWidget {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
+          textCapitalization: TextCapitalization.sentences,
           style: AppTextStyles.subtitle.copyWith(color: AppColors.mono900),
           decoration: _inputDecoration.copyWith(
             hintStyle: AppTextStyles.subtitle.copyWith(
@@ -247,6 +248,7 @@ class _DescriptionField extends StatelessWidget {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
+          textCapitalization: TextCapitalization.sentences,
           style: AppTextStyles.fieldText.copyWith(color: AppColors.mono700),
           decoration: _inputDecoration.copyWith(
             hintStyle: AppTextStyles.fieldHint,
