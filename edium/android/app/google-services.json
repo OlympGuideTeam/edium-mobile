@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "708036236287",
+    "project_id": "edium-93d57",
+    "storage_bucket": "edium-93d57.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:708036236287:android:1b3fc173a1e3c78f874dca",
+        "android_client_info": {
+          "package_name": "online.edium.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAc63Hth-E90WjOpZx4ygL20a7RrhuGpA4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

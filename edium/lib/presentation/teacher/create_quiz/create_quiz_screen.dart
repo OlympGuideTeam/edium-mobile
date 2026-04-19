@@ -11,7 +11,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class CreateQuizScreen extends StatefulWidget {
-  const CreateQuizScreen({super.key});
+  /// When non-null the screen is opened in course context:
+  /// user can pick Шаблон / Тест / Лайв and quiz is linked to the module.
+  final String? moduleId;
+
+  const CreateQuizScreen({super.key, this.moduleId});
 
   @override
   State<CreateQuizScreen> createState() => _CreateQuizScreenState();
@@ -33,7 +37,12 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     return BlocConsumer<CreateQuizBloc, CreateQuizState>(
       listener: (context, state) {
         if (state.success) {
-          EdiumNotification.show(context, 'Шаблон создан');
+          final label = switch (state.quizType) {
+            QuizCreationMode.test => 'Тест создан',
+            QuizCreationMode.live => 'Лайв создан',
+            QuizCreationMode.template => 'Шаблон создан',
+          };
+          EdiumNotification.show(context, label);
           Navigator.pop(context, true);
           context.read<CreateQuizBloc>().add(const ResetCreateQuizEvent());
         }
@@ -53,41 +62,47 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
             onTap: () => FocusScope.of(context).unfocus(),
             behavior: HitTestBehavior.translucent,
             child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 8),
-                      _TitleField(controller: _titleCtrl),
-                      const SizedBox(height: 16),
-                      _DescriptionField(controller: _descCtrl),
-                      const SizedBox(height: 28),
-                      _SectionLabel('НАСТРОЙКИ'),
-                      const SizedBox(height: 12),
-                      _SettingsCard(state: state),
-                      const SizedBox(height: 28),
-                      _SectionLabel('ВОПРОСЫ (${state.questions.length})'),
-                      const SizedBox(height: 12),
-                      _QuestionsList(
-                        questions: state.questions,
-                        onAdd: () => _openAddQuestion(context),
-                        onRemove: (i) => context
-                            .read<CreateQuizBloc>()
-                            .add(RemoveQuestionEvent(i)),
-                        onEdit: (i) => _openEditQuestion(context, i,
-                            state.questions[i]),
-                      ),
-                      const SizedBox(height: 100),
-                    ],
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 8),
+                        _TitleField(controller: _titleCtrl),
+                        const SizedBox(height: 16),
+                        _DescriptionField(controller: _descCtrl),
+                        if (state.isInCourseContext) ...[
+                          const SizedBox(height: 28),
+                          _SectionLabel('ТИП КВИЗА'),
+                          const SizedBox(height: 12),
+                          _QuizTypeSelector(quizType: state.quizType),
+                        ],
+                        const SizedBox(height: 28),
+                        _SectionLabel('НАСТРОЙКИ'),
+                        const SizedBox(height: 12),
+                        _SettingsCard(state: state),
+                        const SizedBox(height: 28),
+                        _SectionLabel('ВОПРОСЫ (${state.questions.length})'),
+                        const SizedBox(height: 12),
+                        _QuestionsList(
+                          questions: state.questions,
+                          onAdd: () => _openAddQuestion(context),
+                          onRemove: (i) => context
+                              .read<CreateQuizBloc>()
+                              .add(RemoveQuestionEvent(i)),
+                          onEdit: (i) =>
+                              _openEditQuestion(context, i, state.questions[i]),
+                        ),
+                        const SizedBox(height: 100),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              _BottomBar(state: state),
-            ],
-          ),
+                _BottomBar(state: state),
+              ],
+            ),
           ),
         );
       },
@@ -96,6 +111,13 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
 
   PreferredSizeWidget _buildAppBar(
       BuildContext context, CreateQuizState state) {
+    final title = state.isInCourseContext
+        ? switch (state.quizType) {
+            QuizCreationMode.test => 'Новый тест',
+            QuizCreationMode.live => 'Новый лайв',
+            QuizCreationMode.template => 'Новый шаблон',
+          }
+        : 'Новый шаблон';
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
@@ -104,7 +126,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
         icon: const Icon(Icons.close, color: AppColors.mono700, size: 22),
         onPressed: () => Navigator.pop(context),
       ),
-      title: Text('Новый шаблон', style: AppTextStyles.screenTitle),
+      title: Text(title, style: AppTextStyles.screenTitle),
       centerTitle: false,
       systemOverlayStyle: SystemUiOverlayStyle.dark,
     );
@@ -146,6 +168,105 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(text, style: AppTextStyles.sectionTag);
+  }
+}
+
+// ─── Quiz type selector ───────────────────────────────────────────────────────
+
+class _QuizTypeSelector extends StatelessWidget {
+  final QuizCreationMode quizType;
+  const _QuizTypeSelector({required this.quizType});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.mono50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.mono100),
+      ),
+      child: Row(
+        children: [
+          _TypePill(
+            label: 'Шаблон',
+            icon: Icons.bookmark_border_outlined,
+            isActive: quizType == QuizCreationMode.template,
+            onTap: () => context
+                .read<CreateQuizBloc>()
+                .add(SetQuizTypeEvent(QuizCreationMode.template)),
+          ),
+          _TypePill(
+            label: 'Тест',
+            icon: Icons.timer_outlined,
+            isActive: quizType == QuizCreationMode.test,
+            onTap: () => context
+                .read<CreateQuizBloc>()
+                .add(SetQuizTypeEvent(QuizCreationMode.test)),
+          ),
+          _TypePill(
+            label: 'Лайв',
+            icon: Icons.bolt_outlined,
+            isActive: quizType == QuizCreationMode.live,
+            onTap: () => context
+                .read<CreateQuizBloc>()
+                .add(SetQuizTypeEvent(QuizCreationMode.live)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TypePill extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _TypePill({
+    required this.label,
+    required this.icon,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isActive ? AppColors.mono900 : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: isActive ? Colors.white : AppColors.mono400,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight:
+                      isActive ? FontWeight.w700 : FontWeight.w500,
+                  color: isActive ? Colors.white : AppColors.mono400,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -281,7 +402,7 @@ class _DescriptionField extends StatelessWidget {
   }
 }
 
-// ─── Settings card ────────────────────────────────────────────────────────────
+// ─── Settings card (mode-aware) ───────────────────────────────────────────────
 
 class _SettingsCard extends StatelessWidget {
   final CreateQuizState state;
@@ -289,50 +410,92 @@ class _SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.mono25,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.mono100),
-      ),
-      child: Column(
-        children: [
-          _TimeRow(
-            label: 'Время на весь квиз',
-            subtitle: 'Применяется только в режиме «Тест»',
-            valueSec: state.totalTimeLimitSec,
-            unit: 'мин',
-            unitDivisor: 60,
-            sliderMinUnits: 5,
-            sliderMaxUnits: 90,
-            sliderStep: 5,
-            defaultValueSec: 1200,
-            onToggle: (on) => context.read<CreateQuizBloc>().add(
-                  UpdateTotalTimeLimitEvent(on ? 1200 : null),
-                ),
-            onValueChanged: (sec) => context
-                .read<CreateQuizBloc>()
-                .add(UpdateTotalTimeLimitEvent(sec)),
-          ),
-          _CardDivider(),
-          _TimeRow(
-            label: 'Время на вопрос',
-            subtitle: 'Применяется только в режиме «Лайв»',
-            valueSec: state.questionTimeLimitSec,
-            unit: 'сек',
-            unitDivisor: 1,
-            sliderMinUnits: 5,
-            sliderMaxUnits: 90,
-            sliderStep: 5,
-            defaultValueSec: 30,
-            onToggle: (on) => context.read<CreateQuizBloc>().add(
-                  UpdateQuestionTimeLimitEvent(on ? 30 : null),
-                ),
-            onValueChanged: (sec) => context
-                .read<CreateQuizBloc>()
-                .add(UpdateQuestionTimeLimitEvent(sec)),
-          ),
-        ],
+    // For library context (no moduleId) show all settings with hints.
+    // For course context, show only settings relevant to the chosen type.
+    final showTotalTime = !state.isInCourseContext ||
+        state.quizType == QuizCreationMode.template ||
+        state.quizType == QuizCreationMode.test;
+    final showQuestionTime = !state.isInCourseContext ||
+        state.quizType == QuizCreationMode.template ||
+        state.quizType == QuizCreationMode.live;
+    final showShuffle = !state.isInCourseContext ||
+        state.quizType == QuizCreationMode.template ||
+        state.quizType == QuizCreationMode.test;
+
+    // Nothing to show for some edge case — show empty card.
+    if (!showTotalTime && !showQuestionTime && !showShuffle) {
+      return const SizedBox.shrink();
+    }
+
+    final rows = <Widget>[];
+
+    if (showTotalTime) {
+      rows.add(_TimeRow(
+        label: 'Время на весь квиз',
+        subtitle: state.isInCourseContext && state.quizType == QuizCreationMode.template
+            ? 'Применяется только в режиме «Тест»'
+            : null,
+        valueSec: state.totalTimeLimitSec,
+        unit: 'мин',
+        unitDivisor: 60,
+        sliderMinUnits: 5,
+        sliderMaxUnits: 90,
+        sliderStep: 5,
+        defaultValueSec: 1200,
+        onToggle: (on) => context.read<CreateQuizBloc>().add(
+              UpdateTotalTimeLimitEvent(on ? 1200 : null),
+            ),
+        onValueChanged: (sec) => context
+            .read<CreateQuizBloc>()
+            .add(UpdateTotalTimeLimitEvent(sec)),
+      ));
+    }
+
+    if (showTotalTime && showQuestionTime) {
+      rows.add(_CardDivider());
+    }
+
+    if (showQuestionTime) {
+      rows.add(_TimeRow(
+        label: 'Время на вопрос',
+        subtitle: state.isInCourseContext && state.quizType == QuizCreationMode.template
+            ? 'Применяется только в режиме «Лайв»'
+            : null,
+        valueSec: state.questionTimeLimitSec,
+        unit: 'сек',
+        unitDivisor: 1,
+        sliderMinUnits: 5,
+        sliderMaxUnits: 90,
+        sliderStep: 5,
+        defaultValueSec: 30,
+        onToggle: (on) => context.read<CreateQuizBloc>().add(
+              UpdateQuestionTimeLimitEvent(on ? 30 : null),
+            ),
+        onValueChanged: (sec) => context
+            .read<CreateQuizBloc>()
+            .add(UpdateQuestionTimeLimitEvent(sec)),
+      ));
+    }
+
+    if (showShuffle && (showTotalTime || showQuestionTime)) {
+      rows.add(_CardDivider());
+    }
+
+    if (showShuffle) {
+      rows.add(_ShuffleRow(value: state.shuffleQuestions));
+    }
+
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeInOut,
+      child: Container(
+        key: ValueKey(state.quizType),
+        decoration: BoxDecoration(
+          color: AppColors.mono25,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.mono100),
+        ),
+        child: Column(children: rows),
       ),
     );
   }
@@ -340,14 +503,37 @@ class _SettingsCard extends StatelessWidget {
 
 class _CardDivider extends StatelessWidget {
   @override
+  Widget build(BuildContext context) =>
+      Container(height: 1, color: AppColors.mono100);
+}
+
+class _ShuffleRow extends StatelessWidget {
+  final bool value;
+  const _ShuffleRow({required this.value});
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 1,
-      color: AppColors.mono100,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Перемешать вопросы',
+              style: AppTextStyles.bodySmall.copyWith(color: AppColors.mono700),
+            ),
+          ),
+          _MonoSwitch(
+            value: value,
+            onChanged: (v) => context
+                .read<CreateQuizBloc>()
+                .add(UpdateShuffleQuestionsEvent(v)),
+          ),
+        ],
+      ),
     );
   }
 }
-
 
 // ─── Time row with stepped slider + tap-to-input ─────────────────────────────
 
@@ -467,7 +653,8 @@ class _TimeRow extends StatelessWidget {
                       activeTrackColor: AppColors.mono900,
                       inactiveTrackColor: AppColors.mono150,
                       thumbColor: AppColors.mono900,
-                      overlayColor: AppColors.mono900.withValues(alpha: 0.08),
+                      overlayColor:
+                          AppColors.mono900.withValues(alpha: 0.08),
                       trackHeight: 2,
                       thumbShape:
                           const RoundSliderThumbShape(enabledThumbRadius: 7),
@@ -552,7 +739,8 @@ class _TimeInputDialogState extends State<_TimeInputDialog> {
               autofocus: true,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              style: AppTextStyles.fieldText.copyWith(color: AppColors.mono900),
+              style:
+                  AppTextStyles.fieldText.copyWith(color: AppColors.mono900),
               decoration: InputDecoration(
                 suffixText: widget.unit,
                 suffixStyle: AppTextStyles.fieldText
@@ -729,8 +917,7 @@ class _QuestionsList extends StatelessWidget {
             ),
           );
         }),
-        if (questions.isNotEmpty)
-          _AddQuestionButton(onTap: onAdd),
+        if (questions.isNotEmpty) _AddQuestionButton(onTap: onAdd),
       ],
     );
   }
@@ -922,7 +1109,8 @@ class _QuestionTile extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, size: 18, color: AppColors.mono300),
+            const Icon(Icons.chevron_right,
+                size: 18, color: AppColors.mono300),
           ],
         ),
       ),
@@ -939,6 +1127,14 @@ class _BottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final canSubmit = state.canSubmit && !state.isSubmitting;
+
+    final buttonLabel = state.isInCourseContext
+        ? switch (state.quizType) {
+            QuizCreationMode.test => 'Создать тест',
+            QuizCreationMode.live => 'Создать лайв',
+            QuizCreationMode.template => 'Создать шаблон',
+          }
+        : 'Создать шаблон';
 
     return Container(
       padding: EdgeInsets.only(
@@ -960,7 +1156,7 @@ class _BottomBar extends StatelessWidget {
               child: Text(
                 state.questions.isEmpty
                     ? 'Добавьте хотя бы один вопрос'
-                    : 'Введите название шаблона',
+                    : 'Введите название',
                 style: AppTextStyles.helperText,
                 textAlign: TextAlign.center,
               ),
@@ -994,7 +1190,7 @@ class _BottomBar extends StatelessWidget {
                         color: Colors.white,
                       ),
                     )
-                  : const Text('Создать шаблон'),
+                  : Text(buttonLabel),
             ),
           ),
         ],

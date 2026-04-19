@@ -42,6 +42,45 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
   }
 
   @override
+  Future<String> createTestSession({
+    required String quizTemplateId,
+    required String moduleId,
+    int? totalTimeLimitSec,
+    bool shuffleQuestions = false,
+  }) {
+    return request<String>(
+      'riddler/v1/sessions/test',
+      method: HttpMethod.post,
+      req: {
+        'quiz_template_id': quizTemplateId,
+        'module_id': moduleId,
+        if (totalTimeLimitSec != null) 'total_time_limit_sec': totalTimeLimitSec,
+        if (shuffleQuestions) 'shuffle_questions': shuffleQuestions,
+      },
+      parser: (data) => (data as Map<String, dynamic>)['session_id'] as String,
+    );
+  }
+
+  @override
+  Future<String> createLiveSession({
+    required String quizTemplateId,
+    required String moduleId,
+    int? questionTimeLimitSec,
+  }) {
+    return request<String>(
+      'riddler/v1/sessions/live',
+      method: HttpMethod.post,
+      req: {
+        'quiz_template_id': quizTemplateId,
+        'module_id': moduleId,
+        if (questionTimeLimitSec != null)
+          'question_time_limit_sec': questionTimeLimitSec,
+      },
+      parser: (data) => (data as Map<String, dynamic>)['session_id'] as String,
+    );
+  }
+
+  @override
   Future<String> createQuiz({
     required String title,
     String? description,
@@ -49,6 +88,7 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
     int? questionTimeLimitSec,
     bool shuffleQuestions = false,
     required List<Map<String, dynamic>> questions,
+    String? moduleId,
   }) async {
     final id = await request<String>(
       'riddler/v1/quizzes',
@@ -63,6 +103,8 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
             'question_time_limit_sec': questionTimeLimitSec,
           'shuffle_questions': shuffleQuestions,
         },
+        if (moduleId != null)
+          'attach_to_module': {'module_id': moduleId},
       },
       parser: (data) => (data as Map<String, dynamic>)['id'] as String,
     );

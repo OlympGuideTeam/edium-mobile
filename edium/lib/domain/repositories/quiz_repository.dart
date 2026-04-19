@@ -15,6 +15,20 @@ abstract class IQuizRepository {
     int? questionTimeLimitSec,
     bool shuffleQuestions,
     required List<Map<String, dynamic>> questions,
+    String? moduleId,
+  });
+
+  Future<String> createTestSession({
+    required String quizTemplateId,
+    required String moduleId,
+    int? totalTimeLimitSec,
+    bool shuffleQuestions,
+  });
+
+  Future<String> createLiveSession({
+    required String quizTemplateId,
+    required String moduleId,
+    int? questionTimeLimitSec,
   });
 
   Future<Quiz> getQuizById(String id);

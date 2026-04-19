@@ -12,6 +12,7 @@ class CreateQuizUsecase {
     int? questionTimeLimitSec,
     bool shuffleQuestions = false,
     required List<Map<String, dynamic>> questions,
+    String? moduleId,
   }) {
     return _repository.createQuiz(
       title: title,
@@ -20,6 +21,7 @@ class CreateQuizUsecase {
       questionTimeLimitSec: questionTimeLimitSec,
       shuffleQuestions: shuffleQuestions,
       questions: questions,
+      moduleId: moduleId,
     );
   }
 }
