@@ -136,6 +136,12 @@ class _ProfileContent extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             _ActionTile(
+              icon: Icons.notifications_outlined,
+              label: 'Уведомления',
+              onTap: () => context.push('/profile/notifications'),
+            ),
+            const SizedBox(height: 8),
+            _ActionTile(
               icon: Icons.swap_horiz_outlined,
               label: isTeacher
                   ? 'Переключиться на ученика'

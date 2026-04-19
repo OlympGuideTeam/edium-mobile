@@ -40,6 +40,7 @@ import 'package:edium/domain/usecases/library_quiz/get_public_quizzes_usecase.da
 import 'package:edium/domain/usecases/library_quiz/get_quiz_for_student_usecase.dart';
 import 'package:edium/domain/usecases/library_quiz/submit_attempt_answer_usecase.dart';
 import 'package:edium/domain/usecases/quiz/create_quiz_usecase.dart';
+import 'package:edium/domain/usecases/quiz/create_session_usecase.dart';
 import 'package:edium/domain/usecases/quiz/get_quiz_results_usecase.dart';
 import 'package:edium/domain/usecases/quiz/get_quizzes_usecase.dart';
 import 'package:edium/domain/usecases/quiz/like_quiz_usecase.dart';
@@ -71,7 +72,12 @@ import 'package:edium/domain/usecases/user/update_profile_usecase.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/services/doorman_api_service/doorman_api_service.dart';
 import 'package:edium/services/doorman_api_service/doorman_api_service_interface.dart';
+import 'package:edium/services/herald_api_service/herald_api_service.dart';
+import 'package:edium/services/herald_api_service/herald_api_service_interface.dart';
+import 'package:edium/services/herald_api_service/herald_api_service_mock.dart';
 import 'package:edium/services/network/dio_handler.dart';
+import 'package:edium/services/notification_service/deep_link_service.dart';
+import 'package:edium/services/notification_service/notification_service.dart';
 import 'package:edium/services/token_storage/token_storage.dart';
 import 'package:edium/services/token_storage/token_storage_interface.dart';
 import 'package:get_it/get_it.dart';
@@ -81,15 +87,25 @@ final getIt = GetIt.instance;
 Future<void> reinitializeDependencies(AppEnvironment env) async {
   ApiConfig.environment = env;
   await ProfileStorage.saveEnvironment(env);
+  final notificationService = getIt<NotificationService>();
+  final deepLinkService = getIt<DeepLinkService>();
   await getIt.reset();
-  await initializeDependencies();
+  await initializeDependencies(
+    notificationService: notificationService,
+    deepLinkService: deepLinkService,
+  );
   getIt<AuthBloc>().add(const AppStarted());
 }
 
-Future<void> initializeDependencies() async {
+Future<void> initializeDependencies({
+  NotificationService? notificationService,
+  DeepLinkService? deepLinkService,
+}) async {
 
   getIt.registerSingleton<ITokenStorage>(TokenStorage());
   getIt.registerSingleton<ProfileStorage>(ProfileStorage());
+  getIt.registerSingleton<NotificationService>(notificationService ?? NotificationService());
+  getIt.registerSingleton<DeepLinkService>(deepLinkService ?? DeepLinkService());
 
 
   await DioHandler.setup();
@@ -97,6 +113,13 @@ Future<void> initializeDependencies() async {
   getIt.registerSingleton<IDoormanApiService>(
     DoormanApiService(getIt<DioHandler>().dio),
   );
+  if (ApiConfig.useMock) {
+    getIt.registerSingleton<IHeraldApiService>(HeraldApiServiceMock());
+  } else {
+    getIt.registerSingleton<IHeraldApiService>(
+      HeraldApiService(getIt<DioHandler>().dio),
+    );
+  }
 
   if (ApiConfig.useMock) {
     getIt.registerLazySingleton<IUserDatasource>(
@@ -178,6 +201,7 @@ Future<void> initializeDependencies() async {
   getIt.registerLazySingleton(() => GetInviteLinkUsecase(getIt()));
   getIt.registerLazySingleton(() => GetQuizzesUsecase(getIt()));
   getIt.registerLazySingleton(() => CreateQuizUsecase(getIt()));
+  getIt.registerLazySingleton(() => CreateSessionUsecase(getIt()));
   getIt.registerLazySingleton(() => LikeQuizUsecase(getIt()));
   getIt.registerLazySingleton(() => GetQuizResultsUsecase(getIt()));
   getIt.registerLazySingleton(() => StartQuizUsecase(getIt()));
@@ -200,6 +224,8 @@ Future<void> initializeDependencies() async {
       getMe: getIt(),
       profileStorage: getIt(),
       dioHandler: getIt(),
+      notificationService: getIt(),
+      heraldApiService: getIt(),
     ),
   );
 }

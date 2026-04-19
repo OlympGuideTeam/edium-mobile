@@ -150,6 +150,27 @@ class QuizDatasourceHive implements IQuizDatasource {
   }
 
   @override
+  Future<String> createTestSession({
+    required String quizTemplateId,
+    required String moduleId,
+    int? totalTimeLimitSec,
+    bool shuffleQuestions = false,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return 'session-test-${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  @override
+  Future<String> createLiveSession({
+    required String quizTemplateId,
+    required String moduleId,
+    int? questionTimeLimitSec,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return 'session-live-${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  @override
   Future<String> createQuiz({
     required String title,
     String? description,
@@ -157,6 +178,7 @@ class QuizDatasourceHive implements IQuizDatasource {
     int? questionTimeLimitSec,
     bool shuffleQuestions = false,
     required List<Map<String, dynamic>> questions,
+    String? moduleId,
   }) async {
     await _ensureSeeded();
     final id = _nextId();

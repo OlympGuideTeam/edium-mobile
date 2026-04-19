@@ -1,3 +1,4 @@
+import 'package:edium/presentation/teacher/create_quiz/bloc/create_quiz_state.dart';
 import 'package:equatable/equatable.dart';
 
 abstract class CreateQuizEvent extends Equatable {
@@ -65,6 +66,13 @@ class ReplaceQuestionEvent extends CreateQuizEvent {
   const ReplaceQuestionEvent(this.index, this.question);
   @override
   List<Object?> get props => [index, question];
+}
+
+class SetQuizTypeEvent extends CreateQuizEvent {
+  final QuizCreationMode quizType;
+  const SetQuizTypeEvent(this.quizType);
+  @override
+  List<Object?> get props => [quizType];
 }
 
 class ResetCreateQuizEvent extends CreateQuizEvent {
