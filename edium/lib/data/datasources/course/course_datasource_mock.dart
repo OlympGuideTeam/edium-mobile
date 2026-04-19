@@ -46,7 +46,7 @@ class CourseDatasourceMock implements ICourseDatasource {
             CourseItem(
               id: 'item-2',
               refId: 'quiz-uuid-0002',
-              type: 'quiz',
+              type: 'quiz_template',
               orderIndex: 1,
               attemptId: null,
               score: null,

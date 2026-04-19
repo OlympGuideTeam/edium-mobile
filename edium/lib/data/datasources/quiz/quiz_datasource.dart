@@ -8,7 +8,7 @@ abstract class IQuizDatasource {
     int limit,
   });
 
-  /// Returns quiz id.
+  /// Returns quiz template id.
   Future<String> createQuiz({
     required String title,
     String? description,
@@ -16,6 +16,22 @@ abstract class IQuizDatasource {
     int? questionTimeLimitSec,
     bool shuffleQuestions,
     required List<Map<String, dynamic>> questions,
+    String? moduleId,
+  });
+
+  /// Returns test session id.
+  Future<String> createTestSession({
+    required String quizTemplateId,
+    required String moduleId,
+    int? totalTimeLimitSec,
+    bool shuffleQuestions,
+  });
+
+  /// Returns live session id.
+  Future<String> createLiveSession({
+    required String quizTemplateId,
+    required String moduleId,
+    int? questionTimeLimitSec,
   });
 
   Future<QuizModel> getQuizById(String id);

@@ -7,6 +7,7 @@ class ProfileStorage {
   static const String _roleKey = 'role';
   static const String _phoneKey = 'phone';
   static const String _envKey = 'environment';
+  static const String _notifPermissionKey = 'notifications_permission_asked';
   static const String _usersPrefix = 'user_name_';
 
   bool get hasName => HiveStorage.profileBox.containsKey(_nameKey);
@@ -28,6 +29,12 @@ class ProfileStorage {
   String? getPhone() => HiveStorage.profileBox.get(_phoneKey);
   Future<void> savePhone(String phone) =>
       HiveStorage.profileBox.put(_phoneKey, phone);
+
+  bool get hasAskedNotificationPermission =>
+      HiveStorage.profileBox.get(_notifPermissionKey) == 'true';
+
+  Future<void> markNotificationPermissionAsked() =>
+      HiveStorage.profileBox.put(_notifPermissionKey, 'true');
 
   Future<void> saveUserName(String phone, String name) =>
       HiveStorage.profileBox.put('$_usersPrefix$phone', name);
