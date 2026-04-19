@@ -15,10 +15,19 @@ import 'package:edium/presentation/class_detail/class_detail_screen.dart';
 import 'package:edium/presentation/teacher/course_detail/course_detail_screen.dart';
 import 'package:edium/presentation/teacher/create_course/create_course_screen.dart';
 import 'package:edium/presentation/profile/edit_profile/edit_profile_screen.dart';
+import 'package:edium/presentation/profile/notifications/notifications_screen.dart';
 import 'package:edium/presentation/student/home/student_home_screen.dart';
 import 'package:edium/presentation/teacher/home/teacher_home_screen.dart';
+import 'package:edium/services/notification_service/deep_link_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
+GoRouter? _routerInstance;
+
+// Used by main.dart for live notification taps (push on top of current stack)
+void pushRouteFromNotification(String route) {
+  _routerInstance?.push(route);
+}
 
 class RouterNotifier extends ChangeNotifier {
   late final StreamSubscription _sub;
@@ -37,9 +46,12 @@ class RouterNotifier extends ChangeNotifier {
 final _routerNotifier = RouterNotifier();
 
 GoRouter buildRouter() {
-  return GoRouter(
+  _routerInstance = GoRouter(
     initialLocation: '/splash',
-    refreshListenable: _routerNotifier,
+    refreshListenable: Listenable.merge([
+      _routerNotifier,
+      getIt<DeepLinkService>(),
+    ]),
     redirect: _redirect,
     routes: [
       GoRoute(
@@ -95,6 +107,10 @@ GoRouter buildRouter() {
         builder: (_, state) => EditProfileScreen(user: state.extra as User),
       ),
       GoRoute(
+        path: '/profile/notifications',
+        builder: (_, __) => const NotificationsScreen(),
+      ),
+      GoRoute(
         path: '/class/:classId',
         builder: (_, state) {
           final classId = state.pathParameters['classId']!;
@@ -117,6 +133,7 @@ GoRouter buildRouter() {
       ),
     ],
   );
+  return _routerInstance!;
 }
 
 String? _redirect(BuildContext context, GoRouterState state) {
@@ -131,14 +148,11 @@ String? _redirect(BuildContext context, GoRouterState state) {
       location == '/name-input' ||
       location == '/role-selection';
 
-
-  // Initial load — go to splash
   if (authState is AuthInitial) {
     if (location != '/splash') return '/splash';
     return null;
   }
 
-  // Loading (e.g. sending OTP, verifying) — stay wherever we are
   if (authState is AuthLoading) {
     return null;
   }
@@ -160,12 +174,22 @@ String? _redirect(BuildContext context, GoRouterState state) {
   }
 
   if (authState is AuthAuthenticated) {
+    final deepLink = getIt<DeepLinkService>().consumePendingRoute();
+    if (deepLink != null) {
+      // Navigate to home first, then push the deep link on top so the user
+      // has something to go back to.
+      final homeRoute = _homeRoute(authState);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _routerInstance?.push(deepLink);
+      });
+      if (isAuthPath || location == homeRoute) return homeRoute;
+      // Already on a non-auth screen — push on top without redirecting
+      WidgetsBinding.instance.addPostFrameCallback((_) {});
+      return null;
+    }
+
     if (isAuthPath) {
-      final role = authState.user.role ??
-          _roleFromString(getIt<ProfileStorage>().getRole());
-      if (role == UserRole.teacher) return '/teacher/home';
-      if (role == UserRole.student) return '/student/home';
-      return '/role-selection';
+      return _homeRoute(authState);
     }
     return null;
   }
@@ -175,6 +199,14 @@ String? _redirect(BuildContext context, GoRouterState state) {
   }
 
   return null;
+}
+
+String _homeRoute(AuthAuthenticated authState) {
+  final role = authState.user.role ??
+      _roleFromString(getIt<ProfileStorage>().getRole());
+  if (role == UserRole.teacher) return '/teacher/home';
+  if (role == UserRole.student) return '/student/home';
+  return '/role-selection';
 }
 
 UserRole? _roleFromString(String? role) {

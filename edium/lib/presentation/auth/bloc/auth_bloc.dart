@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:edium/core/storage/profile_storage.dart';
 import 'package:edium/domain/entities/user.dart';
 import 'package:edium/services/network/api_exception.dart';
@@ -8,7 +10,9 @@ import 'package:edium/domain/usecases/auth/verify_otp_usecase.dart';
 import 'package:edium/domain/usecases/user/get_me_usecase.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
+import 'package:edium/services/herald_api_service/herald_api_service_interface.dart';
 import 'package:edium/services/network/dio_handler.dart';
+import 'package:edium/services/notification_service/notification_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
@@ -19,6 +23,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final GetMeUsecase getMe;
   final ProfileStorage profileStorage;
   final DioHandler dioHandler;
+  final NotificationService notificationService;
+  final IHeraldApiService heraldApiService;
 
   AuthBloc({
     required this.sendOtp,
@@ -28,6 +34,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.getMe,
     required this.profileStorage,
     required this.dioHandler,
+    required this.notificationService,
+    required this.heraldApiService,
   }) : super(const AuthInitial()) {
     on<AppStarted>(_onAppStarted);
     on<SendOtpEvent>(_onSendOtp);
@@ -66,6 +74,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthAuthenticated(user.copyWith(role: role)));
       }
       dioHandler.startProactiveRefresh();
+      _registerFcmToken();
     } catch (_) {
       emit(const AuthUnauthenticated());
     }
@@ -120,6 +129,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthAuthenticated(user.copyWith(role: role)));
       }
       dioHandler.startProactiveRefresh();
+      _registerFcmToken();
     } catch (e) {
       emit(AuthError(e.toString()));
     }
@@ -146,6 +156,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
       emit(AuthRoleRequired(user));
       dioHandler.startProactiveRefresh();
+      _registerFcmToken();
     } catch (e) {
       emit(AuthError(e.toString()));
     }
@@ -198,9 +209,29 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     dioHandler.stopProactiveRefresh();
     emit(const AuthLoading());
     try {
+      // TODO: unregister FCM token from Herald once backend supports token in logout
+      // final token = await notificationService.getToken();
+      // if (token != null) await heraldApiService.unregisterDevice(token);
       await logout();
       await profileStorage.clear();
     } catch (_) {}
     emit(const AuthUnauthenticated());
+  }
+
+  void _registerFcmToken() {
+    Future(() async {
+      try {
+        if (!profileStorage.hasAskedNotificationPermission) {
+          await notificationService.requestPermission();
+          await profileStorage.markNotificationPermissionAsked();
+        }
+        final token = await notificationService.getToken();
+        if (token == null) return;
+        final platform = Platform.isIOS ? 'ios' : 'android';
+        await heraldApiService.registerDevice(token, platform);
+      } catch (_) {
+        // Non-critical: app works without push notifications
+      }
+    });
   }
 }

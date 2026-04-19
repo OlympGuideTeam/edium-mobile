@@ -31,6 +31,7 @@ class QuizRepositoryImpl implements IQuizRepository {
     int? questionTimeLimitSec,
     bool shuffleQuestions = false,
     required List<Map<String, dynamic>> questions,
+    String? moduleId,
   }) {
     return _datasource.createQuiz(
       title: title,
@@ -39,6 +40,35 @@ class QuizRepositoryImpl implements IQuizRepository {
       questionTimeLimitSec: questionTimeLimitSec,
       shuffleQuestions: shuffleQuestions,
       questions: questions,
+      moduleId: moduleId,
+    );
+  }
+
+  @override
+  Future<String> createTestSession({
+    required String quizTemplateId,
+    required String moduleId,
+    int? totalTimeLimitSec,
+    bool shuffleQuestions = false,
+  }) {
+    return _datasource.createTestSession(
+      quizTemplateId: quizTemplateId,
+      moduleId: moduleId,
+      totalTimeLimitSec: totalTimeLimitSec,
+      shuffleQuestions: shuffleQuestions,
+    );
+  }
+
+  @override
+  Future<String> createLiveSession({
+    required String quizTemplateId,
+    required String moduleId,
+    int? questionTimeLimitSec,
+  }) {
+    return _datasource.createLiveSession(
+      quizTemplateId: quizTemplateId,
+      moduleId: moduleId,
+      questionTimeLimitSec: questionTimeLimitSec,
     );
   }
 

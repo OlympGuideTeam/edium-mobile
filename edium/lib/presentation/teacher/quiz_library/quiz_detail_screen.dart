@@ -2,9 +2,16 @@ import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
+import 'package:edium/domain/entities/class_detail.dart';
+import 'package:edium/domain/entities/course_detail.dart';
 import 'package:edium/domain/entities/question.dart';
 import 'package:edium/domain/entities/quiz.dart';
 import 'package:edium/domain/repositories/quiz_repository.dart';
+import 'package:edium/domain/usecases/class/get_class_detail_usecase.dart';
+import 'package:edium/domain/usecases/class/get_my_classes_usecase.dart';
+import 'package:edium/domain/usecases/course/get_course_detail_usecase.dart';
+import 'package:edium/domain/usecases/quiz/create_session_usecase.dart';
+import 'package:edium/presentation/shared/widgets/edium_button.dart';
 import 'package:edium/presentation/shared/widgets/edium_notification.dart';
 import 'package:edium/presentation/teacher/create_quiz/quiz_results_screen.dart';
 import 'package:flutter/material.dart';
@@ -40,43 +47,6 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
     }
   }
 
-  Future<void> _publishQuiz() async {
-    bool isPublic = true;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => _PublishDialog(
-        onPublicChanged: (v) => isPublic = v,
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-
-    setState(() => _actionLoading = true);
-    try {
-      await getIt<IQuizRepository>().publishQuiz(
-        widget.quizId,
-        isPublic: isPublic,
-      );
-      await _load();
-      if (mounted) {
-        EdiumNotification.show(
-          context,
-          isPublic ? 'Квиз опубликован в библиотеке' : 'Квиз опубликован (только для вас)',
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        EdiumNotification.show(
-          context,
-          'Ошибка публикации',
-          type: EdiumNotificationType.error,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _actionLoading = false);
-    }
-  }
-
   Future<void> _copyQuiz() async {
     setState(() => _actionLoading = true);
     try {
@@ -97,35 +67,16 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
     }
   }
 
-  Future<void> _deleteQuiz() async {
-    final confirmed = await showDialog<bool>(
+  void _addToCourse() {
+    showModalBottomSheet(
       context: context,
-      builder: (_) => _ConfirmDialog(
-        title: 'Удалить квиз?',
-        body: 'Черновик будет удалён без возможности восстановления.',
-        confirmLabel: 'Удалить',
-        danger: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      builder: (_) => _AddToCourseSheet(quizId: widget.quizId),
     );
-    if (confirmed != true || !mounted) return;
-
-    setState(() => _actionLoading = true);
-    try {
-      await getIt<IQuizRepository>().deleteQuiz(widget.quizId);
-      if (mounted) {
-        EdiumNotification.show(context, 'Квиз удалён');
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) {
-        EdiumNotification.show(
-          context,
-          'Ошибка удаления',
-          type: EdiumNotificationType.error,
-        );
-      }
-      if (mounted) setState(() => _actionLoading = false);
-    }
   }
 
   @override
@@ -154,7 +105,8 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.quiz_outlined, size: 48, color: AppColors.mono200),
+              const Icon(Icons.quiz_outlined,
+                  size: 48, color: AppColors.mono200),
               const SizedBox(height: 12),
               Text('Квиз не найден', style: AppTextStyles.screenSubtitle),
             ],
@@ -164,10 +116,6 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
     }
 
     final quiz = _quiz!;
-    final isDraft = quiz.status == QuizStatus.draft;
-    final isPublished = quiz.status == QuizStatus.active ||
-        quiz.status == QuizStatus.completed ||
-        quiz.status == QuizStatus.future;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -197,28 +145,16 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                       const SizedBox(height: 20),
                       _buildSettingsRow(quiz),
                       const SizedBox(height: 24),
-                      _buildDivider(),
+                      const Divider(height: 1, color: AppColors.mono100),
                       const SizedBox(height: 24),
                       _buildQuestionsSection(quiz),
-                      const SizedBox(height: 32),
-                      if (_actionLoading)
-                        const Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.mono700,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      else
-                        _buildActions(
-                          quiz: quiz,
-                          isDraft: isDraft,
-                          isPublished: isPublished,
-                        ),
                     ],
                   ),
                 ),
               ),
             ),
+            // Bottom bar with "Add to course" action
+            _buildBottomBar(),
           ],
         ),
       ),
@@ -246,17 +182,10 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                 ),
               ),
             ),
-          if (quiz.status != QuizStatus.draft)
-            _TopBarButton(
-              icon: Icons.copy_outlined,
-              onTap: _actionLoading ? null : _copyQuiz,
-            ),
-          if (quiz.status == QuizStatus.draft && _isOwner)
-            _TopBarButton(
-              icon: Icons.delete_outline,
-              onTap: _actionLoading ? null : _deleteQuiz,
-              color: AppColors.error,
-            ),
+          _TopBarButton(
+            icon: Icons.copy_outlined,
+            onTap: _actionLoading ? null : _copyQuiz,
+          ),
         ],
       ),
     );
@@ -270,7 +199,8 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: AppColors.mono900,
                 borderRadius: BorderRadius.circular(AppDimens.radiusXs),
@@ -306,7 +236,9 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
           ),
           child: Center(
             child: Text(
-              quiz.authorName.isNotEmpty ? quiz.authorName[0].toUpperCase() : '?',
+              quiz.authorName.isNotEmpty
+                  ? quiz.authorName[0].toUpperCase()
+                  : '?',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -382,10 +314,6 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
     );
   }
 
-  Widget _buildDivider() {
-    return const Divider(height: 1, color: AppColors.mono100);
-  }
-
   Widget _buildQuestionsSection(Quiz quiz) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -402,7 +330,8 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
             ),
             const Spacer(),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
                 color: AppColors.mono50,
                 borderRadius: BorderRadius.circular(6),
@@ -421,7 +350,20 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
         ),
         const SizedBox(height: 12),
         if (quiz.questions.isEmpty)
-          _buildEmptyQuestions()
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.mono25,
+              borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+              border: Border.all(color: AppColors.mono100),
+            ),
+            child: Center(
+              child: Text(
+                'Вопросы не добавлены',
+                style: AppTextStyles.screenSubtitle,
+              ),
+            ),
+          )
         else
           ...quiz.questions.asMap().entries.map(
                 (entry) => _QuestionTile(
@@ -433,72 +375,23 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
     );
   }
 
-  Widget _buildEmptyQuestions() {
+  Widget _buildBottomBar() {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.mono25,
-        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-        border: Border.all(color: AppColors.mono100),
+      padding: EdgeInsets.only(
+        left: AppDimens.screenPaddingH,
+        right: AppDimens.screenPaddingH,
+        top: 12,
+        bottom: MediaQuery.of(context).padding.bottom + 12,
       ),
-      child: Center(
-        child: Text(
-          'Вопросы не добавлены',
-          style: AppTextStyles.screenSubtitle,
-        ),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: AppColors.mono100)),
       ),
-    );
-  }
-
-  Widget _buildActions({
-    required Quiz quiz,
-    required bool isDraft,
-    required bool isPublished,
-  }) {
-    final actions = <Widget>[];
-
-    if (isDraft && _isOwner) {
-      actions.add(_ActionButton(
-        label: 'Опубликовать',
-        icon: Icons.publish_outlined,
-        onTap: _publishQuiz,
-        filled: true,
-      ));
-      actions.add(const SizedBox(height: 10));
-      actions.add(_ActionButton(
-        label: 'Удалить черновик',
-        icon: Icons.delete_outline,
-        onTap: _deleteQuiz,
-        danger: true,
-      ));
-    }
-
-    if (isPublished) {
-      if (quiz.status == QuizStatus.active ||
-          quiz.status == QuizStatus.completed) {
-        actions.add(_ActionButton(
-          label: 'Результаты',
-          icon: Icons.bar_chart_outlined,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => QuizResultsScreen(quizId: widget.quizId),
-            ),
-          ),
-          filled: true,
-        ));
-        actions.add(const SizedBox(height: 10));
-      }
-      actions.add(_ActionButton(
-        label: 'Скопировать в мои квизы',
-        icon: Icons.copy_outlined,
-        onTap: _copyQuiz,
-      ));
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: actions,
+      child: EdiumButton(
+        label: 'Добавить в курс',
+        icon: Icons.add_circle_outline,
+        onPressed: _addToCourse,
+      ),
     );
   }
 
@@ -509,190 +402,426 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
   bool _isExpired(DateTime dt) => dt.isBefore(DateTime.now());
 }
 
-// ── Publish Dialog ───────────────────────────────────────────────────────────
+// ── Add to Course bottom sheet ────────────────────────────────────────────────
 
-class _PublishDialog extends StatefulWidget {
-  final ValueChanged<bool> onPublicChanged;
+class _AddToCourseSheet extends StatefulWidget {
+  final String quizId;
 
-  const _PublishDialog({required this.onPublicChanged});
+  const _AddToCourseSheet({required this.quizId});
 
   @override
-  State<_PublishDialog> createState() => _PublishDialogState();
+  State<_AddToCourseSheet> createState() => _AddToCourseSheetState();
 }
 
-class _PublishDialogState extends State<_PublishDialog> {
-  bool _isPublic = true;
+class _AddToCourseSheetState extends State<_AddToCourseSheet> {
+  final _searchCtrl = TextEditingController();
+
+  // Step 0 = pick course, Step 1 = pick module + session type
+  int _step = 0;
+  CourseSummary? _selectedCourse;
+  ModuleDetail? _selectedModule;
+  SessionType _sessionType = SessionType.test;
+
+  // Loaded data
+  List<_CourseEntry> _courses = [];
+  CourseDetail? _courseDetail;
+  bool _loadingCourses = true;
+  bool _loadingDetail = false;
+  bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCourses();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCourses() async {
+    try {
+      final classes = await getIt<GetMyClassesUsecase>()(role: 'teacher');
+      final entries = <_CourseEntry>[];
+      for (final cls in classes) {
+        final detail = await getIt<GetClassDetailUsecase>()(classId: cls.id);
+        for (final course in detail.courses) {
+          entries.add(_CourseEntry(className: cls.title, course: course));
+        }
+      }
+      if (mounted) setState(() { _courses = entries; _loadingCourses = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loadingCourses = false);
+    }
+  }
+
+  Future<void> _selectCourse(CourseSummary course) async {
+    setState(() { _selectedCourse = course; _loadingDetail = true; _step = 1; });
+    try {
+      final detail = await getIt<GetCourseDetailUsecase>()(courseId: course.id);
+      if (mounted) setState(() { _courseDetail = detail; _loadingDetail = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loadingDetail = false);
+    }
+  }
+
+  Future<void> _submit() async {
+    if (_selectedModule == null) return;
+    setState(() => _submitting = true);
+    try {
+      await getIt<CreateSessionUsecase>()(
+        quizTemplateId: widget.quizId,
+        moduleId: _selectedModule!.id,
+        sessionType: _sessionType,
+      );
+      if (mounted) {
+        Navigator.pop(context);
+        EdiumNotification.show(
+          context,
+          _sessionType == SessionType.test ? 'Тест добавлен в курс' : 'Лайв добавлен в курс',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _submitting = false);
+        EdiumNotification.show(
+          context,
+          'Ошибка',
+          type: EdiumNotificationType.error,
+        );
+      }
+    }
+  }
+
+  List<_CourseEntry> get _filtered {
+    final q = _searchCtrl.text.trim().toLowerCase();
+    if (q.isEmpty) return _courses;
+    return _courses
+        .where((e) =>
+            e.course.title.toLowerCase().contains(q) ||
+            e.className.toLowerCase().contains(q))
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-      ),
-      backgroundColor: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (_, scrollCtrl) {
+        return Column(
           children: [
-            const Text(
-              'Публикация квиза',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.mono900,
+            // Handle
+            const SizedBox(height: 12),
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.mono150,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
-            const SizedBox(height: 6),
-            const Text(
-              'Выберите режим видимости',
-              style: AppTextStyles.screenSubtitle,
-            ),
-            const SizedBox(height: 20),
-            _VisibilityOption(
-              title: 'Публичный',
-              subtitle: 'Квиз появится в общей библиотеке',
-              icon: Icons.public_outlined,
-              selected: _isPublic,
-              onTap: () {
-                setState(() => _isPublic = true);
-                widget.onPublicChanged(true);
-              },
-            ),
-            const SizedBox(height: 8),
-            _VisibilityOption(
-              title: 'Приватный',
-              subtitle: 'Только вы увидите этот квиз',
-              icon: Icons.lock_outline,
-              selected: !_isPublic,
-              onTap: () {
-                setState(() => _isPublic = false);
-                widget.onPublicChanged(false);
-              },
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context, false),
-                    child: Container(
-                      height: AppDimens.buttonHSm,
-                      decoration: BoxDecoration(
-                        color: AppColors.mono50,
-                        borderRadius:
-                            BorderRadius.circular(AppDimens.radiusLg),
-                        border: Border.all(color: AppColors.mono100),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          'Отмена',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.mono600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context, true),
-                    child: Container(
-                      height: AppDimens.buttonHSm,
-                      decoration: BoxDecoration(
-                        color: AppColors.mono900,
-                        borderRadius:
-                            BorderRadius.circular(AppDimens.radiusLg),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          'Опубликовать',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _VisibilityOption extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _VisibilityOption({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.mono900 : AppColors.mono25,
-          borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-          border: Border.all(
-            color: selected ? AppColors.mono900 : AppColors.mono100,
-            width: AppDimens.borderWidth,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: selected ? Colors.white : AppColors.mono400,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: 16),
+            // Header
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: AppDimens.screenPaddingH),
+              child: Row(
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: selected ? Colors.white : AppColors.mono900,
+                  if (_step == 1)
+                    GestureDetector(
+                      onTap: () => setState(() {
+                        _step = 0;
+                        _selectedCourse = null;
+                        _courseDetail = null;
+                        _selectedModule = null;
+                      }),
+                      child: const Icon(Icons.arrow_back,
+                          size: 20, color: AppColors.mono700),
                     ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: selected ? Colors.white70 : AppColors.mono400,
+                  if (_step == 1) const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _step == 0
+                          ? 'Добавить в курс'
+                          : _selectedCourse?.title ?? 'Выбрать модуль',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.mono900,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            if (selected)
-              const Icon(Icons.check_circle, size: 18, color: Colors.white),
+            const SizedBox(height: 12),
+
+            if (_step == 0) ...[
+              // Search bar
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimens.screenPaddingH),
+                child: Container(
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.mono25,
+                    borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                    border: Border.all(color: AppColors.mono100),
+                  ),
+                  child: TextField(
+                    controller: _searchCtrl,
+                    onChanged: (_) => setState(() {}),
+                    cursorColor: AppColors.mono900,
+                    style: const TextStyle(fontSize: 14, color: AppColors.mono700),
+                    decoration: const InputDecoration(
+                      hintText: 'Поиск курса...',
+                      hintStyle: TextStyle(fontSize: 14, color: AppColors.mono250),
+                      prefixIcon: Icon(Icons.search, size: 18, color: AppColors.mono250),
+                      filled: false,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: _loadingCourses
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.mono700,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : _filtered.isEmpty
+                        ? Center(
+                            child: Text(
+                              'Курсы не найдены',
+                              style: AppTextStyles.screenSubtitle,
+                            ),
+                          )
+                        : ListView.builder(
+                            controller: scrollCtrl,
+                            padding: const EdgeInsets.fromLTRB(
+                                AppDimens.screenPaddingH,
+                                4,
+                                AppDimens.screenPaddingH,
+                                24),
+                            itemCount: _filtered.length,
+                            itemBuilder: (_, i) {
+                              final entry = _filtered[i];
+                              return _CoursePickerTile(
+                                entry: entry,
+                                onTap: () => _selectCourse(entry.course),
+                              );
+                            },
+                          ),
+              ),
+            ] else ...[
+              // Step 1: session type + module picker
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimens.screenPaddingH),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'ТИП',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.mono400,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _SessionTypePill(
+                          label: 'Тест',
+                          icon: Icons.timer_outlined,
+                          isActive: _sessionType == SessionType.test,
+                          onTap: () =>
+                              setState(() => _sessionType = SessionType.test),
+                        ),
+                        const SizedBox(width: 8),
+                        _SessionTypePill(
+                          label: 'Лайв',
+                          icon: Icons.bolt_outlined,
+                          isActive: _sessionType == SessionType.live,
+                          onTap: () =>
+                              setState(() => _sessionType = SessionType.live),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'МОДУЛЬ',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.mono400,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: _loadingDetail
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.mono700,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : _courseDetail == null || _courseDetail!.modules.isEmpty
+                        ? Center(
+                            child: Text(
+                              'Модули не найдены',
+                              style: AppTextStyles.screenSubtitle,
+                            ),
+                          )
+                        : ListView.builder(
+                            controller: scrollCtrl,
+                            padding: const EdgeInsets.fromLTRB(
+                                AppDimens.screenPaddingH,
+                                4,
+                                AppDimens.screenPaddingH,
+                                100),
+                            itemCount: _courseDetail!.modules.length,
+                            itemBuilder: (_, i) {
+                              final module = _courseDetail!.modules[i];
+                              final isSelected = _selectedModule?.id == module.id;
+                              return GestureDetector(
+                                onTap: () =>
+                                    setState(() => _selectedModule = module),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 14),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? AppColors.mono900
+                                        : AppColors.mono25,
+                                    borderRadius:
+                                        BorderRadius.circular(AppDimens.radiusMd),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? AppColors.mono900
+                                          : AppColors.mono100,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          module.title,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: isSelected
+                                                ? Colors.white
+                                                : AppColors.mono900,
+                                          ),
+                                        ),
+                                      ),
+                                      if (isSelected)
+                                        const Icon(Icons.check_circle,
+                                            size: 18, color: Colors.white),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+              ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  AppDimens.screenPaddingH,
+                  0,
+                  AppDimens.screenPaddingH,
+                  MediaQuery.of(context).padding.bottom + 16,
+                ),
+                child: EdiumButton(
+                  label: _sessionType == SessionType.test
+                      ? 'Добавить тест'
+                      : 'Добавить лайв',
+                  onPressed: _selectedModule != null && !_submitting
+                      ? _submit
+                      : null,
+                  isLoading: _submitting,
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _CourseEntry {
+  final String className;
+  final CourseSummary course;
+  const _CourseEntry({required this.className, required this.course});
+}
+
+class _CoursePickerTile extends StatelessWidget {
+  final _CourseEntry entry;
+  final VoidCallback onTap;
+
+  const _CoursePickerTile({required this.entry, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.mono25,
+          borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+          border: Border.all(color: AppColors.mono100),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    entry.course.title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.mono900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    entry.className,
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.mono400),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right,
+                size: 18, color: AppColors.mono300),
           ],
         ),
       ),
@@ -700,98 +829,54 @@ class _VisibilityOption extends StatelessWidget {
   }
 }
 
-// ── Confirm Dialog ───────────────────────────────────────────────────────────
+class _SessionTypePill extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool isActive;
+  final VoidCallback onTap;
 
-class _ConfirmDialog extends StatelessWidget {
-  final String title;
-  final String body;
-  final String confirmLabel;
-  final bool danger;
-
-  const _ConfirmDialog({
-    required this.title,
-    required this.body,
-    required this.confirmLabel,
-    this.danger = false,
+  const _SessionTypePill({
+    required this.label,
+    required this.icon,
+    required this.isActive,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-      ),
-      backgroundColor: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.mono900,
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isActive ? AppColors.mono900 : AppColors.mono25,
+            borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+            border: Border.all(
+              color:
+                  isActive ? AppColors.mono900 : AppColors.mono100,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isActive ? Colors.white : AppColors.mono400,
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(body, style: AppTextStyles.screenSubtitle),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context, false),
-                    child: Container(
-                      height: AppDimens.buttonHSm,
-                      decoration: BoxDecoration(
-                        color: AppColors.mono50,
-                        borderRadius:
-                            BorderRadius.circular(AppDimens.radiusLg),
-                        border: Border.all(color: AppColors.mono100),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          'Отмена',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.mono600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isActive ? Colors.white : AppColors.mono700,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context, true),
-                    child: Container(
-                      height: AppDimens.buttonHSm,
-                      decoration: BoxDecoration(
-                        color: danger ? AppColors.error : AppColors.mono900,
-                        borderRadius:
-                            BorderRadius.circular(AppDimens.radiusLg),
-                      ),
-                      child: Center(
-                        child: Text(
-                          confirmLabel,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -803,12 +888,10 @@ class _ConfirmDialog extends StatelessWidget {
 class _TopBarButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;
-  final Color? color;
 
   const _TopBarButton({
     required this.icon,
     required this.onTap,
-    this.color,
   });
 
   @override
@@ -824,7 +907,7 @@ class _TopBarButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.mono100),
         ),
-        child: Icon(icon, size: 18, color: color ?? AppColors.mono700),
+        child: Icon(icon, size: 18, color: AppColors.mono700),
       ),
     );
   }
@@ -832,7 +915,6 @@ class _TopBarButton extends StatelessWidget {
 
 class _StatusChip extends StatelessWidget {
   final QuizStatus status;
-
   const _StatusChip({required this.status});
 
   @override
@@ -899,12 +981,11 @@ class _SettingChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: highlight
-            ? const Color(0xFFFEE2E2)
-            : AppColors.mono50,
+        color: highlight ? const Color(0xFFFEE2E2) : AppColors.mono50,
         borderRadius: BorderRadius.circular(AppDimens.radiusMd),
         border: Border.all(
-          color: highlight ? AppColors.error.withAlpha(80) : AppColors.mono100,
+          color:
+              highlight ? AppColors.error.withAlpha(80) : AppColors.mono100,
           width: AppDimens.borderWidth,
         ),
       ),
@@ -945,7 +1026,8 @@ class _QuestionTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mono25,
         borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-        border: Border.all(color: AppColors.mono100, width: AppDimens.borderWidth),
+        border: Border.all(
+            color: AppColors.mono100, width: AppDimens.borderWidth),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -996,7 +1078,6 @@ class _QuestionTile extends StatelessWidget {
 
 class _QuestionTypeBadge extends StatelessWidget {
   final QuestionType type;
-
   const _QuestionTypeBadge({required this.type});
 
   @override
@@ -1028,71 +1109,5 @@ class _QuestionTypeBadge extends StatelessWidget {
       case QuestionType.textInput:
         return 'Свободный ответ';
     }
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback? onTap;
-  final bool filled;
-  final bool danger;
-
-  const _ActionButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.filled = false,
-    this.danger = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final Color bg;
-    final Color fg;
-    final Color? borderColor;
-
-    if (danger) {
-      bg = Colors.white;
-      fg = AppColors.error;
-      borderColor = AppColors.error.withAlpha(120);
-    } else if (filled) {
-      bg = AppColors.mono900;
-      fg = Colors.white;
-      borderColor = null;
-    } else {
-      bg = AppColors.mono50;
-      fg = AppColors.mono900;
-      borderColor = AppColors.mono100;
-    }
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: AppDimens.buttonH,
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-          border: borderColor != null
-              ? Border.all(color: borderColor, width: AppDimens.borderWidth)
-              : null,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 18, color: fg),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: fg,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
