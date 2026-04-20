@@ -1,5 +1,21 @@
 import 'package:edium/domain/entities/course_detail.dart';
 
+class CourseDraftModel {
+  final String id;
+  final String quizTemplateId;
+
+  const CourseDraftModel({required this.id, required this.quizTemplateId});
+
+  factory CourseDraftModel.fromJson(Map<String, dynamic> json) {
+    return CourseDraftModel(
+      id: json['id'] as String,
+      quizTemplateId: json['quiz_template_id'] as String,
+    );
+  }
+
+  CourseDraft toEntity() => CourseDraft(id: id, quizTemplateId: quizTemplateId);
+}
+
 class CourseItemModel {
   final String id;
   final String refId;
@@ -17,12 +33,13 @@ class CourseItemModel {
     this.score,
   });
 
-  factory CourseItemModel.fromJson(Map<String, dynamic> json) {
+  factory CourseItemModel.fromJson(Map<String, dynamic> json,
+      {int orderIndex = 0}) {
     return CourseItemModel(
       id: json['id'] as String,
-      refId: json['ref_id'] as String,
+      refId: json['object_id'] as String,
       type: json['type'] as String,
-      orderIndex: json['order_index'] as int,
+      orderIndex: (json['order_index'] as int?) ?? orderIndex,
       attemptId: json['attempt_id'] as String?,
       score: (json['score'] as num?)?.toDouble(),
     );
@@ -59,7 +76,12 @@ class ModuleDetailModel {
       title: json['title'] as String,
       elementCount: json['element_count'] as int,
       items: (json['items'] as List<dynamic>? ?? [])
-          .map((e) => CourseItemModel.fromJson(e as Map<String, dynamic>))
+          .asMap()
+          .entries
+          .map((e) => CourseItemModel.fromJson(
+                e.value as Map<String, dynamic>,
+                orderIndex: e.key,
+              ))
           .toList(),
     );
   }
@@ -82,6 +104,7 @@ class CourseDetailModel {
   final int elementCount;
   final bool isTeacher;
   final List<ModuleDetailModel> modules;
+  final List<CourseDraftModel> drafts;
 
   const CourseDetailModel({
     required this.id,
@@ -91,6 +114,7 @@ class CourseDetailModel {
     required this.elementCount,
     required this.isTeacher,
     required this.modules,
+    this.drafts = const [],
   });
 
   factory CourseDetailModel.fromJson(Map<String, dynamic> json) {
@@ -104,6 +128,9 @@ class CourseDetailModel {
       modules: (json['modules'] as List<dynamic>? ?? [])
           .map((e) => ModuleDetailModel.fromJson(e as Map<String, dynamic>))
           .toList(),
+      drafts: (json['drafts'] as List<dynamic>? ?? [])
+          .map((e) => CourseDraftModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 
@@ -116,6 +143,7 @@ class CourseDetailModel {
       elementCount: elementCount,
       isTeacher: isTeacher,
       modules: modules.map((m) => m.toEntity()).toList(),
+      drafts: drafts.map((d) => d.toEntity()).toList(),
     );
   }
 }

@@ -16,7 +16,7 @@ abstract class IQuizDatasource {
     int? questionTimeLimitSec,
     bool shuffleQuestions,
     required List<Map<String, dynamic>> questions,
-    String? moduleId,
+    String? courseId,
   });
 
   /// Returns test session id.
@@ -25,6 +25,8 @@ abstract class IQuizDatasource {
     required String moduleId,
     int? totalTimeLimitSec,
     bool shuffleQuestions,
+    DateTime? startedAt,
+    DateTime? finishedAt,
   });
 
   /// Returns live session id.
@@ -45,4 +47,10 @@ abstract class IQuizDatasource {
   Future<String> copyQuiz(String id);
 
   Future<void> deleteQuiz(String id);
+
+  Future<void> updateQuiz(String id, {String? title, String? description});
+
+  Future<String> addQuestion(String quizId, Map<String, dynamic> questionData);
+
+  Future<void> removeQuestion(String quizId, String questionId);
 }

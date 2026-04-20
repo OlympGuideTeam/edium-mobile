@@ -103,13 +103,12 @@ class _CreateCourseViewState extends State<_CreateCourseView> {
         child: Scaffold(
           backgroundColor: Colors.white,
           body: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimens.screenPaddingH),
-              child: CustomScrollView(
-                slivers: [
-                  SliverFillRemaining(
-                    hasScrollBody: false,
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppDimens.screenPaddingH),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -119,14 +118,21 @@ class _CreateCourseViewState extends State<_CreateCourseView> {
                         _buildTitleField(),
                         const SizedBox(height: 24),
                         _buildModulesSection(),
-                        const Spacer(),
-                        _buildSubmitButton(),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppDimens.screenPaddingH,
+                    0,
+                    AppDimens.screenPaddingH,
+                    24,
+                  ),
+                  child: _buildSubmitButton(),
+                ),
+              ],
             ),
           ),
         ),

@@ -109,9 +109,9 @@ class _CoursesScreenState extends State<CoursesScreen> {
           create: (_) => CreateQuizBloc(
             getIt(),
             getIt<CreateSessionUsecase>(),
-            moduleId: moduleId,
+            inCourseContext: true,
           ),
-          child: CreateQuizScreen(moduleId: moduleId),
+          child: CreateQuizScreen(preselectedModuleId: moduleId),
         ),
       ),
     );
