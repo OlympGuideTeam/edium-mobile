@@ -155,6 +155,8 @@ class QuizDatasourceHive implements IQuizDatasource {
     required String moduleId,
     int? totalTimeLimitSec,
     bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
     return 'session-test-${DateTime.now().millisecondsSinceEpoch}';
@@ -178,7 +180,7 @@ class QuizDatasourceHive implements IQuizDatasource {
     int? questionTimeLimitSec,
     bool shuffleQuestions = false,
     required List<Map<String, dynamic>> questions,
-    String? moduleId,
+    String? courseId,
   }) async {
     await _ensureSeeded();
     final id = _nextId();
@@ -300,6 +302,44 @@ class QuizDatasourceHive implements IQuizDatasource {
   @override
   Future<void> deleteQuiz(String id) async {
     await HiveStorage.quizzesBox.delete(id);
+  }
+
+  @override
+  Future<void> updateQuiz(String id, {String? title, String? description}) async {
+    final raw = HiveStorage.quizzesBox.get(id);
+    if (raw == null) return;
+    final json = jsonDecode(raw.toString()) as Map<String, dynamic>;
+    if (title != null) json['title'] = title;
+    json['description'] = description;
+    await HiveStorage.quizzesBox.put(id, jsonEncode(json));
+  }
+
+  @override
+  Future<String> addQuestion(String quizId, Map<String, dynamic> questionData) async {
+    final raw = HiveStorage.quizzesBox.get(quizId);
+    if (raw == null) throw Exception('Quiz not found');
+    final json = jsonDecode(raw.toString()) as Map<String, dynamic>;
+    final questions = List<Map<String, dynamic>>.from(
+      (json['questions'] as List<dynamic>? ?? []).map((e) => e as Map<String, dynamic>),
+    );
+    final newId = 'q_hive_${questions.length + 1}_${DateTime.now().millisecondsSinceEpoch}';
+    questions.add({...questionData, 'id': newId, 'order_index': questions.length});
+    json['questions'] = questions;
+    await HiveStorage.quizzesBox.put(quizId, jsonEncode(json));
+    return newId;
+  }
+
+  @override
+  Future<void> removeQuestion(String quizId, String questionId) async {
+    final raw = HiveStorage.quizzesBox.get(quizId);
+    if (raw == null) return;
+    final json = jsonDecode(raw.toString()) as Map<String, dynamic>;
+    final questions = List<Map<String, dynamic>>.from(
+      (json['questions'] as List<dynamic>? ?? []).map((e) => e as Map<String, dynamic>),
+    );
+    questions.removeWhere((q) => q['id'] == questionId);
+    json['questions'] = questions;
+    await HiveStorage.quizzesBox.put(quizId, jsonEncode(json));
   }
 
   static List<QuizModel> _buildSeedQuizzes() => [

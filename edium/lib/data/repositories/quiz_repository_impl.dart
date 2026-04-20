@@ -31,7 +31,7 @@ class QuizRepositoryImpl implements IQuizRepository {
     int? questionTimeLimitSec,
     bool shuffleQuestions = false,
     required List<Map<String, dynamic>> questions,
-    String? moduleId,
+    String? courseId,
   }) {
     return _datasource.createQuiz(
       title: title,
@@ -40,7 +40,7 @@ class QuizRepositoryImpl implements IQuizRepository {
       questionTimeLimitSec: questionTimeLimitSec,
       shuffleQuestions: shuffleQuestions,
       questions: questions,
-      moduleId: moduleId,
+      courseId: courseId,
     );
   }
 
@@ -50,12 +50,16 @@ class QuizRepositoryImpl implements IQuizRepository {
     required String moduleId,
     int? totalTimeLimitSec,
     bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
   }) {
     return _datasource.createTestSession(
       quizTemplateId: quizTemplateId,
       moduleId: moduleId,
       totalTimeLimitSec: totalTimeLimitSec,
       shuffleQuestions: shuffleQuestions,
+      startedAt: startedAt,
+      finishedAt: finishedAt,
     );
   }
 
@@ -105,5 +109,20 @@ class QuizRepositoryImpl implements IQuizRepository {
   @override
   Future<void> deleteQuiz(String id) {
     return _datasource.deleteQuiz(id);
+  }
+
+  @override
+  Future<void> updateQuiz(String id, {String? title, String? description}) {
+    return _datasource.updateQuiz(id, title: title, description: description);
+  }
+
+  @override
+  Future<String> addQuestion(String quizId, Map<String, dynamic> questionData) {
+    return _datasource.addQuestion(quizId, questionData);
+  }
+
+  @override
+  Future<void> removeQuestion(String quizId, String questionId) {
+    return _datasource.removeQuestion(quizId, questionId);
   }
 }

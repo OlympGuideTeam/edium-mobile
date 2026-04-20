@@ -8,12 +8,14 @@ class CreateQuizState extends Equatable {
   final int? totalTimeLimitSec;
   final int? questionTimeLimitSec;
   final bool shuffleQuestions;
+  final DateTime? startedAt;
+  final DateTime? finishedAt;
   final List<Map<String, dynamic>> questions;
   final bool isSubmitting;
   final String? error;
   final bool success;
   final QuizCreationMode quizType;
-  final String? moduleId;
+  final bool isInCourseContext;
 
   const CreateQuizState({
     this.title = '',
@@ -21,15 +23,16 @@ class CreateQuizState extends Equatable {
     this.totalTimeLimitSec,
     this.questionTimeLimitSec,
     this.shuffleQuestions = false,
+    this.startedAt,
+    this.finishedAt,
     this.questions = const [],
     this.isSubmitting = false,
     this.error,
     this.success = false,
     this.quizType = QuizCreationMode.template,
-    this.moduleId,
+    this.isInCourseContext = false,
   });
 
-  bool get isInCourseContext => moduleId != null;
   bool get canSubmit => title.isNotEmpty && questions.isNotEmpty;
 
   CreateQuizState copyWith({
@@ -40,13 +43,17 @@ class CreateQuizState extends Equatable {
     int? questionTimeLimitSec,
     bool clearQuestionTimeLimit = false,
     bool? shuffleQuestions,
+    DateTime? startedAt,
+    bool clearStartedAt = false,
+    DateTime? finishedAt,
+    bool clearFinishedAt = false,
     List<Map<String, dynamic>>? questions,
     bool? isSubmitting,
     String? error,
     bool clearError = false,
     bool? success,
     QuizCreationMode? quizType,
-    String? moduleId,
+    bool? isInCourseContext,
   }) {
     return CreateQuizState(
       title: title ?? this.title,
@@ -56,12 +63,14 @@ class CreateQuizState extends Equatable {
       questionTimeLimitSec:
           clearQuestionTimeLimit ? null : (questionTimeLimitSec ?? this.questionTimeLimitSec),
       shuffleQuestions: shuffleQuestions ?? this.shuffleQuestions,
+      startedAt: clearStartedAt ? null : (startedAt ?? this.startedAt),
+      finishedAt: clearFinishedAt ? null : (finishedAt ?? this.finishedAt),
       questions: questions ?? this.questions,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       error: clearError ? null : (error ?? this.error),
       success: success ?? this.success,
       quizType: quizType ?? this.quizType,
-      moduleId: moduleId ?? this.moduleId,
+      isInCourseContext: isInCourseContext ?? this.isInCourseContext,
     );
   }
 
@@ -72,11 +81,13 @@ class CreateQuizState extends Equatable {
         totalTimeLimitSec,
         questionTimeLimitSec,
         shuffleQuestions,
+        startedAt,
+        finishedAt,
         questions,
         isSubmitting,
         error,
         success,
         quizType,
-        moduleId,
+        isInCourseContext,
       ];
 }

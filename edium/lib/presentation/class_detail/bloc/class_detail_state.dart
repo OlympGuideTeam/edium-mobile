@@ -22,6 +22,10 @@ class ClassDetailError extends ClassDetailState {
   const ClassDetailError(this.message);
 }
 
+class ClassNotFound extends ClassDetailState {
+  const ClassNotFound();
+}
+
 class ClassTitleUpdated extends ClassDetailState {
   final ClassDetail classDetail;
   const ClassTitleUpdated(this.classDetail);

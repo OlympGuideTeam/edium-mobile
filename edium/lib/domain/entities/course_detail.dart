@@ -56,6 +56,21 @@ class ModuleDetail {
   String toString() => 'ModuleDetail(id: $id, title: $title)';
 }
 
+class CourseDraft {
+  final String id;
+  final String quizTemplateId;
+
+  const CourseDraft({required this.id, required this.quizTemplateId});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CourseDraft && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+}
+
 class CourseDetail {
   final String id;
   final String title;
@@ -64,6 +79,7 @@ class CourseDetail {
   final int elementCount;
   final bool isTeacher;
   final List<ModuleDetail> modules;
+  final List<CourseDraft> drafts;
 
   const CourseDetail({
     required this.id,
@@ -73,6 +89,7 @@ class CourseDetail {
     required this.elementCount,
     required this.isTeacher,
     required this.modules,
+    this.drafts = const [],
   });
 
   @override
