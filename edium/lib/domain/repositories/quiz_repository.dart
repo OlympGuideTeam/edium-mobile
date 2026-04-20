@@ -15,7 +15,7 @@ abstract class IQuizRepository {
     int? questionTimeLimitSec,
     bool shuffleQuestions,
     required List<Map<String, dynamic>> questions,
-    String? moduleId,
+    String? courseId,
   });
 
   Future<String> createTestSession({
@@ -23,6 +23,8 @@ abstract class IQuizRepository {
     required String moduleId,
     int? totalTimeLimitSec,
     bool shuffleQuestions,
+    DateTime? startedAt,
+    DateTime? finishedAt,
   });
 
   Future<String> createLiveSession({
@@ -42,4 +44,10 @@ abstract class IQuizRepository {
   Future<String> copyQuiz(String id);
 
   Future<void> deleteQuiz(String id);
+
+  Future<void> updateQuiz(String id, {String? title, String? description});
+
+  Future<String> addQuestion(String quizId, Map<String, dynamic> questionData);
+
+  Future<void> removeQuestion(String quizId, String questionId);
 }

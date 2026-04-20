@@ -63,6 +63,7 @@ class QuizSettingsModel {
 class QuizModel {
   final String id;
   final String title;
+  final String? description;
   final String subject;
   final String authorId;
   final String authorName;
@@ -79,6 +80,7 @@ class QuizModel {
   const QuizModel({
     required this.id,
     required this.title,
+    this.description,
     required this.subject,
     required this.authorId,
     required this.authorName,
@@ -116,6 +118,7 @@ class QuizModel {
     return QuizModel(
       id: json['id'] as String,
       title: json['title'] as String,
+      description: json['description'] as String?,
       subject: json['subject'] as String? ?? '',
       authorId: json['author_id'] as String? ?? '',
       authorName: json['author_name'] as String? ?? '',
@@ -136,6 +139,7 @@ class QuizModel {
   Map<String, dynamic> toJson() => {
         'id': id,
         'title': title,
+        if (description != null) 'description': description,
         'subject': subject,
         'author_id': authorId,
         'author_name': authorName,
@@ -167,6 +171,7 @@ class QuizModel {
     return Quiz(
       id: id,
       title: title,
+      description: description,
       subject: subject,
       authorId: authorId,
       authorName: authorName,

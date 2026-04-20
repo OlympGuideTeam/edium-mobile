@@ -373,8 +373,11 @@ class _ClassTile extends StatelessWidget {
       color: Colors.white,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
-        onTap: () {
-          context.push('/class/${classSummary.id}');
+        onTap: () async {
+          await context.push('/class/${classSummary.id}');
+          if (context.mounted) {
+            context.read<ClassesBloc>().add(const LoadClassesEvent());
+          }
         },
         borderRadius: BorderRadius.circular(14),
         child: Container(

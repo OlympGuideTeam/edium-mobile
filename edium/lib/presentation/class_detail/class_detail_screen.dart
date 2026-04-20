@@ -71,7 +71,14 @@ class _ClassDetailViewState extends State<_ClassDetailView>
   Widget build(BuildContext context) {
     return BlocConsumer<ClassDetailBloc, ClassDetailState>(
       listener: (context, state) {
-        if (state is ClassTitleUpdated) {
+        if (state is ClassNotFound) {
+          context.pop();
+          EdiumNotification.show(
+            context,
+            'Класс не найден',
+            type: EdiumNotificationType.error,
+          );
+        } else if (state is ClassTitleUpdated) {
           EdiumNotification.show(context, 'Название обновлено');
         } else if (state is ClassDeleted) {
           context.pop();

@@ -57,7 +57,15 @@ class RemoveQuestionEvent extends CreateQuizEvent {
 }
 
 class SubmitQuizEvent extends CreateQuizEvent {
-  const SubmitQuizEvent();
+  /// When true, creates template only (no session), even in course context.
+  final bool saveOnly;
+  /// Course id for attach_to_course (saveOnly path).
+  final String? courseId;
+  /// Module id for session creation (Начать path).
+  final String? moduleId;
+  const SubmitQuizEvent({this.saveOnly = false, this.courseId, this.moduleId});
+  @override
+  List<Object?> get props => [saveOnly, courseId, moduleId];
 }
 
 class ReplaceQuestionEvent extends CreateQuizEvent {
@@ -73,6 +81,20 @@ class SetQuizTypeEvent extends CreateQuizEvent {
   const SetQuizTypeEvent(this.quizType);
   @override
   List<Object?> get props => [quizType];
+}
+
+class UpdateStartedAtEvent extends CreateQuizEvent {
+  final DateTime? dateTime;
+  const UpdateStartedAtEvent(this.dateTime);
+  @override
+  List<Object?> get props => [dateTime];
+}
+
+class UpdateFinishedAtEvent extends CreateQuizEvent {
+  final DateTime? dateTime;
+  const UpdateFinishedAtEvent(this.dateTime);
+  @override
+  List<Object?> get props => [dateTime];
 }
 
 class ResetCreateQuizEvent extends CreateQuizEvent {

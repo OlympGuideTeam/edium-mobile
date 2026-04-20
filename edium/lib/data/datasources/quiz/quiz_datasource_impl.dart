@@ -47,6 +47,8 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
     required String moduleId,
     int? totalTimeLimitSec,
     bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
   }) {
     return request<String>(
       'riddler/v1/sessions/test',
@@ -56,6 +58,8 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
         'module_id': moduleId,
         if (totalTimeLimitSec != null) 'total_time_limit_sec': totalTimeLimitSec,
         if (shuffleQuestions) 'shuffle_questions': shuffleQuestions,
+        if (startedAt != null) 'started_at': startedAt.toUtc().toIso8601String(),
+        if (finishedAt != null) 'finished_at': finishedAt.toUtc().toIso8601String(),
       },
       parser: (data) => (data as Map<String, dynamic>)['session_id'] as String,
     );
@@ -88,7 +92,7 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
     int? questionTimeLimitSec,
     bool shuffleQuestions = false,
     required List<Map<String, dynamic>> questions,
-    String? moduleId,
+    String? courseId,
   }) async {
     final id = await request<String>(
       'riddler/v1/quizzes',
@@ -103,8 +107,8 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
             'question_time_limit_sec': questionTimeLimitSec,
           'shuffle_questions': shuffleQuestions,
         },
-        if (moduleId != null)
-          'attach_to_module': {'module_id': moduleId},
+        if (courseId != null)
+          'attach_to_course': {'course_id': courseId},
       },
       parser: (data) => (data as Map<String, dynamic>)['id'] as String,
     );
@@ -172,6 +176,38 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
   Future<void> deleteQuiz(String id) {
     return request(
       'riddler/v1/quizzes/$id',
+      method: HttpMethod.delete,
+      parser: (_) {},
+    );
+  }
+
+  @override
+  Future<void> updateQuiz(String id, {String? title, String? description}) {
+    return request(
+      'riddler/v1/quizzes/$id',
+      method: HttpMethod.patch,
+      req: {
+        if (title != null) 'title': title,
+        if (description != null) 'description': description,
+      },
+      parser: (_) {},
+    );
+  }
+
+  @override
+  Future<String> addQuestion(String quizId, Map<String, dynamic> questionData) {
+    return request(
+      'riddler/v1/quizzes/$quizId/questions',
+      method: HttpMethod.post,
+      req: questionData,
+      parser: (data) => (data as Map<String, dynamic>)['id'] as String,
+    );
+  }
+
+  @override
+  Future<void> removeQuestion(String quizId, String questionId) {
+    return request(
+      'riddler/v1/quizzes/$quizId/questions/$questionId',
       method: HttpMethod.delete,
       parser: (_) {},
     );

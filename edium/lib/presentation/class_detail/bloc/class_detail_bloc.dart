@@ -1,4 +1,5 @@
 import 'package:edium/domain/entities/class_detail.dart';
+import 'package:edium/services/network/api_exception.dart';
 import 'package:edium/domain/usecases/class/delete_class_usecase.dart';
 import 'package:edium/domain/usecases/class/delete_course_usecase.dart';
 import 'package:edium/domain/usecases/class/get_class_detail_usecase.dart';
@@ -60,6 +61,12 @@ class ClassDetailBloc extends Bloc<ClassDetailEvent, ClassDetailState> {
     try {
       final detail = await _getClassDetail(classId: event.classId);
       emit(ClassDetailLoaded(detail));
+    } on ApiException catch (e) {
+      if (e.statusCode == 404) {
+        emit(const ClassNotFound());
+      } else {
+        emit(ClassDetailError(e.message));
+      }
     } catch (e) {
       emit(ClassDetailError(e.toString()));
     }

@@ -8,8 +8,14 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
   final CreateQuizUsecase _createQuiz;
   final CreateSessionUsecase _createSession;
 
-  CreateQuizBloc(this._createQuiz, this._createSession, {String? moduleId})
-      : super(CreateQuizState(moduleId: moduleId)) {
+  CreateQuizBloc(
+    this._createQuiz,
+    this._createSession, {
+    bool inCourseContext = false,
+  }) : super(CreateQuizState(
+          isInCourseContext: inCourseContext,
+          quizType: inCourseContext ? QuizCreationMode.test : QuizCreationMode.template,
+        )) {
     on<UpdateTitleEvent>((e, emit) => emit(state.copyWith(title: e.title)));
     on<UpdateDescriptionEvent>(
         (e, emit) => emit(state.copyWith(description: e.description)));
@@ -25,6 +31,16 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
         ));
     on<UpdateShuffleQuestionsEvent>(
         (e, emit) => emit(state.copyWith(shuffleQuestions: e.shuffle)));
+    on<UpdateStartedAtEvent>((e, emit) => emit(
+          e.dateTime == null
+              ? state.copyWith(clearStartedAt: true)
+              : state.copyWith(startedAt: e.dateTime),
+        ));
+    on<UpdateFinishedAtEvent>((e, emit) => emit(
+          e.dateTime == null
+              ? state.copyWith(clearFinishedAt: true)
+              : state.copyWith(finishedAt: e.dateTime),
+        ));
     on<SetQuizTypeEvent>(
         (e, emit) => emit(state.copyWith(quizType: e.quizType)));
     on<AddQuestionEvent>((e, emit) =>
@@ -50,11 +66,7 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
     if (!state.canSubmit) return;
     emit(state.copyWith(isSubmitting: true, clearError: true));
     try {
-      final moduleId = state.moduleId;
-
-      // For template mode (or library context), create quiz template only.
-      // For test/live in course context, create template then session.
-      if (!state.isInCourseContext || state.quizType == QuizCreationMode.template) {
+      if (!state.isInCourseContext || event.saveOnly) {
         await _createQuiz(
           title: state.title,
           description: state.description.isEmpty ? null : state.description,
@@ -62,10 +74,10 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
           questionTimeLimitSec: state.questionTimeLimitSec,
           shuffleQuestions: state.shuffleQuestions,
           questions: state.questions,
-          moduleId: moduleId,
+          courseId: event.courseId,
         );
       } else {
-        // Course context: create template, then session.
+        // Course context: create template (no attach), then session.
         final templateId = await _createQuiz(
           title: state.title,
           description: state.description.isEmpty ? null : state.description,
@@ -79,11 +91,13 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
             : SessionType.test;
         await _createSession(
           quizTemplateId: templateId,
-          moduleId: moduleId!,
+          moduleId: event.moduleId!,
           sessionType: sessionType,
           totalTimeLimitSec: state.totalTimeLimitSec,
           questionTimeLimitSec: state.questionTimeLimitSec,
           shuffleQuestions: state.shuffleQuestions,
+          startedAt: state.startedAt,
+          finishedAt: state.finishedAt,
         );
       }
 
