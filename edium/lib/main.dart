@@ -14,6 +14,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 final ValueNotifier<int> appRestartKey = ValueNotifier(0);
 
@@ -69,6 +70,7 @@ Future<void> main() async {
   );
 }
 
+
 class EdiumApp extends StatelessWidget {
   const EdiumApp({super.key});
 
@@ -81,7 +83,17 @@ class EdiumApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         routerConfig: buildRouter(),
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('ru', 'RU'),
+        ],
+        locale: const Locale('ru', 'RU'),
       ),
     );
   }
 }
+

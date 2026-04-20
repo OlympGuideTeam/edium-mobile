@@ -14,6 +14,8 @@ class CreateSessionUsecase {
     int? totalTimeLimitSec,
     int? questionTimeLimitSec,
     bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
   }) {
     if (sessionType == SessionType.live) {
       return _repository.createLiveSession(
@@ -27,6 +29,8 @@ class CreateSessionUsecase {
       moduleId: moduleId,
       totalTimeLimitSec: totalTimeLimitSec,
       shuffleQuestions: shuffleQuestions,
+      startedAt: startedAt,
+      finishedAt: finishedAt,
     );
   }
 }

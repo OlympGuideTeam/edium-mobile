@@ -33,6 +33,7 @@ class QuizSettings {
 class Quiz {
   final String id;
   final String title;
+  final String? description;
   final String subject;
   final String authorId;
   final String authorName;
@@ -49,6 +50,7 @@ class Quiz {
   const Quiz({
     required this.id,
     required this.title,
+    this.description,
     required this.subject,
     required this.authorId,
     required this.authorName,
@@ -66,6 +68,8 @@ class Quiz {
   Quiz copyWith({
     String? id,
     String? title,
+    String? description,
+    bool clearDescription = false,
     String? subject,
     String? authorId,
     String? authorName,
@@ -80,6 +84,7 @@ class Quiz {
     return Quiz(
       id: id ?? this.id,
       title: title ?? this.title,
+      description: clearDescription ? null : (description ?? this.description),
       subject: subject ?? this.subject,
       authorId: authorId ?? this.authorId,
       authorName: authorName ?? this.authorName,

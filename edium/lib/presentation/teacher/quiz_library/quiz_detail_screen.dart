@@ -14,6 +14,7 @@ import 'package:edium/domain/usecases/quiz/create_session_usecase.dart';
 import 'package:edium/presentation/shared/widgets/edium_button.dart';
 import 'package:edium/presentation/shared/widgets/edium_notification.dart';
 import 'package:edium/presentation/teacher/create_quiz/quiz_results_screen.dart';
+import 'package:edium/presentation/teacher/edit_quiz_template/edit_quiz_template_screen.dart';
 import 'package:flutter/material.dart';
 
 class QuizDetailScreen extends StatefulWidget {
@@ -64,6 +65,72 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
       }
     } finally {
       if (mounted) setState(() => _actionLoading = false);
+    }
+  }
+
+  Future<void> _editQuiz() async {
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditQuizTemplateScreen(quizId: widget.quizId),
+      ),
+    );
+    if (updated == true && mounted) _load();
+  }
+
+  Future<void> _deleteQuiz() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Удалить шаблон?',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: AppColors.mono900,
+          ),
+        ),
+        content: const Text(
+          'Это действие нельзя отменить. Шаблон будет удалён из библиотеки.',
+          style: TextStyle(fontSize: 14, color: AppColors.mono600),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              'Отмена',
+              style: TextStyle(color: AppColors.mono600),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Удалить',
+              style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _actionLoading = true);
+    try {
+      await getIt<IQuizRepository>().deleteQuiz(widget.quizId);
+      if (mounted) {
+        EdiumNotification.show(context, 'Шаблон удалён');
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _actionLoading = false);
+        EdiumNotification.show(
+          context,
+          'Ошибка удаления',
+          type: EdiumNotificationType.error,
+        );
+      }
     }
   }
 
@@ -182,10 +249,20 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                 ),
               ),
             ),
-          _TopBarButton(
-            icon: Icons.copy_outlined,
-            onTap: _actionLoading ? null : _copyQuiz,
-          ),
+          if (_isOwner) ...[
+            _TopBarButton(
+              icon: Icons.edit_outlined,
+              onTap: _actionLoading ? null : _editQuiz,
+            ),
+            _TopBarButton(
+              icon: Icons.delete_outline,
+              onTap: _actionLoading ? null : _deleteQuiz,
+            ),
+          ] else
+            _TopBarButton(
+              icon: Icons.copy_outlined,
+              onTap: _actionLoading ? null : _copyQuiz,
+            ),
         ],
       ),
     );
@@ -219,6 +296,13 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
         if (quiz.subject.trim().isNotEmpty) ...[
           const SizedBox(height: 6),
           Text(quiz.subject, style: AppTextStyles.screenSubtitle),
+        ],
+        if (quiz.description != null && quiz.description!.trim().isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            quiz.description!,
+            style: AppTextStyles.screenSubtitle.copyWith(fontSize: 14),
+          ),
         ],
       ],
     );

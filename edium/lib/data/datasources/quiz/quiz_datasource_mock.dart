@@ -164,6 +164,8 @@ class QuizDatasourceMock implements IQuizDatasource {
     required String moduleId,
     int? totalTimeLimitSec,
     bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
     return 'session-test-${DateTime.now().millisecondsSinceEpoch}';
@@ -187,7 +189,7 @@ class QuizDatasourceMock implements IQuizDatasource {
     int? questionTimeLimitSec,
     bool shuffleQuestions = false,
     required List<Map<String, dynamic>> questions,
-    String? moduleId,
+    String? courseId,
   }) async {
     await Future.delayed(const Duration(milliseconds: 600));
     final id = '${++_nextId}';
@@ -312,5 +314,79 @@ class QuizDatasourceMock implements IQuizDatasource {
   @override
   Future<void> deleteQuiz(String id) async {
     _quizzes.removeWhere((q) => q.id == id);
+  }
+
+  @override
+  Future<void> updateQuiz(String id, {String? title, String? description}) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final idx = _quizzes.indexWhere((q) => q.id == id);
+    if (idx == -1) return;
+    final q = _quizzes[idx];
+    _quizzes[idx] = QuizModel(
+      id: q.id,
+      title: title ?? q.title,
+      description: description,
+      subject: q.subject,
+      authorId: q.authorId,
+      authorName: q.authorName,
+      status: q.status,
+      settings: q.settings,
+      questions: q.questions,
+      likesCount: q.likesCount,
+      isLiked: q.isLiked,
+      createdAt: q.createdAt,
+      summaryQuestionCount: q.summaryQuestionCount,
+    );
+  }
+
+  @override
+  Future<String> addQuestion(String quizId, Map<String, dynamic> questionData) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final idx = _quizzes.indexWhere((q) => q.id == quizId);
+    if (idx == -1) throw Exception('Quiz not found');
+    final q = _quizzes[idx];
+    final newId = 'q_edit_${q.questions.length + 1}_${DateTime.now().millisecondsSinceEpoch}';
+    final newQuestion = QuestionModel.fromJson({
+      ...questionData,
+      'id': newId,
+      'order_index': q.questions.length,
+    });
+    _quizzes[idx] = QuizModel(
+      id: q.id,
+      title: q.title,
+      description: q.description,
+      subject: q.subject,
+      authorId: q.authorId,
+      authorName: q.authorName,
+      status: q.status,
+      settings: q.settings,
+      questions: [...q.questions, newQuestion],
+      likesCount: q.likesCount,
+      isLiked: q.isLiked,
+      createdAt: q.createdAt,
+    );
+    return newId;
+  }
+
+  @override
+  Future<void> removeQuestion(String quizId, String questionId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final idx = _quizzes.indexWhere((q) => q.id == quizId);
+    if (idx == -1) return;
+    final q = _quizzes[idx];
+    _quizzes[idx] = QuizModel(
+      id: q.id,
+      title: q.title,
+      description: q.description,
+      subject: q.subject,
+      authorId: q.authorId,
+      authorName: q.authorName,
+      status: q.status,
+      settings: q.settings,
+      questions: q.questions.where((qm) => qm.id != questionId).toList(),
+      likesCount: q.likesCount,
+      isLiked: q.isLiked,
+      createdAt: q.createdAt,
+    );
   }
 }
