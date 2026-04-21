@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
@@ -13,14 +15,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 class CreateQuizScreen extends StatefulWidget {
-  /// Список модулей для выбора при нажатии "Начать".
-  /// null = библиотечный контекст (без привязки к курсу).
   final List<ModuleDetail>? modules;
-
-  /// Если задан — модуль уже известен, выбор не показывается (для "Начать").
   final String? preselectedModuleId;
-
-  /// Course id для attach_to_course при "Сохранить".
   final String? courseId;
 
   const CreateQuizScreen({
@@ -37,6 +33,17 @@ class CreateQuizScreen extends StatefulWidget {
 class _CreateQuizScreenState extends State<CreateQuizScreen> {
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  var _syncedControllersFromBloc = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_syncedControllersFromBloc) return;
+    _syncedControllersFromBloc = true;
+    final s = context.read<CreateQuizBloc>().state;
+    _titleCtrl.text = s.title;
+    _descCtrl.text = s.description;
+  }
 
   @override
   void dispose() {
@@ -45,8 +52,6 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     super.dispose();
   }
 
-  /// Показывает picker модулей и возвращает выбранный moduleId.
-  /// Если модуль уже предвыбран или только один — возвращает сразу без UI.
   Future<String?> _pickModule() async {
     if (widget.preselectedModuleId != null) return widget.preselectedModuleId;
     final modules = widget.modules;
@@ -83,9 +88,8 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                 ),
                 const SizedBox(height: 20),
                 const Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: AppDimens.screenPaddingH,
-                  ),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: AppDimens.screenPaddingH),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -114,9 +118,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                         onTap: () => Navigator.of(sheetCtx).pop(mod.id),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 14,
-                          ),
+                              horizontal: 14, vertical: 14),
                           decoration: BoxDecoration(
                             borderRadius:
                                 BorderRadius.circular(AppDimens.radiusMd),
@@ -127,11 +129,8 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                           ),
                           child: Row(
                             children: [
-                              const Icon(
-                                Icons.folder_outlined,
-                                size: 20,
-                                color: AppColors.mono400,
-                              ),
+                              const Icon(Icons.folder_outlined,
+                                  size: 20, color: AppColors.mono400),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
@@ -145,11 +144,8 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              const Icon(
-                                Icons.chevron_right,
-                                size: 20,
-                                color: AppColors.mono300,
-                              ),
+                              const Icon(Icons.chevron_right,
+                                  size: 20, color: AppColors.mono300),
                             ],
                           ),
                         ),
@@ -179,6 +175,26 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     context.read<CreateQuizBloc>().add(
           SubmitQuizEvent(moduleId: moduleId),
         );
+  }
+
+  void _openAIGenerateSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) {
+        return _AIGenerateSheet(
+          onGenerate: (text) {
+            Navigator.pop(sheetCtx);
+            // TODO: подключить AI бизнес-логику
+            // context.read<CreateQuizBloc>().add(GenerateQuestionsWithAI(text));
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -236,8 +252,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                         const SizedBox(height: 12),
                         _SettingsCard(state: state),
                         const SizedBox(height: 28),
-                        _SectionLabel(
-                            'ВОПРОСЫ (${state.questions.length})'),
+                        _SectionLabel('ВОПРОСЫ (${state.questions.length})'),
                         const SizedBox(height: 12),
                         _QuestionsList(
                           questions: state.questions,
@@ -247,6 +262,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
                               .add(RemoveQuestionEvent(i)),
                           onEdit: (i) => _openEditQuestion(
                               context, i, state.questions[i]),
+                          onAIGenerate: _openAIGenerateSheet,
                         ),
                         const SizedBox(height: 100),
                       ],
@@ -278,8 +294,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       leading: IconButton(
-        icon:
-            const Icon(Icons.close, color: AppColors.mono700, size: 22),
+        icon: const Icon(Icons.close, color: AppColors.mono700, size: 22),
         onPressed: () => Navigator.pop(context),
       ),
       title: Text(title, style: AppTextStyles.screenTitle),
@@ -306,15 +321,394 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     final q = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            AddQuestionScreen(initialQuestion: existing),
+        builder: (_) => AddQuestionScreen(initialQuestion: existing),
       ),
     );
     if (q != null && context.mounted) {
-      context
-          .read<CreateQuizBloc>()
-          .add(ReplaceQuestionEvent(index, q));
+      context.read<CreateQuizBloc>().add(ReplaceQuestionEvent(index, q));
     }
+  }
+}
+
+// ─── AI Generate Sheet ────────────────────────────────────────────────────────
+
+class _AIGenerateSheet extends StatefulWidget {
+  final ValueChanged<String> onGenerate;
+
+  const _AIGenerateSheet({required this.onGenerate});
+
+  @override
+  State<_AIGenerateSheet> createState() => _AIGenerateSheetState();
+}
+
+class _AIGenerateSheetState extends State<_AIGenerateSheet> {
+  final _textCtrl = TextEditingController();
+  static const _maxLength = 4000;
+
+  @override
+  void dispose() {
+    _textCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.mono150,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF8B5CF6),
+                          Color(0xFFEC4899),
+                          Color(0xFFF59E0B),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: const Icon(Icons.auto_awesome,
+                        size: 18, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Сгенерировать вопросы',
+                          style: AppTextStyles.subtitle
+                              .copyWith(color: AppColors.mono900),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Вставьте текст — AI создаст вопросы',
+                          style: AppTextStyles.caption
+                              .copyWith(color: AppColors.mono400),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.mono25,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.mono150),
+                ),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _textCtrl,
+                      maxLength: _maxLength,
+                      maxLines: 8,
+                      minLines: 5,
+                      textCapitalization: TextCapitalization.sentences,
+                      style: AppTextStyles.fieldText
+                          .copyWith(color: AppColors.mono700),
+                      decoration: InputDecoration(
+                        hintText:
+                            'Вставьте текст лекции, главы учебника или любой материал...',
+                        hintStyle: AppTextStyles.fieldHint,
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.all(14),
+                        counterText: '',
+                      ),
+                      cursorColor: AppColors.mono900,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(
+                          left: 14, right: 14, bottom: 10),
+                      child: Row(
+                        children: [
+                          const Spacer(),
+                          ListenableBuilder(
+                            listenable: _textCtrl,
+                            builder: (_, __) => Text(
+                              '${_textCtrl.text.length}/$_maxLength',
+                              style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.mono300, fontSize: 11),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListenableBuilder(
+                listenable: _textCtrl,
+                builder: (_, __) {
+                  final canGenerate = _textCtrl.text.trim().length >= 20;
+                  return SizedBox(
+                    width: double.infinity,
+                    height: AppDimens.buttonH,
+                    child: _RainbowBorderButton(
+                      enabled: canGenerate,
+                      onTap: canGenerate
+                          ? () => widget.onGenerate(_textCtrl.text.trim())
+                          : null,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.auto_awesome,
+                              size: 16, color: Colors.white),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Сгенерировать',
+                            style: AppTextStyles.primaryButton.copyWith(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Rainbow border button with animated shimmer ──────────────────────────────
+
+class _RainbowBorderButton extends StatefulWidget {
+  final bool enabled;
+  final VoidCallback? onTap;
+  final Widget child;
+
+  const _RainbowBorderButton({
+    required this.enabled,
+    required this.onTap,
+    required this.child,
+  });
+
+  @override
+  State<_RainbowBorderButton> createState() => _RainbowBorderButtonState();
+}
+
+class _RainbowBorderButtonState extends State<_RainbowBorderButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, child) {
+        return GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 200),
+            opacity: widget.enabled ? 1.0 : 0.5,
+            child: CustomPaint(
+              painter: _RainbowBorderPainter(
+                progress: _ctrl.value,
+                borderRadius: 14,
+                borderWidth: 2.5,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.mono900,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                margin: const EdgeInsets.all(2.5),
+                alignment: Alignment.center,
+                child: child,
+              ),
+            ),
+          ),
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+class _RainbowBorderPainter extends CustomPainter {
+  final double progress;
+  final double borderRadius;
+  final double borderWidth;
+
+  _RainbowBorderPainter({
+    required this.progress,
+    required this.borderRadius,
+    required this.borderWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(
+      rect,
+      Radius.circular(borderRadius),
+    );
+
+    final colors = [
+      const Color(0xFFFF0000),
+      const Color(0xFFFF8000),
+      const Color(0xFFFFFF00),
+      const Color(0xFF00FF00),
+      const Color(0xFF00FFFF),
+      const Color(0xFF0080FF),
+      const Color(0xFF8000FF),
+      const Color(0xFFFF00FF),
+      const Color(0xFFFF0000),
+    ];
+
+    final sweepGradient = SweepGradient(
+      startAngle: 0,
+      endAngle: math.pi * 2,
+      colors: colors,
+      transform: GradientRotation(progress * math.pi * 2),
+    );
+
+    final paint = Paint()
+      ..shader = sweepGradient.createShader(rect)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = borderWidth;
+
+    canvas.drawRRect(rrect, paint);
+  }
+
+  @override
+  bool shouldRepaint(_RainbowBorderPainter oldDelegate) =>
+      oldDelegate.progress != progress;
+}
+
+// ─── AI Generate small button (rainbow animated border) ───────────────────────
+
+class _AIGenerateButton extends StatefulWidget {
+  final VoidCallback onTap;
+  const _AIGenerateButton({required this.onTap});
+
+  @override
+  State<_AIGenerateButton> createState() => _AIGenerateButtonState();
+}
+
+class _AIGenerateButtonState extends State<_AIGenerateButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (context, child) {
+          return CustomPaint(
+            painter: _RainbowBorderPainter(
+              progress: _ctrl.value,
+              borderRadius: 12,
+              borderWidth: 1,
+            ),
+            child: Container(
+              margin: const EdgeInsets.all(1),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ShaderMask(
+                    shaderCallback: (bounds) {
+                      return SweepGradient(
+                        colors: const [
+                          Color(0xFF8B5CF6),
+                          Color(0xFFEC4899),
+                          Color(0xFFF59E0B),
+                          Color(0xFF10B981),
+                          Color(0xFF3B82F6),
+                          Color(0xFF8B5CF6),
+                        ],
+                        transform:
+                            GradientRotation(_ctrl.value * math.pi * 2),
+                      ).createShader(bounds);
+                    },
+                    child: const Icon(Icons.auto_awesome,
+                        size: 16, color: Colors.white),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'AI',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.mono900,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 
@@ -392,7 +786,6 @@ class _QuizTypeSelectorState extends State<_QuizTypeSelector> {
           final itemWidth = constraints.maxWidth / count;
           return Stack(
             children: [
-              // ── Sliding background indicator ──
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeOutCubic,
@@ -414,7 +807,6 @@ class _QuizTypeSelectorState extends State<_QuizTypeSelector> {
                   ),
                 ),
               ),
-              // ── Pills ──
               Row(
                 children: List.generate(count, (i) {
                   final item = items[i];
@@ -426,16 +818,14 @@ class _QuizTypeSelectorState extends State<_QuizTypeSelector> {
                           .add(SetQuizTypeEvent(item.mode)),
                       behavior: HitTestBehavior.opaque,
                       child: Padding(
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 10),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             AnimatedDefaultTextStyle(
-                              duration:
-                                  const Duration(milliseconds: 250),
+                              duration: const Duration(milliseconds: 250),
                               style: TextStyle(
-                                fontSize: 0, // not used for icon
+                                fontSize: 0,
                                 color: isActive
                                     ? Colors.white
                                     : AppColors.mono400,
@@ -450,8 +840,7 @@ class _QuizTypeSelectorState extends State<_QuizTypeSelector> {
                             ),
                             const SizedBox(height: 3),
                             AnimatedDefaultTextStyle(
-                              duration:
-                                  const Duration(milliseconds: 250),
+                              duration: const Duration(milliseconds: 250),
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: isActive
@@ -517,8 +906,7 @@ class _TitleField extends StatelessWidget {
         TextField(
           controller: controller,
           textCapitalization: TextCapitalization.sentences,
-          style: AppTextStyles.subtitle
-              .copyWith(color: AppColors.mono900),
+          style: AppTextStyles.subtitle.copyWith(color: AppColors.mono900),
           decoration: _inputDecoration.copyWith(
             hintStyle: AppTextStyles.subtitle.copyWith(
               color: AppColors.mono300,
@@ -530,23 +918,20 @@ class _TitleField extends StatelessWidget {
           maxLines: null,
           maxLength: _maxLength,
           textInputAction: TextInputAction.next,
-          onChanged: (v) => context
-              .read<CreateQuizBloc>()
-              .add(UpdateTitleEvent(v)),
+          onChanged: (v) =>
+              context.read<CreateQuizBloc>().add(UpdateTitleEvent(v)),
         ),
         const SizedBox(height: 4),
         Row(
           children: [
-            Expanded(
-                child:
-                    Container(height: 1, color: AppColors.mono100)),
+            Expanded(child: Container(height: 1, color: AppColors.mono100)),
             const SizedBox(width: 8),
             ListenableBuilder(
               listenable: controller,
               builder: (_, __) => Text(
                 '${controller.text.length}/$_maxLength',
-                style: AppTextStyles.caption.copyWith(
-                    color: AppColors.mono300, fontSize: 11),
+                style: AppTextStyles.caption
+                    .copyWith(color: AppColors.mono300, fontSize: 11),
               ),
             ),
           ],
@@ -585,8 +970,7 @@ class _DescriptionField extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               '— необязательно',
-              style:
-                  AppTextStyles.helperText.copyWith(fontSize: 11),
+              style: AppTextStyles.helperText.copyWith(fontSize: 11),
             ),
           ],
         ),
@@ -594,8 +978,7 @@ class _DescriptionField extends StatelessWidget {
         TextField(
           controller: controller,
           textCapitalization: TextCapitalization.sentences,
-          style: AppTextStyles.fieldText
-              .copyWith(color: AppColors.mono700),
+          style: AppTextStyles.fieldText.copyWith(color: AppColors.mono700),
           decoration: _inputDecoration.copyWith(
             hintStyle: AppTextStyles.fieldHint,
           ),
@@ -604,23 +987,20 @@ class _DescriptionField extends StatelessWidget {
           maxLines: null,
           maxLength: _maxLength,
           textInputAction: TextInputAction.done,
-          onChanged: (v) => context
-              .read<CreateQuizBloc>()
-              .add(UpdateDescriptionEvent(v)),
+          onChanged: (v) =>
+              context.read<CreateQuizBloc>().add(UpdateDescriptionEvent(v)),
         ),
         const SizedBox(height: 4),
         Row(
           children: [
-            Expanded(
-                child:
-                    Container(height: 1, color: AppColors.mono100)),
+            Expanded(child: Container(height: 1, color: AppColors.mono100)),
             const SizedBox(width: 8),
             ListenableBuilder(
               listenable: controller,
               builder: (_, __) => Text(
                 '${controller.text.length}/$_maxLength',
-                style: AppTextStyles.caption.copyWith(
-                    color: AppColors.mono300, fontSize: 11),
+                style: AppTextStyles.caption
+                    .copyWith(color: AppColors.mono300, fontSize: 11),
               ),
             ),
           ],
@@ -644,10 +1024,10 @@ class _SettingsCard extends StatelessWidget {
     final showQuestionTime = !state.isInCourseContext ||
         state.quizType == QuizCreationMode.template ||
         state.quizType == QuizCreationMode.live;
-    final showShuffle = state.isInCourseContext &&
-        state.quizType == QuizCreationMode.test;
-    final showDates = state.isInCourseContext &&
-        state.quizType == QuizCreationMode.test;
+    final showShuffle =
+        state.isInCourseContext && state.quizType == QuizCreationMode.test;
+    final showDates =
+        state.isInCourseContext && state.quizType == QuizCreationMode.test;
 
     final rows = <Widget>[];
 
@@ -655,9 +1035,8 @@ class _SettingsCard extends StatelessWidget {
       rows.add(_TimeRow(
         key: const ValueKey('totalTime'),
         label: 'Время на весь квиз',
-        subtitle: !state.isInCourseContext
-            ? 'Используется в режиме «Тест»'
-            : null,
+        subtitle:
+            !state.isInCourseContext ? 'Используется в режиме «Тест»' : null,
         valueSec: state.totalTimeLimitSec,
         unit: 'мин',
         unitDivisor: 60,
@@ -665,9 +1044,9 @@ class _SettingsCard extends StatelessWidget {
         sliderMaxUnits: 90,
         sliderStep: 5,
         defaultValueSec: 1200,
-        onToggle: (on) => context.read<CreateQuizBloc>().add(
-              UpdateTotalTimeLimitEvent(on ? 1200 : null),
-            ),
+        onToggle: (on) => context
+            .read<CreateQuizBloc>()
+            .add(UpdateTotalTimeLimitEvent(on ? 1200 : null)),
         onValueChanged: (sec) => context
             .read<CreateQuizBloc>()
             .add(UpdateTotalTimeLimitEvent(sec)),
@@ -682,9 +1061,8 @@ class _SettingsCard extends StatelessWidget {
       rows.add(_TimeRow(
         key: const ValueKey('questionTime'),
         label: 'Время на вопрос',
-        subtitle: !state.isInCourseContext
-            ? 'Используется в режиме «Лайв»'
-            : null,
+        subtitle:
+            !state.isInCourseContext ? 'Используется в режиме «Лайв»' : null,
         valueSec: state.questionTimeLimitSec,
         unit: 'сек',
         unitDivisor: 1,
@@ -692,9 +1070,9 @@ class _SettingsCard extends StatelessWidget {
         sliderMaxUnits: 90,
         sliderStep: 5,
         defaultValueSec: 30,
-        onToggle: (on) => context.read<CreateQuizBloc>().add(
-              UpdateQuestionTimeLimitEvent(on ? 30 : null),
-            ),
+        onToggle: (on) => context
+            .read<CreateQuizBloc>()
+            .add(UpdateQuestionTimeLimitEvent(on ? 30 : null)),
         onValueChanged: (sec) => context
             .read<CreateQuizBloc>()
             .add(UpdateQuestionTimeLimitEvent(sec)),
@@ -718,9 +1096,8 @@ class _SettingsCard extends StatelessWidget {
         onToggle: (on) => context.read<CreateQuizBloc>().add(
               UpdateStartedAtEvent(on ? DateTime.now() : null),
             ),
-        onPick: (dt) => context
-            .read<CreateQuizBloc>()
-            .add(UpdateStartedAtEvent(dt)),
+        onPick: (dt) =>
+            context.read<CreateQuizBloc>().add(UpdateStartedAtEvent(dt)),
       ));
       rows.add(_CardDivider());
       rows.add(_DateTimeRow(
@@ -728,13 +1105,11 @@ class _SettingsCard extends StatelessWidget {
         label: 'Дедлайн',
         value: state.finishedAt,
         onToggle: (on) => context.read<CreateQuizBloc>().add(
-              UpdateFinishedAtEvent(on
-                  ? DateTime.now().add(const Duration(days: 7))
-                  : null),
+              UpdateFinishedAtEvent(
+                  on ? DateTime.now().add(const Duration(days: 7)) : null),
             ),
-        onPick: (dt) => context
-            .read<CreateQuizBloc>()
-            .add(UpdateFinishedAtEvent(dt)),
+        onPick: (dt) =>
+            context.read<CreateQuizBloc>().add(UpdateFinishedAtEvent(dt)),
       ));
     }
 
@@ -795,7 +1170,8 @@ class _ShuffleRow extends StatelessWidget {
           Expanded(
             child: Text(
               'Перемешать вопросы',
-              style: AppTextStyles.bodySmall.copyWith(color: AppColors.mono700),
+              style:
+                  AppTextStyles.bodySmall.copyWith(color: AppColors.mono700),
             ),
           ),
           _MonoSwitch(
@@ -808,10 +1184,9 @@ class _ShuffleRow extends StatelessWidget {
       ),
     );
   }
-
 }
 
-// ─── DateTime row (fixed) ─────────────────────────────────────────────────────
+// ─── Custom DateTime picker (cross-platform) ─────────────────────────────────
 
 class _DateTimeRow extends StatelessWidget {
   final String label;
@@ -831,67 +1206,31 @@ class _DateTimeRow extends StatelessWidget {
 
   Future<void> _pick(BuildContext context) async {
     final initial = value ?? DateTime.now();
-
-    final now = DateTime.now();
-    // Ensure initialDate is not before firstDate
-    final firstDate =
-        DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1));
-    final initialDate = initial.isBefore(firstDate) ? firstDate : initial;
-
-    final date = await showDatePicker(
+    final result = await showModalBottomSheet<DateTime>(
       context: context,
-      initialDate: initialDate,
-      firstDate: firstDate,
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-      locale: const Locale('ru', 'RU'),
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: AppColors.mono900,
-            onPrimary: Colors.white,
-            surface: Colors.white,
-          ),
-        ),
-        child: child!,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      builder: (_) => _EdiumDateTimePicker(initial: initial),
     );
-    if (date == null || !context.mounted) return;
-
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(initial),
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: AppColors.mono900,
-            onPrimary: Colors.white,
-            surface: Colors.white,
-          ),
-        ),
-        child: MediaQuery(
-          data: MediaQuery.of(ctx).copyWith(alwaysUse24HourFormat: true),
-          child: child!,
-        ),
-      ),
-    );
-    if (time == null || !context.mounted) return;
-
-    onPick(
-        DateTime(date.year, date.month, date.day, time.hour, time.minute));
+    if (result != null && context.mounted) {
+      onPick(result);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-          horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
           Expanded(
             child: Text(
               label,
-              style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.mono700),
+              style:
+                  AppTextStyles.bodySmall.copyWith(color: AppColors.mono700),
             ),
           ),
           AnimatedOpacity(
@@ -902,8 +1241,8 @@ class _DateTimeRow extends StatelessWidget {
               child: GestureDetector(
                 onTap: () => _pick(context),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppColors.mono100,
                     borderRadius: BorderRadius.circular(6),
@@ -925,8 +1264,461 @@ class _DateTimeRow extends StatelessWidget {
       ),
     );
   }
+}
 
+// ─── Custom cross-platform date-time picker ───────────────────────────────────
 
+class _EdiumDateTimePicker extends StatefulWidget {
+  final DateTime initial;
+
+  const _EdiumDateTimePicker({required this.initial});
+
+  @override
+  State<_EdiumDateTimePicker> createState() => _EdiumDateTimePickerState();
+}
+
+class _EdiumDateTimePickerState extends State<_EdiumDateTimePicker> {
+  late DateTime _selectedDate;
+  late int _selectedHour;
+  late int _selectedMinute;
+  late int _displayedMonth;
+  late int _displayedYear;
+
+  static const _monthNames = [
+    'Январь',
+    'Февраль',
+    'Март',
+    'Апрель',
+    'Май',
+    'Июнь',
+    'Июль',
+    'Август',
+    'Сентябрь',
+    'Октябрь',
+    'Ноябрь',
+    'Декабрь',
+  ];
+
+  static const _weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = DateTime(
+        widget.initial.year, widget.initial.month, widget.initial.day);
+    _selectedHour = widget.initial.hour;
+    _selectedMinute = widget.initial.minute;
+    _displayedMonth = widget.initial.month;
+    _displayedYear = widget.initial.year;
+  }
+
+  void _prevMonth() {
+    setState(() {
+      if (_displayedMonth == 1) {
+        _displayedMonth = 12;
+        _displayedYear--;
+      } else {
+        _displayedMonth--;
+      }
+    });
+  }
+
+  void _nextMonth() {
+    setState(() {
+      if (_displayedMonth == 12) {
+        _displayedMonth = 1;
+        _displayedYear++;
+      } else {
+        _displayedMonth++;
+      }
+    });
+  }
+
+  List<DateTime?> _buildCalendarGrid() {
+    final firstDay = DateTime(_displayedYear, _displayedMonth, 1);
+    final daysInMonth =
+        DateTime(_displayedYear, _displayedMonth + 1, 0).day;
+    // Monday = 1
+    final startWeekday = firstDay.weekday; // 1=Mon ... 7=Sun
+    final leadingBlanks = startWeekday - 1;
+
+    final List<DateTime?> cells = [];
+    for (var i = 0; i < leadingBlanks; i++) {
+      cells.add(null);
+    }
+    for (var d = 1; d <= daysInMonth; d++) {
+      cells.add(DateTime(_displayedYear, _displayedMonth, d));
+    }
+    // Pad to complete last row
+    while (cells.length % 7 != 0) {
+      cells.add(null);
+    }
+    return cells;
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  bool _isToday(DateTime d) => _isSameDay(d, DateTime.now());
+
+  void _confirm() {
+    final result = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedHour,
+      _selectedMinute,
+    );
+    Navigator.pop(context, result);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cells = _buildCalendarGrid();
+    final today = DateTime.now();
+    final canGoPrev = _displayedYear > today.year ||
+        (_displayedYear == today.year && _displayedMonth > today.month);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.mono150,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Month navigation
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                GestureDetector(
+                  onTap: canGoPrev ? _prevMonth : null,
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.mono50,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.chevron_left,
+                      size: 20,
+                      color:
+                          canGoPrev ? AppColors.mono700 : AppColors.mono200,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${_monthNames[_displayedMonth - 1]} $_displayedYear',
+                  style: AppTextStyles.subtitle
+                      .copyWith(color: AppColors.mono900),
+                ),
+                GestureDetector(
+                  onTap: _nextMonth,
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.mono50,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.chevron_right,
+                        size: 20, color: AppColors.mono700),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Weekday headers
+            Row(
+              children: _weekDays
+                  .map(
+                    (d) => Expanded(
+                      child: Center(
+                        child: Text(
+                          d,
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.mono400,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 8),
+
+            // Calendar grid
+            ...List.generate(cells.length ~/ 7, (row) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: List.generate(7, (col) {
+                    final cell = cells[row * 7 + col];
+                    if (cell == null) {
+                      return const Expanded(child: SizedBox(height: 40));
+                    }
+
+                    final isSelected = _isSameDay(cell, _selectedDate);
+                    final isCurrentDay = _isToday(cell);
+                    final isPast = cell.isBefore(
+                        DateTime(today.year, today.month, today.day));
+
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: isPast
+                            ? null
+                            : () => setState(() => _selectedDate = cell),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.mono900
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${cell.day}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: isSelected || isCurrentDay
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: isSelected
+                                    ? Colors.white
+                                    : isPast
+                                        ? AppColors.mono200
+                                        : isCurrentDay
+                                            ? AppColors.mono900
+                                            : AppColors.mono700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              );
+            }),
+
+            const SizedBox(height: 20),
+
+            // Time picker
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.mono50,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.mono100),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.access_time_outlined,
+                      size: 18, color: AppColors.mono400),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Время',
+                    style: AppTextStyles.bodySmall
+                        .copyWith(color: AppColors.mono700),
+                  ),
+                  const Spacer(),
+                  // Hour
+                  _TimeScrollWheel(
+                    value: _selectedHour,
+                    maxValue: 23,
+                    onChanged: (v) => setState(() => _selectedHour = v),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: Text(
+                      ':',
+                      style: AppTextStyles.subtitle.copyWith(
+                        color: AppColors.mono900,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  // Minute
+                  _TimeScrollWheel(
+                    value: _selectedMinute,
+                    maxValue: 59,
+                    step: 5,
+                    onChanged: (v) => setState(() => _selectedMinute = v),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Confirm button
+            SizedBox(
+              width: double.infinity,
+              height: AppDimens.buttonH,
+              child: ElevatedButton(
+                onPressed: _confirm,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.mono900,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                  ),
+                  textStyle: AppTextStyles.primaryButton,
+                ),
+                child: Text(
+                  'Готово — ${_selectedDate.day} ${_monthNames[_selectedDate.month - 1].toLowerCase()}, '
+                  '${_selectedHour.toString().padLeft(2, '0')}:${_selectedMinute.toString().padLeft(2, '0')}',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Small time scroll wheel ──────────────────────────────────────────────────
+
+class _TimeScrollWheel extends StatefulWidget {
+  final int value;
+  final int maxValue;
+  final int step;
+  final ValueChanged<int> onChanged;
+
+  const _TimeScrollWheel({
+    required this.value,
+    required this.maxValue,
+    this.step = 1,
+    required this.onChanged,
+  });
+
+  @override
+  State<_TimeScrollWheel> createState() => _TimeScrollWheelState();
+}
+
+class _TimeScrollWheelState extends State<_TimeScrollWheel> {
+  late final FixedExtentScrollController _scrollCtrl;
+
+  List<int> get _values {
+    final list = <int>[];
+    for (var i = 0; i <= widget.maxValue; i += widget.step) {
+      list.add(i);
+    }
+    return list;
+  }
+
+  int _indexOfValue(int val) {
+    final vals = _values;
+    for (var i = 0; i < vals.length; i++) {
+      if (vals[i] >= val) return i;
+    }
+    return 0;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollCtrl =
+        FixedExtentScrollController(initialItem: _indexOfValue(widget.value));
+  }
+
+  @override
+  void didUpdateWidget(covariant _TimeScrollWheel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      final idx = _indexOfValue(widget.value);
+      if (_scrollCtrl.selectedItem != idx) {
+        _scrollCtrl.animateToItem(
+          idx,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final vals = _values;
+    const itemH = 36.0;
+    const visibleItems = 3;
+    const wheelH = itemH * visibleItems;
+
+    return SizedBox(
+      width: 52,
+      height: wheelH,
+      child: Stack(
+        children: [
+          // Center selection highlight
+          Positioned(
+            top: itemH,
+            left: 0,
+            right: 0,
+            height: itemH,
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.mono100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+          ListWheelScrollView.useDelegate(
+            controller: _scrollCtrl,
+            itemExtent: itemH,
+            physics: const FixedExtentScrollPhysics(),
+            diameterRatio: 8,
+            perspective: 0.001,
+            onSelectedItemChanged: (i) => widget.onChanged(vals[i]),
+            childDelegate: ListWheelChildBuilderDelegate(
+              childCount: vals.length,
+              builder: (context, index) {
+                final isSelected = vals[index] == widget.value;
+                return Center(
+                  child: Text(
+                    vals[index].toString().padLeft(2, '0'),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected
+                          ? AppColors.mono900
+                          : AppColors.mono400,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ─── Time row with stepped slider + tap-to-input ─────────────────────────────
@@ -959,12 +1751,10 @@ class _TimeRow extends StatelessWidget {
     required this.onValueChanged,
   });
 
-  int get _currentUnits => valueSec != null
-      ? (valueSec! / unitDivisor).round()
-      : sliderMinUnits;
+  int get _currentUnits =>
+      valueSec != null ? (valueSec! / unitDivisor).round() : sliderMinUnits;
 
-  int get _divisions =>
-      (sliderMaxUnits - sliderMinUnits) ~/ sliderStep;
+  int get _divisions => (sliderMaxUnits - sliderMinUnits) ~/ sliderStep;
 
   String get _displayText => '$_currentUnits $unit';
 
@@ -980,8 +1770,7 @@ class _TimeRow extends StatelessWidget {
       ),
     );
     if (result != null) {
-      final clamped =
-          result.clamp(sliderMinUnits, sliderMaxUnits);
+      final clamped = result.clamp(sliderMinUnits, sliderMaxUnits);
       onValueChanged(clamped * unitDivisor);
     }
   }
@@ -991,8 +1780,8 @@ class _TimeRow extends StatelessWidget {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 16, vertical: 14),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1007,8 +1796,7 @@ class _TimeRow extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(subtitle!,
                           style: AppTextStyles.caption.copyWith(
-                              color: AppColors.mono400,
-                              fontSize: 11)),
+                              color: AppColors.mono400, fontSize: 11)),
                     ],
                   ],
                 ),
@@ -1042,8 +1830,7 @@ class _TimeRow extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   _MonoSwitch(
-                      value: valueSec != null,
-                      onChanged: onToggle),
+                      value: valueSec != null, onChanged: onToggle),
                 ],
               ),
             ],
@@ -1068,10 +1855,9 @@ class _TimeRow extends StatelessWidget {
                           enabledThumbRadius: 7),
                     ),
                     child: Slider(
-                      value: _currentUnits
-                          .toDouble()
-                          .clamp(sliderMinUnits.toDouble(),
-                              sliderMaxUnits.toDouble()),
+                      value: _currentUnits.toDouble().clamp(
+                          sliderMinUnits.toDouble(),
+                          sliderMaxUnits.toDouble()),
                       min: sliderMinUnits.toDouble(),
                       max: sliderMaxUnits.toDouble(),
                       divisions: _divisions,
@@ -1085,8 +1871,6 @@ class _TimeRow extends StatelessWidget {
       ],
     );
   }
-
-
 }
 
 class _TimeInputDialog extends StatefulWidget {
@@ -1116,8 +1900,8 @@ class _TimeInputDialogState extends State<_TimeInputDialog> {
       return;
     }
     if (v < widget.minValue || v > widget.maxValue) {
-      setState(() => _error =
-          'От ${widget.minValue} до ${widget.maxValue} ${widget.unit}');
+      setState(() =>
+          _error = 'От ${widget.minValue} до ${widget.maxValue} ${widget.unit}');
       return;
     }
     Navigator.pop(context, v);
@@ -1127,8 +1911,8 @@ class _TimeInputDialogState extends State<_TimeInputDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16)),
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -1137,8 +1921,8 @@ class _TimeInputDialogState extends State<_TimeInputDialog> {
           children: [
             Text(
               'Введите значение',
-              style: AppTextStyles.subtitle
-                  .copyWith(color: AppColors.mono900),
+              style:
+                  AppTextStyles.subtitle.copyWith(color: AppColors.mono900),
             ),
             const SizedBox(height: 4),
             Text(
@@ -1150,9 +1934,7 @@ class _TimeInputDialogState extends State<_TimeInputDialog> {
               controller: widget.controller,
               autofocus: true,
               keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly
-              ],
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               style: AppTextStyles.fieldText
                   .copyWith(color: AppColors.mono900),
               decoration: InputDecoration(
@@ -1165,13 +1947,11 @@ class _TimeInputDialogState extends State<_TimeInputDialog> {
                     horizontal: 14, vertical: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide:
-                      const BorderSide(color: AppColors.mono150),
+                  borderSide: const BorderSide(color: AppColors.mono150),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide:
-                      const BorderSide(color: AppColors.mono150),
+                  borderSide: const BorderSide(color: AppColors.mono150),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -1179,8 +1959,8 @@ class _TimeInputDialogState extends State<_TimeInputDialog> {
                       color: AppColors.mono700, width: 1.5),
                 ),
                 errorText: _error,
-                errorStyle: AppTextStyles.caption
-                    .copyWith(color: AppColors.error),
+                errorStyle:
+                    AppTextStyles.caption.copyWith(color: AppColors.error),
               ),
               onSubmitted: (_) => _confirm(),
             ),
@@ -1191,18 +1971,15 @@ class _TimeInputDialogState extends State<_TimeInputDialog> {
                   child: GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                            color: AppColors.mono150),
+                        border: Border.all(color: AppColors.mono150),
                       ),
                       child: Center(
                         child: Text(
                           'Отмена',
-                          style:
-                              AppTextStyles.bodySmall.copyWith(
+                          style: AppTextStyles.bodySmall.copyWith(
                             color: AppColors.mono600,
                             fontWeight: FontWeight.w600,
                           ),
@@ -1216,8 +1993,7 @@ class _TimeInputDialogState extends State<_TimeInputDialog> {
                   child: GestureDetector(
                     onTap: _confirm,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
                         color: AppColors.mono900,
                         borderRadius: BorderRadius.circular(10),
@@ -1225,8 +2001,7 @@ class _TimeInputDialogState extends State<_TimeInputDialog> {
                       child: Center(
                         child: Text(
                           'Готово',
-                          style:
-                              AppTextStyles.bodySmall.copyWith(
+                          style: AppTextStyles.bodySmall.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
                           ),
@@ -1248,8 +2023,7 @@ class _MonoSwitch extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
 
-  const _MonoSwitch(
-      {required this.value, required this.onChanged});
+  const _MonoSwitch({required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -1266,9 +2040,8 @@ class _MonoSwitch extends StatelessWidget {
         child: AnimatedAlign(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
-          alignment: value
-              ? Alignment.centerRight
-              : Alignment.centerLeft,
+          alignment:
+              value ? Alignment.centerRight : Alignment.centerLeft,
           child: Container(
             margin: const EdgeInsets.all(3),
             width: 20,
@@ -1291,12 +2064,14 @@ class _QuestionsList extends StatelessWidget {
   final VoidCallback onAdd;
   final ValueChanged<int> onRemove;
   final void Function(int index) onEdit;
+  final VoidCallback onAIGenerate;
 
   const _QuestionsList({
     required this.questions,
     required this.onAdd,
     required this.onRemove,
     required this.onEdit,
+    required this.onAIGenerate,
   });
 
   static const _typeLabel = {
@@ -1321,7 +2096,13 @@ class _QuestionsList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _AddQuestionButton(onTap: onAdd),
+        Row(
+          children: [
+            Expanded(child: _AddQuestionButton(onTap: onAdd)),
+            const SizedBox(width: 10),
+            _AIGenerateButton(onTap: onAIGenerate),
+          ],
+        ),
         if (questions.isEmpty) ...[
           const SizedBox(height: 12),
           _EmptyQuestionsState(),
@@ -1441,15 +2222,13 @@ class _AddQuestionButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: AppColors.mono200,
-              style: BorderStyle.solid),
+          border:
+              Border.all(color: AppColors.mono200, style: BorderStyle.solid),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.add,
-                size: 18, color: AppColors.mono700),
+            const Icon(Icons.add, size: 18, color: AppColors.mono700),
             const SizedBox(width: 6),
             Text(
               'Добавить вопрос',
@@ -1487,8 +2266,8 @@ class _QuestionTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 14, vertical: 12),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -1516,13 +2295,12 @@ class _QuestionTile extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     text.isEmpty ? 'Без текста' : text,
-                    style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.mono900),
+                    style: AppTextStyles.bodySmall
+                        .copyWith(color: AppColors.mono900),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1530,11 +2308,9 @@ class _QuestionTile extends StatelessWidget {
                   Row(
                     children: [
                       Icon(typeIcon,
-                          size: 12,
-                          color: AppColors.mono400),
+                          size: 12, color: AppColors.mono400),
                       const SizedBox(width: 4),
-                      Text(typeLabel,
-                          style: AppTextStyles.caption),
+                      Text(typeLabel, style: AppTextStyles.caption),
                     ],
                   ),
                 ],
@@ -1680,7 +2456,8 @@ class _CourseContextButtons extends StatelessWidget {
                 foregroundColor: AppColors.mono900,
                 disabledForegroundColor: AppColors.mono300,
                 side: BorderSide(
-                  color: canSubmit ? AppColors.mono300 : AppColors.mono150,
+                  color:
+                      canSubmit ? AppColors.mono300 : AppColors.mono150,
                 ),
                 elevation: 0,
                 shape: RoundedRectangleBorder(

@@ -16,12 +16,12 @@ class AuthRepositoryImpl implements IAuthRepository {
         _tokenStorage = tokenStorage;
 
   @override
-  Future<void> sendOtp({required String phone, required String channel}) async {
+  Future<int> sendOtp({required String phone, required String channel}) async {
     final ch = Channel.values.firstWhere(
       (c) => c.type_ == channel,
       orElse: () => Channel.sms,
     );
-    await _doorman.sendOtpRequest(OtpSendRequest(phone: phone, channel: ch));
+    return _doorman.sendOtpRequest(OtpSendRequest(phone: phone, channel: ch));
   }
 
   @override

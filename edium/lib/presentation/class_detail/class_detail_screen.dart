@@ -637,7 +637,7 @@ class _CourseCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${course.teacherName}  ·  ${_modulesLabel(course.moduleCount)}  ·  ${_quizzesLabel(course.quizCount)}',
+                  '${course.teacherName}  ·  ${_modulesLabel(course.moduleCount)}  ·  ${_elementsLabel(course.elementCount)}',
                   style: AppTextStyles.helperText,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -677,17 +677,17 @@ class _CourseCard extends StatelessWidget {
     }
   }
 
-  String _quizzesLabel(int count) {
-    if (count % 100 >= 11 && count % 100 <= 19) return '$count квизов';
+  String _elementsLabel(int count) {
+    if (count % 100 >= 11 && count % 100 <= 19) return '$count элементов';
     switch (count % 10) {
       case 1:
-        return '$count квиз';
+        return '$count элемент';
       case 2:
       case 3:
       case 4:
-        return '$count квиза';
+        return '$count элемента';
       default:
-        return '$count квизов';
+        return '$count элементов';
     }
   }
 }
@@ -736,7 +736,7 @@ class _MembersTab extends StatelessWidget {
                     final member = members[i];
                     final initial = member.name.isNotEmpty
                         ? member.name[0].toUpperCase()
-                        : '?';
+                        : (member.surname.isNotEmpty ? member.surname[0].toUpperCase() : '?');
 
                     final tile = Container(
                       padding: const EdgeInsets.symmetric(
@@ -776,7 +776,7 @@ class _MembersTab extends StatelessWidget {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              member.name,
+                              member.fullName,
                               style: AppTextStyles.fieldText.copyWith(
                                 fontWeight: FontWeight.w600,
                               ),
@@ -794,7 +794,7 @@ class _MembersTab extends StatelessWidget {
                       key: ValueKey(member.id),
                       confirmDismiss: (_) => _confirmRemoveMember(
                         context,
-                        member.name,
+                        member.fullName,
                       ),
                       onDismissed: () {
                         context

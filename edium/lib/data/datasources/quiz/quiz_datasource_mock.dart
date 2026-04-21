@@ -185,9 +185,12 @@ class QuizDatasourceMock implements IQuizDatasource {
   Future<String> createQuiz({
     required String title,
     String? description,
+    String? mode,
     int? totalTimeLimitSec,
     int? questionTimeLimitSec,
     bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
     required List<Map<String, dynamic>> questions,
     String? courseId,
   }) async {
@@ -317,11 +320,19 @@ class QuizDatasourceMock implements IQuizDatasource {
   }
 
   @override
-  Future<void> updateQuiz(String id, {String? title, String? description}) async {
+  Future<void> updateQuiz(
+    String id, {
+    String? title,
+    String? description,
+    Map<String, dynamic>? defaultSettings,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final idx = _quizzes.indexWhere((q) => q.id == id);
     if (idx == -1) return;
     final q = _quizzes[idx];
+    final settings = defaultSettings != null
+        ? QuizSettingsModel.fromRiddlerDefaultSettings(defaultSettings)
+        : q.settings;
     _quizzes[idx] = QuizModel(
       id: q.id,
       title: title ?? q.title,
@@ -330,7 +341,7 @@ class QuizDatasourceMock implements IQuizDatasource {
       authorId: q.authorId,
       authorName: q.authorName,
       status: q.status,
-      settings: q.settings,
+      settings: settings,
       questions: q.questions,
       likesCount: q.likesCount,
       isLiked: q.isLiked,
@@ -346,8 +357,11 @@ class QuizDatasourceMock implements IQuizDatasource {
     if (idx == -1) throw Exception('Quiz not found');
     final q = _quizzes[idx];
     final newId = 'q_edit_${q.questions.length + 1}_${DateTime.now().millisecondsSinceEpoch}';
+    final normalized = QuestionModel.normalizeTeacherQuestionPayload(
+      Map<String, dynamic>.from(questionData),
+    );
     final newQuestion = QuestionModel.fromJson({
-      ...questionData,
+      ...normalized,
       'id': newId,
       'order_index': q.questions.length,
     });
