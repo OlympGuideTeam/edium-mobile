@@ -2,6 +2,7 @@ import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
+import 'package:edium/domain/repositories/quiz_repository.dart';
 import 'package:edium/domain/usecases/quiz/create_session_usecase.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
@@ -47,7 +48,11 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           )..add(const LoadQuizzesEvent()),
         ),
         BlocProvider(
-          create: (_) => CreateQuizBloc(getIt(), getIt<CreateSessionUsecase>()),
+          create: (_) => CreateQuizBloc(
+                getIt(),
+                getIt<CreateSessionUsecase>(),
+                getIt<IQuizRepository>(),
+              ),
         ),
       ],
       child: Scaffold(
@@ -136,6 +141,7 @@ class _TeacherDashboardPage extends StatelessWidget {
                               create: (_) => CreateQuizBloc(
                                 getIt(),
                                 getIt<CreateSessionUsecase>(),
+                                getIt<IQuizRepository>(),
                               ),
                               child: const CreateQuizScreen(),
                             ),

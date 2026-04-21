@@ -8,18 +8,24 @@ class CreateQuizUsecase {
   Future<String> call({
     required String title,
     String? description,
+    String? mode,
     int? totalTimeLimitSec,
     int? questionTimeLimitSec,
     bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
     required List<Map<String, dynamic>> questions,
     String? courseId,
   }) {
     return _repository.createQuiz(
       title: title,
       description: description,
+      mode: mode,
       totalTimeLimitSec: totalTimeLimitSec,
       questionTimeLimitSec: questionTimeLimitSec,
       shuffleQuestions: shuffleQuestions,
+      startedAt: startedAt,
+      finishedAt: finishedAt,
       questions: questions,
       courseId: courseId,
     );

@@ -16,6 +16,10 @@ class CreateQuizState extends Equatable {
   final bool success;
   final QuizCreationMode quizType;
   final bool isInCourseContext;
+  /// When set, [SubmitQuizEvent] updates this template instead of creating a new quiz.
+  final String? existingQuizTemplateId;
+  /// Server question ids to remove before re-adding [questions] (draft / edit flow).
+  final List<String> originalQuestionIds;
 
   const CreateQuizState({
     this.title = '',
@@ -31,6 +35,8 @@ class CreateQuizState extends Equatable {
     this.success = false,
     this.quizType = QuizCreationMode.template,
     this.isInCourseContext = false,
+    this.existingQuizTemplateId,
+    this.originalQuestionIds = const [],
   });
 
   bool get canSubmit => title.isNotEmpty && questions.isNotEmpty;
@@ -54,6 +60,9 @@ class CreateQuizState extends Equatable {
     bool? success,
     QuizCreationMode? quizType,
     bool? isInCourseContext,
+    String? existingQuizTemplateId,
+    bool clearExistingQuizTemplateId = false,
+    List<String>? originalQuestionIds,
   }) {
     return CreateQuizState(
       title: title ?? this.title,
@@ -71,6 +80,10 @@ class CreateQuizState extends Equatable {
       success: success ?? this.success,
       quizType: quizType ?? this.quizType,
       isInCourseContext: isInCourseContext ?? this.isInCourseContext,
+      existingQuizTemplateId: clearExistingQuizTemplateId
+          ? null
+          : (existingQuizTemplateId ?? this.existingQuizTemplateId),
+      originalQuestionIds: originalQuestionIds ?? this.originalQuestionIds,
     );
   }
 
@@ -89,5 +102,7 @@ class CreateQuizState extends Equatable {
         success,
         quizType,
         isInCourseContext,
+        existingQuizTemplateId,
+        originalQuestionIds,
       ];
 }
