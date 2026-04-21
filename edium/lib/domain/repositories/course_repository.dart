@@ -4,4 +4,5 @@ abstract class ICourseRepository {
   Future<String> createCourse({required String title, required String classId});
   Future<void> createModule({required String courseId, required String title});
   Future<CourseDetail> getCourseDetail({required String courseId});
+  Future<ModuleDetail> getModuleDetail({required String moduleId});
 }

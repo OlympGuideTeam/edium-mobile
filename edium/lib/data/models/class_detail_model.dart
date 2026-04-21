@@ -3,21 +3,24 @@ import 'package:edium/domain/entities/class_detail.dart';
 class MemberShortModel {
   final String id;
   final String name;
+  final String surname;
 
   const MemberShortModel({
     required this.id,
     required this.name,
+    this.surname = '',
   });
 
   factory MemberShortModel.fromJson(Map<String, dynamic> json) {
     return MemberShortModel(
       id: json['id'] as String,
       name: json['name'] as String,
+      surname: json['surname'] as String? ?? '',
     );
   }
 
   MemberShort toEntity() {
-    return MemberShort(id: id, name: name);
+    return MemberShort(id: id, name: name, surname: surname);
   }
 }
 
@@ -26,7 +29,7 @@ class CourseSummaryModel {
   final String title;
   final String teacherName;
   final int moduleCount;
-  final int quizCount;
+  final int elementCount;
   final bool isTeacher;
 
   const CourseSummaryModel({
@@ -34,7 +37,7 @@ class CourseSummaryModel {
     required this.title,
     required this.teacherName,
     required this.moduleCount,
-    required this.quizCount,
+    required this.elementCount,
     required this.isTeacher,
   });
 
@@ -44,7 +47,7 @@ class CourseSummaryModel {
       title: json['title'] as String,
       teacherName: json['teacher_name'] as String,
       moduleCount: json['module_count'] as int,
-      quizCount: (json['quiz_count'] ?? json['element_count'] ?? 0) as int,
+      elementCount: (json['element_count'] ?? 0) as int,
       isTeacher: json['is_teacher'] as bool,
     );
   }
@@ -55,7 +58,7 @@ class CourseSummaryModel {
       title: title,
       teacherName: teacherName,
       moduleCount: moduleCount,
-      quizCount: quizCount,
+      elementCount: elementCount,
       isTeacher: isTeacher,
     );
   }

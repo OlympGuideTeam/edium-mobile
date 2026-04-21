@@ -2,20 +2,25 @@ import 'dart:math' as math;
 
 import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
+import 'package:edium/domain/usecases/course/get_module_detail_usecase.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/course_detail.dart';
 import 'package:edium/domain/entities/quiz.dart';
+import 'package:edium/domain/repositories/quiz_repository.dart';
 import 'package:edium/presentation/shared/widgets/edium_notification.dart';
 import 'package:edium/presentation/teacher/course_detail/bloc/course_detail_bloc.dart';
 import 'package:edium/presentation/teacher/course_detail/bloc/course_detail_event.dart';
 import 'package:edium/presentation/teacher/course_detail/bloc/course_detail_state.dart';
 import 'package:edium/presentation/teacher/course_detail/bloc/template_search_cubit.dart';
 import 'package:edium/presentation/teacher/create_quiz/bloc/create_quiz_bloc.dart';
+import 'package:edium/presentation/teacher/create_quiz/create_quiz_hydration.dart';
 import 'package:edium/presentation/teacher/create_quiz/create_quiz_screen.dart';
+import 'package:edium/presentation/teacher/create_quiz/bloc/create_quiz_state.dart';
 import 'package:edium/domain/usecases/quiz/create_quiz_usecase.dart';
 import 'package:edium/domain/usecases/quiz/create_session_usecase.dart';
 import 'package:edium/domain/usecases/quiz/get_quizzes_usecase.dart';
+import 'package:edium/presentation/teacher/quiz_library/quiz_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -224,7 +229,10 @@ class _CourseDetailBody extends StatelessWidget {
                         if (i < course.modules.length) {
                           return Padding(
                             padding: const EdgeInsets.only(top: 12),
-                            child: _ModuleSection(module: course.modules[i]),
+                            child: _ModuleSection(
+                              module: course.modules[i],
+                              isTeacher: course.isTeacher,
+                            ),
                           );
                         }
                         final draftIndex = i - course.modules.length;
@@ -237,7 +245,10 @@ class _CourseDetailBody extends StatelessWidget {
                         final draft = course.drafts[draftIndex - 1];
                         return Padding(
                           padding: const EdgeInsets.only(top: 8),
-                          child: _DraftTile(draft: draft),
+                          child: _DraftTile(
+                            draft: draft,
+                            onTap: () => _openCreateQuizFromDraft(context, draft),
+                          ),
                         );
                       },
                     ),
@@ -523,10 +534,29 @@ class _CourseDetailBody extends StatelessWidget {
             builder: (_, scrollCtrl) {
               return _TemplatePickerContent(
                 scrollController: scrollCtrl,
-                onSelected: (quiz) {
+                onSelected: (quiz) async {
                   Navigator.of(sheetCtx).pop();
-                  // TODO: передать данные шаблона в экран создания (pre-fill)
-                  _openCreateQuizScreen(context);
+                  Quiz? full;
+                  try {
+                    full = await getIt<IQuizRepository>().getQuizById(quiz.id);
+                  } catch (_) {}
+                  if (!context.mounted) return;
+                  if (full == null) {
+                    EdiumNotification.show(
+                      context,
+                      'Не удалось загрузить шаблон',
+                      type: EdiumNotificationType.error,
+                    );
+                    return;
+                  }
+                  await _openCreateQuizScreen(
+                    context,
+                    initialState: createQuizStateFromQuiz(
+                      full,
+                      inCourseContext: true,
+                      treatAsExistingCourseTemplate: false,
+                    ),
+                  );
                 },
               );
             },
@@ -538,7 +568,36 @@ class _CourseDetailBody extends StatelessWidget {
 
   // ─── Навигация: создание квиза с нуля ──────────────────────────────────
 
-  void _openCreateQuizScreen(BuildContext context) async {
+  Future<void> _openCreateQuizFromDraft(
+    BuildContext context,
+    CourseDraft draft,
+  ) async {
+    Quiz? loaded;
+    try {
+      loaded = await getIt<IQuizRepository>().getQuizById(draft.quizTemplateId);
+    } catch (_) {}
+    if (!context.mounted) return;
+    if (loaded == null) {
+      EdiumNotification.show(
+        context,
+        'Не удалось загрузить черновик',
+        type: EdiumNotificationType.error,
+      );
+      return;
+    }
+    final initial = createQuizStateFromQuiz(
+      loaded,
+      courseDraftPayload: draft.payload,
+      inCourseContext: true,
+      treatAsExistingCourseTemplate: true,
+    );
+    await _openCreateQuizScreen(context, initialState: initial);
+  }
+
+  Future<void> _openCreateQuizScreen(
+    BuildContext context, {
+    CreateQuizState? initialState,
+  }) async {
     final bloc = context.read<CourseDetailBloc>();
     final result = await Navigator.push<bool>(
       context,
@@ -547,7 +606,9 @@ class _CourseDetailBody extends StatelessWidget {
           create: (_) => CreateQuizBloc(
             getIt<CreateQuizUsecase>(),
             getIt<CreateSessionUsecase>(),
-            inCourseContext: true,
+            getIt<IQuizRepository>(),
+            initialState: initialState,
+            inCourseContext: initialState == null,
           ),
           child: CreateQuizScreen(
             modules: course.modules,
@@ -962,8 +1023,9 @@ class _TemplateCard extends StatelessWidget {
 
 class _ModuleSection extends StatefulWidget {
   final ModuleDetail module;
+  final bool isTeacher;
 
-  const _ModuleSection({required this.module});
+  const _ModuleSection({required this.module, required this.isTeacher});
 
   @override
   State<_ModuleSection> createState() => _ModuleSectionState();
@@ -980,6 +1042,9 @@ class _ModuleSectionState extends State<_ModuleSection>
   late final Animation<Color?> _subtitleColorAnim;
   late final Animation<Color?> _borderColorAnim;
   bool _expanded = false;
+
+  List<CourseItem>? _loadedItems;
+  bool _itemsLoading = false;
 
   @override
   void initState() {
@@ -1016,13 +1081,30 @@ class _ModuleSectionState extends State<_ModuleSection>
     super.dispose();
   }
 
-  void _toggle() {
+  Future<void> _toggle() async {
     if (_expanded) {
       _ctrl.reverse();
-    } else {
-      _ctrl.forward();
+      setState(() => _expanded = false);
+      return;
     }
-    setState(() => _expanded = !_expanded);
+    _ctrl.forward();
+    setState(() => _expanded = true);
+
+    if (_loadedItems != null || _itemsLoading) return;
+    setState(() => _itemsLoading = true);
+    try {
+      final detail = await getIt<GetModuleDetailUsecase>()(
+        moduleId: widget.module.id,
+      );
+      if (mounted) {
+        setState(() {
+          _loadedItems = detail.items;
+          _itemsLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _itemsLoading = false);
+    }
   }
 
   @override
@@ -1107,7 +1189,21 @@ class _ModuleSectionState extends State<_ModuleSection>
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Divider(height: 1, color: AppColors.mono150),
-                    if (widget.module.items.isEmpty)
+                    if (_itemsLoading)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Center(
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.mono700,
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (_loadedItems == null || _loadedItems!.isEmpty)
                       const Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: 14,
@@ -1122,13 +1218,13 @@ class _ModuleSectionState extends State<_ModuleSection>
                         ),
                       )
                     else
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Column(
-                          children: widget.module.items
-                              .map((item) => _QuizItemTile(item: item))
-                              .toList(),
-                        ),
+                      Column(
+                        children: _loadedItems!
+                            .map((item) => _QuizItemTile(
+                                  item: item,
+                                  isTeacher: widget.isTeacher,
+                                ))
+                            .toList(),
                       ),
                   ],
                 ),
@@ -1159,8 +1255,9 @@ class _ModuleSectionState extends State<_ModuleSection>
 
 class _QuizItemTile extends StatelessWidget {
   final CourseItem item;
+  final bool isTeacher;
 
-  const _QuizItemTile({required this.item});
+  const _QuizItemTile({required this.item, required this.isTeacher});
 
   @override
   Widget build(BuildContext context) {
@@ -1168,88 +1265,146 @@ class _QuizItemTile extends StatelessWidget {
     final scoreText = isPassed
         ? '${item.score!.toStringAsFixed(item.score! % 1 == 0 ? 0 : 1)}%'
         : null;
+    final payload = item.payload;
+    final isLive = payload?.mode == 'live';
+    final title = payload?.title?.isNotEmpty == true
+        ? payload!.title!
+        : 'Квиз ${item.orderIndex + 1}';
+    final meta = _buildMeta(payload);
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-          border: Border.all(
-            color: AppColors.mono150,
-            width: AppDimens.borderWidth,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Divider(height: 1, color: AppColors.mono100),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => QuizDetailScreen(quizId: item.refId),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Бейдж режима
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isLive ? AppColors.mono900 : AppColors.mono100,
+                    borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+                  ),
+                  child: Text(
+                    isLive ? 'ЛАЙВ' : 'ТЕСТ',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      color: isLive ? Colors.white : AppColors.mono400,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Основная информация
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTextStyles.fieldText.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (meta.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          meta,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.mono400,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (!isTeacher) ...[
+                  if (isPassed)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.mono100,
+                        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.check_circle_outline,
+                              size: 12, color: AppColors.mono600),
+                          const SizedBox(width: 3),
+                          Text(
+                            scoreText!,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.mono600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    const Text(
+                      'Не пройден',
+                      style: TextStyle(fontSize: 11, color: AppColors.mono300),
+                    ),
+                ] else
+                  const Icon(
+                    Icons.chevron_right,
+                    size: 16,
+                    color: AppColors.mono250,
+                  ),
+              ],
+            ),
           ),
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-              decoration: BoxDecoration(
-                color: AppColors.mono100,
-                borderRadius: BorderRadius.circular(AppDimens.radiusXs),
-              ),
-              child: const Text(
-                'КВИЗ',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.mono400,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Квиз ${item.orderIndex + 1}',
-                style: AppTextStyles.fieldText.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            if (isPassed)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.mono100,
-                  borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.check_circle_outline,
-                      size: 13,
-                      color: AppColors.mono600,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      scoreText!,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.mono600,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else
-              const Text(
-                'Не пройден',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.mono300,
-                ),
-              ),
-          ],
-        ),
-      ),
+      ],
     );
+  }
+
+  String _buildMeta(CourseItemPayload? p) {
+    if (p == null) return '';
+    final parts = <String>[];
+    const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн',
+                    'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+
+    if (p.startedAt != null) {
+      final d = p.startedAt!.toLocal();
+      parts.add('с ${d.day} ${months[d.month - 1]}');
+    }
+
+    if (p.finishedAt != null) {
+      final d = p.finishedAt!.toLocal();
+      parts.add('до ${d.day} ${months[d.month - 1]}');
+    }
+
+    if (p.totalTimeLimitSec != null) {
+      final min = (p.totalTimeLimitSec! / 60).round();
+      parts.add('$min мин');
+    } else if (p.questionTimeLimitSec != null) {
+      parts.add('${p.questionTimeLimitSec} с/вопр.');
+    }
+
+    return parts.join('  ·  ');
   }
 }
 
@@ -1318,59 +1473,114 @@ class _DashedLinePainter extends CustomPainter {
 
 class _DraftTile extends StatelessWidget {
   final CourseDraft draft;
+  final VoidCallback onTap;
 
-  const _DraftTile({required this.draft});
+  const _DraftTile({required this.draft, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-        border: Border.all(
-          color: AppColors.mono150,
-          width: AppDimens.borderWidth,
+    final payload = draft.payload;
+    final title = draft.title.isNotEmpty ? draft.title : 'Шаблон квиза';
+    final isLive = payload?.mode == 'live';
+    final meta = _buildMeta(payload);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+          border: Border.all(
+            color: AppColors.mono150,
+            width: AppDimens.borderWidth,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                color: payload == null
+                    ? AppColors.mono100
+                    : (isLive ? AppColors.mono900 : AppColors.mono100),
+                borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+              ),
+              child: Text(
+                payload == null ? 'КВИЗ' : (isLive ? 'ЛАЙВ' : 'ТЕСТ'),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: payload != null && isLive
+                      ? Colors.white
+                      : AppColors.mono400,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.mono600,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (meta.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      meta,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.mono400,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.chevron_right,
+              size: 16,
+              color: AppColors.mono250,
+            ),
+          ],
         ),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-            decoration: BoxDecoration(
-              color: AppColors.mono100,
-              borderRadius: BorderRadius.circular(AppDimens.radiusXs),
-            ),
-            child: const Text(
-              'КВИЗ',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: AppColors.mono400,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          const Expanded(
-            child: Text(
-              'Шаблон квиза',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.mono600,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'Нет в модуле',
-            style: TextStyle(fontSize: 12, color: AppColors.mono300),
-          ),
-        ],
-      ),
     );
+  }
+
+  String _buildMeta(CourseItemPayload? p) {
+    if (p == null) return '';
+    final parts = <String>[];
+    const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн',
+                    'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+
+    if (p.startedAt != null) {
+      final d = p.startedAt!.toLocal();
+      parts.add('с ${d.day} ${months[d.month - 1]}');
+    }
+    if (p.finishedAt != null) {
+      final d = p.finishedAt!.toLocal();
+      parts.add('до ${d.day} ${months[d.month - 1]}');
+    }
+    if (p.totalTimeLimitSec != null) {
+      final min = (p.totalTimeLimitSec! / 60).round();
+      parts.add('$min мин');
+    } else if (p.questionTimeLimitSec != null) {
+      parts.add('${p.questionTimeLimitSec} с/вопр.');
+    }
+
+    return parts.join('  ·  ');
   }
 }
 

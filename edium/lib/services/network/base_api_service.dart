@@ -40,11 +40,12 @@ abstract class BaseApiService {
     if (data is Map<String, dynamic>) {
       final description = data['description'] as String?;
       final errorCode = data['error'] as String?;
+      final details = data['details'] as Map<String, dynamic>?;
       if (description != null && description.isNotEmpty) {
-        return ApiException(description, code: errorCode, statusCode: statusCode);
+        return ApiException(description, code: errorCode, statusCode: statusCode, details: details);
       }
       if (errorCode != null) {
-        return ApiException(_codeToMessage(errorCode), code: errorCode, statusCode: statusCode);
+        return ApiException(_codeToMessage(errorCode), code: errorCode, statusCode: statusCode, details: details);
       }
     }
 

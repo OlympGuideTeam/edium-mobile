@@ -8,11 +8,25 @@ class QuizSettings {
   final bool showExplanations;
   final DateTime? deadline;
 
+  /// Riddler `default_settings.mode` (`test` | `live`), when present.
+  final String? riddlerMode;
+
+  /// Riddler `default_settings.question_time_limit_sec` (live).
+  final int? questionTimeLimitSec;
+
+  /// Riddler `default_settings.started_at` / `finished_at` (test window).
+  final DateTime? sessionStartedAt;
+  final DateTime? sessionFinishedAt;
+
   const QuizSettings({
     this.timeLimitMinutes,
     this.shuffleQuestions = false,
     this.showExplanations = true,
     this.deadline,
+    this.riddlerMode,
+    this.questionTimeLimitSec,
+    this.sessionStartedAt,
+    this.sessionFinishedAt,
   });
 
   QuizSettings copyWith({
@@ -20,12 +34,20 @@ class QuizSettings {
     bool? shuffleQuestions,
     bool? showExplanations,
     DateTime? deadline,
+    String? riddlerMode,
+    int? questionTimeLimitSec,
+    DateTime? sessionStartedAt,
+    DateTime? sessionFinishedAt,
   }) {
     return QuizSettings(
       timeLimitMinutes: timeLimitMinutes ?? this.timeLimitMinutes,
       shuffleQuestions: shuffleQuestions ?? this.shuffleQuestions,
       showExplanations: showExplanations ?? this.showExplanations,
       deadline: deadline ?? this.deadline,
+      riddlerMode: riddlerMode ?? this.riddlerMode,
+      questionTimeLimitSec: questionTimeLimitSec ?? this.questionTimeLimitSec,
+      sessionStartedAt: sessionStartedAt ?? this.sessionStartedAt,
+      sessionFinishedAt: sessionFinishedAt ?? this.sessionFinishedAt,
     );
   }
 }

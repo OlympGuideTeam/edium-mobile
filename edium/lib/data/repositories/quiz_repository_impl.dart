@@ -27,18 +27,24 @@ class QuizRepositoryImpl implements IQuizRepository {
   Future<String> createQuiz({
     required String title,
     String? description,
+    String? mode,
     int? totalTimeLimitSec,
     int? questionTimeLimitSec,
     bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
     required List<Map<String, dynamic>> questions,
     String? courseId,
   }) {
     return _datasource.createQuiz(
       title: title,
       description: description,
+      mode: mode,
       totalTimeLimitSec: totalTimeLimitSec,
       questionTimeLimitSec: questionTimeLimitSec,
       shuffleQuestions: shuffleQuestions,
+      startedAt: startedAt,
+      finishedAt: finishedAt,
       questions: questions,
       courseId: courseId,
     );
@@ -112,8 +118,18 @@ class QuizRepositoryImpl implements IQuizRepository {
   }
 
   @override
-  Future<void> updateQuiz(String id, {String? title, String? description}) {
-    return _datasource.updateQuiz(id, title: title, description: description);
+  Future<void> updateQuiz(
+    String id, {
+    String? title,
+    String? description,
+    Map<String, dynamic>? defaultSettings,
+  }) {
+    return _datasource.updateQuiz(
+      id,
+      title: title,
+      description: description,
+      defaultSettings: defaultSettings,
+    );
   }
 
   @override

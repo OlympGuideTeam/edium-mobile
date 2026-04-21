@@ -6,12 +6,20 @@ class QuizSettingsModel {
   final bool shuffleQuestions;
   final bool showExplanations;
   final String? deadline;
+  final String? riddlerMode;
+  final int? questionTimeLimitSec;
+  final String? sessionStartedAtIso;
+  final String? sessionFinishedAtIso;
 
   const QuizSettingsModel({
     this.timeLimitMinutes,
     this.shuffleQuestions = false,
     this.showExplanations = true,
     this.deadline,
+    this.riddlerMode,
+    this.questionTimeLimitSec,
+    this.sessionStartedAtIso,
+    this.sessionFinishedAtIso,
   });
 
   factory QuizSettingsModel.fromJson(Map<String, dynamic> json) {
@@ -28,6 +36,8 @@ class QuizSettingsModel {
     Map<String, dynamic> json,
   ) {
     final totalSec = json['total_time_limit_sec'] as int?;
+    final startedRaw = json['started_at'];
+    final finishedRaw = json['finished_at'];
     return QuizSettingsModel(
       timeLimitMinutes: (totalSec != null && totalSec > 0)
           ? (totalSec / 60).ceil()
@@ -35,6 +45,12 @@ class QuizSettingsModel {
       shuffleQuestions: json['shuffle_questions'] as bool? ?? false,
       showExplanations: true,
       deadline: null,
+      riddlerMode: json['mode'] as String?,
+      questionTimeLimitSec: json['question_time_limit_sec'] as int?,
+      sessionStartedAtIso:
+          startedRaw is String ? startedRaw : null,
+      sessionFinishedAtIso:
+          finishedRaw is String ? finishedRaw : null,
     );
   }
 
@@ -43,6 +59,11 @@ class QuizSettingsModel {
         'shuffle_questions': shuffleQuestions,
         'show_explanations': showExplanations,
         if (deadline != null) 'deadline': deadline,
+        if (riddlerMode != null) 'mode': riddlerMode,
+        if (questionTimeLimitSec != null)
+          'question_time_limit_sec': questionTimeLimitSec,
+        if (sessionStartedAtIso != null) 'started_at': sessionStartedAtIso,
+        if (sessionFinishedAtIso != null) 'finished_at': sessionFinishedAtIso,
       };
 
   QuizSettings toEntity() => QuizSettings(
@@ -50,6 +71,14 @@ class QuizSettingsModel {
         shuffleQuestions: shuffleQuestions,
         showExplanations: showExplanations,
         deadline: deadline != null ? DateTime.tryParse(deadline!) : null,
+        riddlerMode: riddlerMode,
+        questionTimeLimitSec: questionTimeLimitSec,
+        sessionStartedAt: sessionStartedAtIso != null
+            ? DateTime.tryParse(sessionStartedAtIso!)
+            : null,
+        sessionFinishedAt: sessionFinishedAtIso != null
+            ? DateTime.tryParse(sessionFinishedAtIso!)
+            : null,
       );
 
   factory QuizSettingsModel.fromEntity(QuizSettings s) => QuizSettingsModel(
@@ -57,6 +86,10 @@ class QuizSettingsModel {
         shuffleQuestions: s.shuffleQuestions,
         showExplanations: s.showExplanations,
         deadline: s.deadline?.toIso8601String(),
+        riddlerMode: s.riddlerMode,
+        questionTimeLimitSec: s.questionTimeLimitSec,
+        sessionStartedAtIso: s.sessionStartedAt?.toUtc().toIso8601String(),
+        sessionFinishedAtIso: s.sessionFinishedAt?.toUtc().toIso8601String(),
       );
 }
 
