@@ -71,7 +71,8 @@ GoRouter buildRouter() {
         builder: (context, state) {
           final phone = state.uri.queryParameters['phone'] ?? '';
           final channel = state.uri.queryParameters['channel'] ?? 'sms';
-          return OtpScreen(phone: phone, channel: channel);
+          final retryAfter = int.tryParse(state.uri.queryParameters['retryAfter'] ?? '') ?? 180;
+          return OtpScreen(phone: phone, channel: channel, retryAfter: retryAfter);
         },
       ),
       GoRoute(

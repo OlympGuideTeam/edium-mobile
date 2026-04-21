@@ -12,9 +12,12 @@ abstract class IQuizDatasource {
   Future<String> createQuiz({
     required String title,
     String? description,
+    String? mode,
     int? totalTimeLimitSec,
     int? questionTimeLimitSec,
     bool shuffleQuestions,
+    DateTime? startedAt,
+    DateTime? finishedAt,
     required List<Map<String, dynamic>> questions,
     String? courseId,
   });
@@ -48,7 +51,12 @@ abstract class IQuizDatasource {
 
   Future<void> deleteQuiz(String id);
 
-  Future<void> updateQuiz(String id, {String? title, String? description});
+  Future<void> updateQuiz(
+    String id, {
+    String? title,
+    String? description,
+    Map<String, dynamic>? defaultSettings,
+  });
 
   Future<String> addQuestion(String quizId, Map<String, dynamic> questionData);
 

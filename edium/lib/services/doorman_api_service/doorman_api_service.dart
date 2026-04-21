@@ -8,13 +8,16 @@ class DoormanApiService extends BaseApiService implements IDoormanApiService {
   DoormanApiService(super.dio);
 
   @override
-  Future<void> sendOtpRequest(OtpSendRequest req) async {
+  Future<int> sendOtpRequest(OtpSendRequest req) async {
     return request(
       DoormanEndpoints.otpSend.path,
       method: HttpMethod.post,
       req: req.toJson(),
       headers: null,
-      parser: (_) {},
+      parser: (data) {
+        final json = data as Map<String, dynamic>?;
+        return json?['retry_after'] as int? ?? 180;
+      },
     );
   }
 

@@ -27,4 +27,9 @@ class CourseRepositoryImpl implements ICourseRepository {
   Future<CourseDetail> getCourseDetail({required String courseId}) {
     return _datasource.getCourseDetail(courseId: courseId);
   }
+
+  @override
+  Future<ModuleDetail> getModuleDetail({required String moduleId}) {
+    return _datasource.getModuleDetail(moduleId: moduleId);
+  }
 }

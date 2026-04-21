@@ -51,6 +51,33 @@ class QuestionModel {
     required this.orderIndex,
   });
 
+  /// Teacher create flow uses [answer_options]; stored quizzes use [options].
+  /// Normalizes to a shape [fromJson] accepts.
+  static Map<String, dynamic> normalizeTeacherQuestionPayload(
+    Map<String, dynamic> raw,
+  ) {
+    final m = Map<String, dynamic>.from(raw);
+    final opts = m['answer_options'];
+    if (opts is List &&
+        (m['options'] == null ||
+            (m['options'] is List && (m['options'] as List).isEmpty))) {
+      var i = 0;
+      m['options'] = opts.map((o) {
+        final om = o as Map<String, dynamic>;
+        return {
+          'id': om['id'] as String? ??
+              'gen_${DateTime.now().microsecondsSinceEpoch}_${i++}',
+          'text': om['text'],
+          'is_correct': om['is_correct'] ?? false,
+        };
+      }).toList();
+    }
+    if (m['type'] == 'multiple_choice') {
+      m['type'] = 'multi_choice';
+    }
+    return m;
+  }
+
   factory QuestionModel.fromJson(Map<String, dynamic> json) {
     return QuestionModel(
       id: json['id'] as String,
@@ -79,6 +106,7 @@ class QuestionModel {
     QuestionType qType;
     switch (type) {
       case 'multi_choice':
+      case 'multiple_choice':
         qType = QuestionType.multiChoice;
         break;
       case 'text_input':

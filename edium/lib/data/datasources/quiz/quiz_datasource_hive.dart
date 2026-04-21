@@ -176,9 +176,12 @@ class QuizDatasourceHive implements IQuizDatasource {
   Future<String> createQuiz({
     required String title,
     String? description,
+    String? mode,
     int? totalTimeLimitSec,
     int? questionTimeLimitSec,
     bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
     required List<Map<String, dynamic>> questions,
     String? courseId,
   }) async {
@@ -305,13 +308,24 @@ class QuizDatasourceHive implements IQuizDatasource {
   }
 
   @override
-  Future<void> updateQuiz(String id, {String? title, String? description}) async {
+  Future<void> updateQuiz(
+    String id, {
+    String? title,
+    String? description,
+    Map<String, dynamic>? defaultSettings,
+  }) async {
     final raw = HiveStorage.quizzesBox.get(id);
     if (raw == null) return;
     final json = jsonDecode(raw.toString()) as Map<String, dynamic>;
     if (title != null) json['title'] = title;
     json['description'] = description;
-    await HiveStorage.quizzesBox.put(id, jsonEncode(json));
+    if (defaultSettings != null) {
+      json['default_settings'] = defaultSettings;
+      final model = QuizModel.fromJson(json);
+      await HiveStorage.quizzesBox.put(id, jsonEncode(model.toJson()));
+    } else {
+      await HiveStorage.quizzesBox.put(id, jsonEncode(json));
+    }
   }
 
   @override
@@ -323,7 +337,10 @@ class QuizDatasourceHive implements IQuizDatasource {
       (json['questions'] as List<dynamic>? ?? []).map((e) => e as Map<String, dynamic>),
     );
     final newId = 'q_hive_${questions.length + 1}_${DateTime.now().millisecondsSinceEpoch}';
-    questions.add({...questionData, 'id': newId, 'order_index': questions.length});
+    final normalized = QuestionModel.normalizeTeacherQuestionPayload(
+      Map<String, dynamic>.from(questionData),
+    );
+    questions.add({...normalized, 'id': newId, 'order_index': questions.length});
     json['questions'] = questions;
     await HiveStorage.quizzesBox.put(quizId, jsonEncode(json));
     return newId;

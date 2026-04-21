@@ -127,7 +127,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
           if (ModalRoute.of(context)?.isCurrent != true) return;
           if (state is AuthOtpSent) {
             context.push(
-              '/otp?phone=${Uri.encodeComponent(state.phone)}&channel=${state.channel}',
+              '/otp?phone=${Uri.encodeComponent(state.phone)}&channel=${state.channel}&retryAfter=${state.retryAfter}',
             );
             if (state.channel == 'tg') _openTelegramBot();
           } else if (state is AuthError) {

@@ -1,11 +1,15 @@
 class MemberShort {
   final String id;
   final String name;
+  final String surname;
 
   const MemberShort({
     required this.id,
     required this.name,
+    required this.surname,
   });
+
+  String get fullName => '$name $surname'.trim();
 
   @override
   bool operator ==(Object other) =>
@@ -18,7 +22,7 @@ class MemberShort {
   int get hashCode => id.hashCode;
 
   @override
-  String toString() => 'MemberShort(id: $id, name: $name)';
+  String toString() => 'MemberShort(id: $id, name: $name, surname: $surname)';
 }
 
 class CourseSummary {
@@ -26,7 +30,7 @@ class CourseSummary {
   final String title;
   final String teacherName;
   final int moduleCount;
-  final int quizCount;
+  final int elementCount;
   final bool isTeacher;
 
   const CourseSummary({
@@ -34,7 +38,7 @@ class CourseSummary {
     required this.title,
     required this.teacherName,
     required this.moduleCount,
-    required this.quizCount,
+    required this.elementCount,
     required this.isTeacher,
   });
 
@@ -49,7 +53,7 @@ class CourseSummary {
   int get hashCode => id.hashCode;
 
   @override
-  String toString() => 'CourseSummary(id: $id, title: $title)';
+  String toString() => 'CourseSummary(id: $id, title: $title, elementCount: $elementCount)';
 }
 
 class ClassDetail {
