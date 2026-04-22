@@ -1,3 +1,4 @@
+import 'package:edium/domain/repositories/quiz_repository.dart';
 import 'package:edium/domain/usecases/quiz/get_quizzes_usecase.dart';
 import 'package:edium/domain/usecases/quiz/like_quiz_usecase.dart';
 import 'package:edium/presentation/teacher/quiz_library/bloc/quiz_library_event.dart';
@@ -7,16 +8,20 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 class QuizLibraryBloc extends Bloc<QuizLibraryEvent, QuizLibraryState> {
   final GetQuizzesUsecase _getQuizzes;
   final LikeQuizUsecase _likeQuiz;
+  final IQuizRepository _quizRepository;
 
   QuizLibraryBloc({
     required GetQuizzesUsecase getQuizzes,
     required LikeQuizUsecase likeQuiz,
+    required IQuizRepository quizRepository,
   })  : _getQuizzes = getQuizzes,
         _likeQuiz = likeQuiz,
+        _quizRepository = quizRepository,
         super(const QuizLibraryInitial()) {
     on<LoadQuizzesEvent>(_onLoad);
     on<SearchChangedEvent>(_onSearch);
     on<LikeQuizEvent>(_onLike);
+    on<DeleteQuizEvent>(_onDelete);
   }
 
   Future<void> _onLoad(
@@ -69,5 +74,24 @@ class QuizLibraryBloc extends Bloc<QuizLibraryEvent, QuizLibraryState> {
         search: loaded.search,
       ));
     } catch (_) {}
+  }
+
+  Future<void> _onDelete(
+    DeleteQuizEvent event,
+    Emitter<QuizLibraryState> emit,
+  ) async {
+    if (state is! QuizLibraryLoaded) return;
+    final loaded = state as QuizLibraryLoaded;
+    final optimistic = loaded.quizzes.where((q) => q.id != event.quizId).toList();
+    emit(QuizLibraryLoaded(
+      quizzes: optimistic,
+      scope: loaded.scope,
+      search: loaded.search,
+    ));
+    try {
+      await _quizRepository.deleteQuiz(event.quizId);
+    } catch (_) {
+      add(LoadQuizzesEvent(scope: loaded.scope, search: loaded.search));
+    }
   }
 }
