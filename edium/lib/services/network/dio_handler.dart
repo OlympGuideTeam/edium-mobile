@@ -153,6 +153,14 @@ class DioHandler {
     _refreshTimer = null;
   }
 
+  Future<void> syncTokenFromStorage() async {
+    final accessToken = await _tokenStorage.getAccessToken();
+    final refreshToken = await _tokenStorage.getRefreshToken();
+    if (accessToken != null && refreshToken != null) {
+      _tokenManager.setToken(TokenStore(accessToken: accessToken, refreshToken: refreshToken));
+    }
+  }
+
   static Future<void> setup() async {
     final tokenStorage = getIt<ITokenStorage>();
     

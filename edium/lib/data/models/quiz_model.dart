@@ -6,6 +6,7 @@ class QuizSettingsModel {
   final bool shuffleQuestions;
   final bool showExplanations;
   final String? deadline;
+  final int? totalTimeLimitSec;
   final String? riddlerMode;
   final int? questionTimeLimitSec;
   final String? sessionStartedAtIso;
@@ -16,6 +17,7 @@ class QuizSettingsModel {
     this.shuffleQuestions = false,
     this.showExplanations = true,
     this.deadline,
+    this.totalTimeLimitSec,
     this.riddlerMode,
     this.questionTimeLimitSec,
     this.sessionStartedAtIso,
@@ -28,6 +30,7 @@ class QuizSettingsModel {
       shuffleQuestions: json['shuffle_questions'] as bool? ?? false,
       showExplanations: json['show_explanations'] as bool? ?? true,
       deadline: json['deadline'] as String?,
+      totalTimeLimitSec: json['total_time_limit_sec'] as int?,
     );
   }
 
@@ -45,6 +48,7 @@ class QuizSettingsModel {
       shuffleQuestions: json['shuffle_questions'] as bool? ?? false,
       showExplanations: true,
       deadline: null,
+      totalTimeLimitSec: (totalSec != null && totalSec > 0) ? totalSec : null,
       riddlerMode: json['mode'] as String?,
       questionTimeLimitSec: json['question_time_limit_sec'] as int?,
       sessionStartedAtIso:
@@ -59,6 +63,8 @@ class QuizSettingsModel {
         'shuffle_questions': shuffleQuestions,
         'show_explanations': showExplanations,
         if (deadline != null) 'deadline': deadline,
+        if (totalTimeLimitSec != null)
+          'total_time_limit_sec': totalTimeLimitSec,
         if (riddlerMode != null) 'mode': riddlerMode,
         if (questionTimeLimitSec != null)
           'question_time_limit_sec': questionTimeLimitSec,
@@ -71,6 +77,7 @@ class QuizSettingsModel {
         shuffleQuestions: shuffleQuestions,
         showExplanations: showExplanations,
         deadline: deadline != null ? DateTime.tryParse(deadline!) : null,
+        totalTimeLimitSec: totalTimeLimitSec,
         riddlerMode: riddlerMode,
         questionTimeLimitSec: questionTimeLimitSec,
         sessionStartedAt: sessionStartedAtIso != null
@@ -86,6 +93,7 @@ class QuizSettingsModel {
         shuffleQuestions: s.shuffleQuestions,
         showExplanations: s.showExplanations,
         deadline: s.deadline?.toIso8601String(),
+        totalTimeLimitSec: s.totalTimeLimitSec,
         riddlerMode: s.riddlerMode,
         questionTimeLimitSec: s.questionTimeLimitSec,
         sessionStartedAtIso: s.sessionStartedAt?.toUtc().toIso8601String(),

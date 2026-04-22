@@ -115,6 +115,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
 
+      await dioHandler.syncTokenFromStorage();
       await profileStorage.savePhone(event.phone);
       final user = await getMe();
       await profileStorage.saveName(user.name);
@@ -147,6 +148,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         name: event.name,
         surname: event.surname,
       );
+      await dioHandler.syncTokenFromStorage();
       await profileStorage.savePhone(event.phone);
       await profileStorage.saveName(event.name);
       final user = User(
