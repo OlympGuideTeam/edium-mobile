@@ -100,3 +100,15 @@ class UpdateFinishedAtEvent extends CreateQuizEvent {
 class ResetCreateQuizEvent extends CreateQuizEvent {
   const ResetCreateQuizEvent();
 }
+
+/// Генерация вопросов по тексту через Riddler (`/quizzes/{id}/generate`).
+class GenerateQuizQuestionsWithAiEvent extends CreateQuizEvent {
+  final String sourceText;
+  /// Для привязки черновика к курсу при первом создании шаблона.
+  final String? courseId;
+
+  const GenerateQuizQuestionsWithAiEvent(this.sourceText, {this.courseId});
+
+  @override
+  List<Object?> get props => [sourceText, courseId];
+}

@@ -141,4 +141,39 @@ class QuizRepositoryImpl implements IQuizRepository {
   Future<void> removeQuestion(String quizId, String questionId) {
     return _datasource.removeQuestion(quizId, questionId);
   }
+
+  @override
+  Future<String> createTestSessionInline({
+    required String title,
+    String? description,
+    required String courseId,
+    required String moduleId,
+    required List<Map<String, dynamic>> questions,
+    int? totalTimeLimitSec,
+    bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
+  }) {
+    return _datasource.createTestSessionInline(
+      title: title,
+      description: description,
+      courseId: courseId,
+      moduleId: moduleId,
+      questions: questions,
+      totalTimeLimitSec: totalTimeLimitSec,
+      shuffleQuestions: shuffleQuestions,
+      startedAt: startedAt,
+      finishedAt: finishedAt,
+    );
+  }
+
+  @override
+  Future<void> deleteSession(String sessionId) {
+    return _datasource.deleteSession(sessionId);
+  }
+
+  @override
+  Future<void> generateQuizQuestions(String quizId, String sourceText) {
+    return _datasource.generateQuizQuestions(quizId, sourceText);
+  }
 }

@@ -32,4 +32,22 @@ class CourseRepositoryImpl implements ICourseRepository {
   Future<ModuleDetail> getModuleDetail({required String moduleId}) {
     return _datasource.getModuleDetail(moduleId: moduleId);
   }
+
+  @override
+  Future<void> deleteDraft(String draftId) {
+    return _datasource.deleteDraft(draftId);
+  }
+
+  @override
+  Future<void> deleteItem(String itemId) {
+    return _datasource.deleteItem(itemId);
+  }
+
+  @override
+  Future<void> reorderModules({
+    required String courseId,
+    required List<String> moduleIds,
+  }) {
+    return _datasource.reorderModules(courseId: courseId, moduleIds: moduleIds);
+  }
 }

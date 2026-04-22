@@ -50,7 +50,7 @@ class QuizDatasourceMock implements IQuizDatasource {
           QuestionModel(
             id: 'q3',
             text: 'Чему равна сумма корней уравнения x² - 7x + 12 = 0?',
-            type: 'text_input',
+            type: 'with_free_answer',
             options: [],
             explanation: 'По теореме Виета: сумма корней = -b/a = 7/1 = 7',
             orderIndex: 2,
@@ -383,6 +383,36 @@ class QuizDatasourceMock implements IQuizDatasource {
   }
 
   @override
+  Future<String> createTestSessionInline({
+    required String title,
+    String? description,
+    required String courseId,
+    required String moduleId,
+    required List<Map<String, dynamic>> questions,
+    int? totalTimeLimitSec,
+    bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
+  }) async {
+    await createQuiz(
+      title: title,
+      description: description,
+      mode: 'test',
+      totalTimeLimitSec: totalTimeLimitSec,
+      shuffleQuestions: shuffleQuestions,
+      startedAt: startedAt,
+      finishedAt: finishedAt,
+      questions: questions,
+    );
+    return 'session-inline-${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  @override
+  Future<void> deleteSession(String sessionId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+  }
+
+  @override
   Future<void> removeQuestion(String quizId, String questionId) async {
     await Future.delayed(const Duration(milliseconds: 200));
     final idx = _quizzes.indexWhere((q) => q.id == quizId);
@@ -402,5 +432,10 @@ class QuizDatasourceMock implements IQuizDatasource {
       isLiked: q.isLiked,
       createdAt: q.createdAt,
     );
+  }
+
+  @override
+  Future<void> generateQuizQuestions(String quizId, String sourceText) async {
+    await Future.delayed(const Duration(milliseconds: 300));
   }
 }
