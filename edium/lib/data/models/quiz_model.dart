@@ -110,6 +110,9 @@ class QuizModel {
   /// From Riddler list/summary `question_count` when `questions` is absent.
   final int? summaryQuestionCount;
 
+  /// Riddler `is_public` — опубликован ли шаблон для всех.
+  final bool isPublic;
+
   const QuizModel({
     required this.id,
     required this.title,
@@ -124,6 +127,7 @@ class QuizModel {
     required this.isLiked,
     required this.createdAt,
     this.summaryQuestionCount,
+    this.isPublic = false,
   });
 
   static QuizSettingsModel _settingsFromJson(Map<String, dynamic> json) {
@@ -166,6 +170,7 @@ class QuizModel {
           ? createdRaw
           : DateTime.now().toUtc().toIso8601String(),
       summaryQuestionCount: json['question_count'] as int?,
+      isPublic: json['is_public'] as bool? ?? false,
     );
   }
 
@@ -184,6 +189,7 @@ class QuizModel {
         'created_at': createdAt,
         if (summaryQuestionCount != null)
           'question_count': summaryQuestionCount,
+        'is_public': isPublic,
       };
 
   Quiz toEntity() {
@@ -215,6 +221,7 @@ class QuizModel {
       isLiked: isLiked,
       createdAt: DateTime.parse(createdAt),
       listedQuestionCount: summaryQuestionCount,
+      isPublic: isPublic,
     );
   }
 }

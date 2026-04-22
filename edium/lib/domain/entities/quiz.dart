@@ -69,6 +69,9 @@ class Quiz {
   /// Riddler list endpoints return [question_count] without embedding questions.
   final int? listedQuestionCount;
 
+  /// Опубликован ли шаблон «для всех». После публикации редактирование недоступно.
+  final bool isPublic;
+
   const Quiz({
     required this.id,
     required this.title,
@@ -83,6 +86,7 @@ class Quiz {
     required this.isLiked,
     required this.createdAt,
     this.listedQuestionCount,
+    this.isPublic = false,
   });
 
   int get questionsCount => listedQuestionCount ?? questions.length;
@@ -102,6 +106,7 @@ class Quiz {
     bool? isLiked,
     DateTime? createdAt,
     int? listedQuestionCount,
+    bool? isPublic,
   }) {
     return Quiz(
       id: id ?? this.id,
@@ -117,6 +122,7 @@ class Quiz {
       isLiked: isLiked ?? this.isLiked,
       createdAt: createdAt ?? this.createdAt,
       listedQuestionCount: listedQuestionCount ?? this.listedQuestionCount,
+      isPublic: isPublic ?? this.isPublic,
     );
   }
 }
