@@ -45,6 +45,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           create: (_) => QuizLibraryBloc(
             getQuizzes: getIt(),
             likeQuiz: getIt(),
+            quizRepository: getIt<IQuizRepository>(),
           )..add(const LoadQuizzesEvent()),
         ),
         BlocProvider(

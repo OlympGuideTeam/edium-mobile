@@ -59,6 +59,7 @@ class QuizDatasourceMock implements IQuizDatasource {
         likesCount: 14,
         isLiked: false,
         createdAt: '2026-02-01T10:00:00Z',
+        isPublic: true,
       ),
       QuizModel(
         id: '2',
@@ -103,6 +104,7 @@ class QuizDatasourceMock implements IQuizDatasource {
         likesCount: 7,
         isLiked: true,
         createdAt: '2026-02-10T12:00:00Z',
+        isPublic: true,
       ),
       QuizModel(
         id: '3',
@@ -266,13 +268,14 @@ class QuizDatasourceMock implements IQuizDatasource {
       subject: quiz.subject,
       authorId: quiz.authorId,
       authorName: quiz.authorName,
-      status: isPublic ? 'active' : 'active',
+      status: isPublic ? 'active' : 'draft',
       settings: quiz.settings,
       questions: quiz.questions,
       likesCount: quiz.likesCount,
       isLiked: quiz.isLiked,
       createdAt: quiz.createdAt,
       summaryQuestionCount: quiz.summaryQuestionCount,
+      isPublic: isPublic,
     );
   }
 

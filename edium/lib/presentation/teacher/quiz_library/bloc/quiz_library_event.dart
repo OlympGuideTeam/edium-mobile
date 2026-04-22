@@ -29,3 +29,10 @@ class LikeQuizEvent extends QuizLibraryEvent {
   @override
   List<Object?> get props => [quizId];
 }
+
+class DeleteQuizEvent extends QuizLibraryEvent {
+  final String quizId;
+  const DeleteQuizEvent(this.quizId);
+  @override
+  List<Object?> get props => [quizId];
+}

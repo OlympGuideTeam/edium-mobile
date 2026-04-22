@@ -2,11 +2,13 @@ import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
+import 'package:edium/domain/entities/quiz.dart';
 import 'package:edium/domain/repositories/quiz_repository.dart';
 import 'package:edium/domain/usecases/quiz/create_session_usecase.dart';
 import 'package:edium/presentation/shared/widgets/quiz_card.dart';
 import 'package:edium/presentation/teacher/create_quiz/bloc/create_quiz_bloc.dart';
 import 'package:edium/presentation/teacher/create_quiz/create_quiz_screen.dart';
+import 'package:edium/presentation/teacher/edit_quiz_template/edit_quiz_template_screen.dart';
 import 'package:edium/presentation/teacher/quiz_library/bloc/quiz_library_bloc.dart';
 import 'package:edium/presentation/teacher/quiz_library/bloc/quiz_library_event.dart';
 import 'package:edium/presentation/teacher/quiz_library/bloc/quiz_library_state.dart';
@@ -48,6 +50,20 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
             search: query.isEmpty ? null : query,
           ),
         );
+  }
+
+  void _openQuiz(BuildContext context, Quiz quiz, bool isMineTab) {
+    final route = isMineTab && !quiz.isPublic
+        ? MaterialPageRoute(
+            builder: (_) => EditQuizTemplateScreen(quizId: quiz.id),
+          )
+        : MaterialPageRoute(
+            builder: (_) => QuizDetailScreen(
+              quizId: quiz.id,
+              isOwnerHint: isMineTab,
+            ),
+          );
+    Navigator.push(context, route);
   }
 
   @override
@@ -213,6 +229,7 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
                         ),
                       );
                     }
+                    final isMineTab = _tabIndex == 1;
                     return ListView.separated(
                       padding: const EdgeInsets.fromLTRB(
                           AppDimens.screenPaddingH,
@@ -223,23 +240,18 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (context, i) {
                         final quiz = state.quizzes[i];
-                        return QuizCard(
+                        final card = QuizCard(
                           quiz: quiz,
-                          onTap: () {
-                            final bloc = context.read<QuizLibraryBloc>();
-                            final scope = _tabIndex == 0 ? 'global' : 'mine';
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    QuizDetailScreen(quizId: quiz.id),
-                              ),
-                            ).then((_) =>
-                                bloc.add(LoadQuizzesEvent(scope: scope)));
-                          },
-                          onLike: () => context
+                          onTap: () => _openQuiz(context, quiz, isMineTab),
+                        );
+                        if (!isMineTab) return card;
+                        if (quiz.isPublic) return card;
+                        return _buildDismissible(
+                          key: ValueKey('q-${quiz.id}'),
+                          onDismissed: () => context
                               .read<QuizLibraryBloc>()
-                              .add(LikeQuizEvent(quiz.id)),
+                              .add(DeleteQuizEvent(quiz.id)),
+                          child: card,
                         );
                       },
                     );
@@ -253,6 +265,32 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
       ),
     );
   }
+}
+
+Widget _buildDismissible({
+  required Key key,
+  required VoidCallback onDismissed,
+  required Widget child,
+}) {
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(14),
+    child: Container(
+      color: AppColors.error,
+      child: Dismissible(
+        key: key,
+        direction: DismissDirection.endToStart,
+        onDismissed: (_) => onDismissed(),
+        background: Container(
+          color: AppColors.error,
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          child: const Icon(Icons.delete_outline,
+              color: Colors.white, size: 20),
+        ),
+        child: child,
+      ),
+    ),
+  );
 }
 
 class _PillTab extends StatelessWidget {
