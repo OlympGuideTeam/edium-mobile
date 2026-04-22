@@ -32,3 +32,8 @@ class CourseDetailActionError extends CourseDetailState {
   final CourseDetail course;
   const CourseDetailActionError(this.message, this.course);
 }
+
+class CourseDraftDeleted extends CourseDetailState {
+  final CourseDetail course;
+  const CourseDraftDeleted(this.course);
+}

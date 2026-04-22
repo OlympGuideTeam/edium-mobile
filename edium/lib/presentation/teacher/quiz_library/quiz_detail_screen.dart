@@ -1190,8 +1190,14 @@ class _QuestionTypeBadge extends StatelessWidget {
         return 'Один ответ';
       case QuestionType.multiChoice:
         return 'Несколько ответов';
-      case QuestionType.textInput:
+      case QuestionType.withFreeAnswer:
         return 'Свободный ответ';
+      case QuestionType.withGivenAnswer:
+        return 'Данный ответ';
+      case QuestionType.drag:
+        return 'Порядок';
+      case QuestionType.connection:
+        return 'Соответствие';
     }
   }
 }

@@ -5,28 +5,56 @@ import 'package:edium/presentation/teacher/create_quiz/bloc/create_quiz_state.da
 
 /// Maps a domain question into the JSON shape used by [AddQuestionScreen] / create flow.
 Map<String, dynamic> questionEntityToCreateMap(Question q) {
+  final maxScore = q.maxScore ?? 10;
+  final meta =
+      q.metadata != null ? Map<String, dynamic>.from(q.metadata!) : null;
+
   switch (q.type) {
     case QuestionType.multiChoice:
       return {
         'type': 'multiple_choice',
         'text': q.text,
-        'max_score': 10,
+        'max_score': maxScore,
         'answer_options': q.options
             .map((o) => {'text': o.text, 'is_correct': o.isCorrect})
             .toList(),
       };
-    case QuestionType.textInput:
+    case QuestionType.withFreeAnswer:
       return {
         'type': 'with_free_answer',
         'text': q.text,
-        'max_score': 10,
+        'max_score': maxScore,
         'answer_options': <Map<String, dynamic>>[],
+      };
+    case QuestionType.withGivenAnswer:
+      return {
+        'type': 'with_given_answer',
+        'text': q.text,
+        'max_score': maxScore,
+        'answer_options': <Map<String, dynamic>>[],
+        if (meta != null) 'metadata': meta,
+      };
+    case QuestionType.drag:
+      return {
+        'type': 'drag',
+        'text': q.text,
+        'max_score': maxScore,
+        'answer_options': <Map<String, dynamic>>[],
+        if (meta != null) 'metadata': meta,
+      };
+    case QuestionType.connection:
+      return {
+        'type': 'connection',
+        'text': q.text,
+        'max_score': maxScore,
+        'answer_options': <Map<String, dynamic>>[],
+        if (meta != null) 'metadata': meta,
       };
     case QuestionType.singleChoice:
       return {
         'type': 'single_choice',
         'text': q.text,
-        'max_score': 10,
+        'max_score': maxScore,
         'answer_options': q.options
             .map((o) => {'text': o.text, 'is_correct': o.isCorrect})
             .toList(),
