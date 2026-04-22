@@ -66,6 +66,52 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
     });
     on<SubmitQuizEvent>(_onSubmit);
     on<ResetCreateQuizEvent>((_, emit) => emit(const CreateQuizState()));
+    on<GenerateQuizQuestionsWithAiEvent>(_onGenerateQuizQuestionsWithAi);
+  }
+
+  Future<void> _onGenerateQuizQuestionsWithAi(
+    GenerateQuizQuestionsWithAiEvent event,
+    Emitter<CreateQuizState> emit,
+  ) async {
+    emit(state.copyWith(isAiGenerating: true, clearError: true));
+    try {
+      var quizId = state.existingQuizTemplateId;
+      if (quizId == null) {
+        final mode = switch (state.quizType) {
+          QuizCreationMode.test => 'test',
+          QuizCreationMode.live => 'live',
+          QuizCreationMode.template => null,
+        };
+        final title =
+            state.title.trim().isEmpty ? 'Новый квиз' : state.title.trim();
+        quizId = await _quizRepository.createQuiz(
+          title: title,
+          description: state.description.isEmpty ? null : state.description,
+          mode: mode,
+          totalTimeLimitSec: state.totalTimeLimitSec,
+          questionTimeLimitSec: state.questionTimeLimitSec,
+          shuffleQuestions: state.shuffleQuestions,
+          startedAt: state.startedAt,
+          finishedAt: state.finishedAt,
+          questions: const [],
+          courseId: state.isInCourseContext ? event.courseId : null,
+        );
+        emit(state.copyWith(
+          existingQuizTemplateId: quizId,
+          isAiGenerating: true,
+        ));
+      }
+      await _quizRepository.generateQuizQuestions(quizId, event.sourceText);
+      emit(state.copyWith(
+        isAiGenerating: false,
+        aiGenerateAckVersion: state.aiGenerateAckVersion + 1,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        isAiGenerating: false,
+        error: e.toString(),
+      ));
+    }
   }
 
   Future<void> _onSubmit(
@@ -137,34 +183,54 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
           courseId: event.courseId,
         );
       } else {
-        // Course context: create template (no attach), then session.
-        final templateId = await _createQuiz(
-          title: state.title,
-          description: state.description.isEmpty ? null : state.description,
-          mode: mode,
-          totalTimeLimitSec: state.totalTimeLimitSec,
-          questionTimeLimitSec: state.questionTimeLimitSec,
-          shuffleQuestions: state.shuffleQuestions,
-          startedAt: state.startedAt,
-          finishedAt: state.finishedAt,
-          questions: state.questions,
-        );
-        final sessionType = state.quizType == QuizCreationMode.live
-            ? SessionType.live
-            : SessionType.test;
-        await _createSession(
-          quizTemplateId: templateId,
-          moduleId: event.moduleId!,
-          sessionType: sessionType,
-          totalTimeLimitSec: state.totalTimeLimitSec,
-          questionTimeLimitSec: state.questionTimeLimitSec,
-          shuffleQuestions: state.shuffleQuestions,
-          startedAt: state.startedAt,
-          finishedAt: state.finishedAt,
-        );
+        // Course context, new quiz, "Начать".
+        if (state.quizType == QuizCreationMode.test && event.courseId != null) {
+          // Use the atomic inline endpoint for test sessions.
+          await _quizRepository.createTestSessionInline(
+            title: state.title,
+            description: state.description.isEmpty ? null : state.description,
+            courseId: event.courseId!,
+            moduleId: event.moduleId!,
+            questions: state.questions,
+            totalTimeLimitSec: state.totalTimeLimitSec,
+            shuffleQuestions: state.shuffleQuestions,
+            startedAt: state.startedAt,
+            finishedAt: state.finishedAt,
+          );
+        } else {
+          // Live mode (or fallback): two-step create template → create session.
+          final templateId = await _createQuiz(
+            title: state.title,
+            description: state.description.isEmpty ? null : state.description,
+            mode: mode,
+            totalTimeLimitSec: state.totalTimeLimitSec,
+            questionTimeLimitSec: state.questionTimeLimitSec,
+            shuffleQuestions: state.shuffleQuestions,
+            startedAt: state.startedAt,
+            finishedAt: state.finishedAt,
+            questions: state.questions,
+          );
+          final sessionType = state.quizType == QuizCreationMode.live
+              ? SessionType.live
+              : SessionType.test;
+          await _createSession(
+            quizTemplateId: templateId,
+            moduleId: event.moduleId!,
+            sessionType: sessionType,
+            totalTimeLimitSec: state.totalTimeLimitSec,
+            questionTimeLimitSec: state.questionTimeLimitSec,
+            shuffleQuestions: state.shuffleQuestions,
+            startedAt: state.startedAt,
+            finishedAt: state.finishedAt,
+          );
+        }
       }
 
-      emit(state.copyWith(isSubmitting: false, success: true));
+      emit(state.copyWith(
+        isSubmitting: false,
+        success: true,
+        submittedModuleId: event.moduleId,
+      ));
     } catch (e) {
       emit(state.copyWith(isSubmitting: false, error: e.toString()));
     }

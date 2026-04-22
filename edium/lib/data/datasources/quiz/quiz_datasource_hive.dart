@@ -359,6 +359,41 @@ class QuizDatasourceHive implements IQuizDatasource {
     await HiveStorage.quizzesBox.put(quizId, jsonEncode(json));
   }
 
+  @override
+  Future<String> createTestSessionInline({
+    required String title,
+    String? description,
+    required String courseId,
+    required String moduleId,
+    required List<Map<String, dynamic>> questions,
+    int? totalTimeLimitSec,
+    bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
+  }) async {
+    await createQuiz(
+      title: title,
+      description: description,
+      mode: 'test',
+      totalTimeLimitSec: totalTimeLimitSec,
+      shuffleQuestions: shuffleQuestions,
+      startedAt: startedAt,
+      finishedAt: finishedAt,
+      questions: questions,
+    );
+    return 'session-inline-${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  @override
+  Future<void> deleteSession(String sessionId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+  }
+
+  @override
+  Future<void> generateQuizQuestions(String quizId, String sourceText) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+  }
+
   static List<QuizModel> _buildSeedQuizzes() => [
         QuizModel(
           id: '1',

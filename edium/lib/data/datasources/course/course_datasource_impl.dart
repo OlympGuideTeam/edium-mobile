@@ -52,4 +52,35 @@ class CourseDatasourceImpl extends BaseApiService implements ICourseDatasource {
           ModuleDetailModel.fromJson(data as Map<String, dynamic>).toEntity(),
     );
   }
+
+  @override
+  Future<void> deleteDraft(String draftId) {
+    return request(
+      'caesar/v1/drafts/$draftId',
+      method: HttpMethod.delete,
+      parser: (_) {},
+    );
+  }
+
+  @override
+  Future<void> deleteItem(String itemId) {
+    return request(
+      'caesar/v1/items/$itemId',
+      method: HttpMethod.delete,
+      parser: (_) {},
+    );
+  }
+
+  @override
+  Future<void> reorderModules({
+    required String courseId,
+    required List<String> moduleIds,
+  }) {
+    return request(
+      'caesar/v1/courses/$courseId/modules/order',
+      method: HttpMethod.patch,
+      req: {'module_ids': moduleIds},
+      parser: (_) {},
+    );
+  }
 }

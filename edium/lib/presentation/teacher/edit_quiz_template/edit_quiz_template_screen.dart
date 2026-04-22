@@ -441,13 +441,19 @@ class _ExistingQuestionTile extends StatelessWidget {
   static const _typeLabel = {
     QuestionType.singleChoice: 'Один ответ',
     QuestionType.multiChoice: 'Несколько ответов',
-    QuestionType.textInput: 'Свободный ответ',
+    QuestionType.withFreeAnswer: 'Свободный ответ',
+    QuestionType.withGivenAnswer: 'Данный ответ',
+    QuestionType.drag: 'Порядок',
+    QuestionType.connection: 'Соответствие',
   };
 
   static const _typeIcon = {
     QuestionType.singleChoice: Icons.radio_button_checked_outlined,
     QuestionType.multiChoice: Icons.check_box_outlined,
-    QuestionType.textInput: Icons.edit_outlined,
+    QuestionType.withFreeAnswer: Icons.edit_outlined,
+    QuestionType.withGivenAnswer: Icons.text_fields_outlined,
+    QuestionType.drag: Icons.swap_vert_outlined,
+    QuestionType.connection: Icons.device_hub_outlined,
   };
 
   @override

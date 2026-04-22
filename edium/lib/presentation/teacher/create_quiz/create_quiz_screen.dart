@@ -173,11 +173,13 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     final moduleId = await _pickModule();
     if (!mounted) return;
     context.read<CreateQuizBloc>().add(
-          SubmitQuizEvent(moduleId: moduleId),
+          SubmitQuizEvent(moduleId: moduleId, courseId: widget.courseId),
         );
   }
 
   void _openAIGenerateSheet() {
+    final hostContext = context;
+    final bloc = context.read<CreateQuizBloc>();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -186,12 +188,32 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (sheetCtx) {
-        return _AIGenerateSheet(
-          onGenerate: (text) {
+        return BlocListener<CreateQuizBloc, CreateQuizState>(
+          bloc: bloc,
+          listenWhen: (prev, curr) =>
+              curr.aiGenerateAckVersion > prev.aiGenerateAckVersion,
+          listener: (_, __) {
             Navigator.pop(sheetCtx);
-            // TODO: подключить AI бизнес-логику
-            // context.read<CreateQuizBloc>().add(GenerateQuestionsWithAI(text));
+            EdiumNotification.show(
+              hostContext,
+              'Мы пришлём вам уведомление, когда вопросы будут готовы.',
+            );
           },
+          child: BlocBuilder<CreateQuizBloc, CreateQuizState>(
+            bloc: bloc,
+            buildWhen: (p, c) => p.isAiGenerating != c.isAiGenerating,
+            builder: (ctx, s) => _AIGenerateSheet(
+              isGenerating: s.isAiGenerating,
+              onGenerate: (text) {
+                bloc.add(
+                  GenerateQuizQuestionsWithAiEvent(
+                    text,
+                    courseId: widget.courseId,
+                  ),
+                );
+              },
+            ),
+          ),
         );
       },
     );
@@ -208,7 +230,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
             QuizCreationMode.template => 'Шаблон создан',
           };
           EdiumNotification.show(context, label);
-          Navigator.pop(context, true);
+          Navigator.pop(context, state);
           context.read<CreateQuizBloc>().add(const ResetCreateQuizEvent());
         }
         if (state.error != null) {
@@ -334,8 +356,12 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
 
 class _AIGenerateSheet extends StatefulWidget {
   final ValueChanged<String> onGenerate;
+  final bool isGenerating;
 
-  const _AIGenerateSheet({required this.onGenerate});
+  const _AIGenerateSheet({
+    required this.onGenerate,
+    required this.isGenerating,
+  });
 
   @override
   State<_AIGenerateSheet> createState() => _AIGenerateSheetState();
@@ -343,10 +369,19 @@ class _AIGenerateSheet extends StatefulWidget {
 
 class _AIGenerateSheetState extends State<_AIGenerateSheet> {
   final _textCtrl = TextEditingController();
+  final _fieldFocus = FocusNode();
   static const _maxLength = 4000;
+  static const _minGenerateLength = 500;
+
+  @override
+  void initState() {
+    super.initState();
+    _fieldFocus.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
+    _fieldFocus.dispose();
     _textCtrl.dispose();
     super.dispose();
   }
@@ -415,16 +450,22 @@ class _AIGenerateSheetState extends State<_AIGenerateSheet> {
                 ],
               ),
               const SizedBox(height: 20),
-              Container(
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
                 decoration: BoxDecoration(
                   color: AppColors.mono25,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.mono150),
+                  border: Border.all(
+                    color: _fieldFocus.hasFocus
+                        ? AppColors.mono900
+                        : AppColors.mono150,
+                  ),
                 ),
                 child: Column(
                   children: [
                     TextField(
                       controller: _textCtrl,
+                      focusNode: _fieldFocus,
                       maxLength: _maxLength,
                       maxLines: 8,
                       minLines: 5,
@@ -436,6 +477,8 @@ class _AIGenerateSheetState extends State<_AIGenerateSheet> {
                             'Вставьте текст лекции, главы учебника или любой материал...',
                         hintStyle: AppTextStyles.fieldHint,
                         border: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        enabledBorder: InputBorder.none,
                         contentPadding: const EdgeInsets.all(14),
                         counterText: '',
                       ),
@@ -446,6 +489,22 @@ class _AIGenerateSheetState extends State<_AIGenerateSheet> {
                           left: 14, right: 14, bottom: 10),
                       child: Row(
                         children: [
+                          ListenableBuilder(
+                            listenable: _textCtrl,
+                            builder: (_, __) {
+                              final len = _textCtrl.text.length;
+                              if (len > 0 && len < _minGenerateLength) {
+                                return Text(
+                                  'Минимум $_minGenerateLength символов',
+                                  style: AppTextStyles.caption.copyWith(
+                                    color: AppColors.mono400,
+                                    fontSize: 11,
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          ),
                           const Spacer(),
                           ListenableBuilder(
                             listenable: _textCtrl,
@@ -465,29 +524,41 @@ class _AIGenerateSheetState extends State<_AIGenerateSheet> {
               ListenableBuilder(
                 listenable: _textCtrl,
                 builder: (_, __) {
-                  final canGenerate = _textCtrl.text.trim().length >= 20;
+                  final hasEnoughText =
+                      _textCtrl.text.trim().length >= _minGenerateLength;
+                  final canTap = hasEnoughText && !widget.isGenerating;
                   return SizedBox(
                     width: double.infinity,
                     height: AppDimens.buttonH,
                     child: _RainbowBorderButton(
-                      enabled: canGenerate,
-                      onTap: canGenerate
+                      enabled: canTap,
+                      isBusy: widget.isGenerating,
+                      onTap: canTap
                           ? () => widget.onGenerate(_textCtrl.text.trim())
                           : null,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.auto_awesome,
-                              size: 16, color: Colors.white),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Сгенерировать',
-                            style: AppTextStyles.primaryButton.copyWith(
-                              color: Colors.white,
+                      child: widget.isGenerating
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.auto_awesome,
+                                    size: 16, color: Colors.white),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Сгенерировать',
+                                  style: AppTextStyles.primaryButton.copyWith(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
                     ),
                   );
                 },
@@ -505,11 +576,13 @@ class _AIGenerateSheetState extends State<_AIGenerateSheet> {
 
 class _RainbowBorderButton extends StatefulWidget {
   final bool enabled;
+  final bool isBusy;
   final VoidCallback? onTap;
   final Widget child;
 
   const _RainbowBorderButton({
     required this.enabled,
+    this.isBusy = false,
     required this.onTap,
     required this.child,
   });
@@ -546,7 +619,7 @@ class _RainbowBorderButtonState extends State<_RainbowBorderButton>
           onTap: widget.onTap,
           child: AnimatedOpacity(
             duration: const Duration(milliseconds: 200),
-            opacity: widget.enabled ? 1.0 : 0.5,
+            opacity: (!widget.enabled && !widget.isBusy) ? 0.5 : 1.0,
             child: CustomPaint(
               painter: _RainbowBorderPainter(
                 progress: _ctrl.value,
@@ -661,18 +734,18 @@ class _AIGenerateButtonState extends State<_AIGenerateButton>
           return CustomPaint(
             painter: _RainbowBorderPainter(
               progress: _ctrl.value,
-              borderRadius: 12,
-              borderWidth: 1,
+              borderRadius: 11,
+              borderWidth: 1.5,
             ),
             child: Container(
-              margin: const EdgeInsets.all(1),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              margin: const EdgeInsets.all(1.5),
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(9),
               ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ShaderMask(
@@ -799,7 +872,7 @@ class _QuizTypeSelectorState extends State<_QuizTypeSelector> {
                     borderRadius: BorderRadius.circular(9),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.mono900.withOpacity(0.15),
+                        color: AppColors.mono900.withValues(alpha: 0.15),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -2092,15 +2165,27 @@ class _QuestionsList extends StatelessWidget {
     'connection': Icons.device_hub_outlined,
   };
 
+  static const double _questionsActionRowHeight = 48;
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(child: _AddQuestionButton(onTap: onAdd)),
+            Expanded(
+              child: SizedBox(
+                height: _questionsActionRowHeight,
+                child: _AddQuestionButton(onTap: onAdd),
+              ),
+            ),
             const SizedBox(width: 10),
-            _AIGenerateButton(onTap: onAIGenerate),
+            SizedBox(
+              height: _questionsActionRowHeight,
+              width: 76,
+              child: _AIGenerateButton(onTap: onAIGenerate),
+            ),
           ],
         ),
         if (questions.isEmpty) ...[
@@ -2219,7 +2304,8 @@ class _AddQuestionButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        height: double.infinity,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           border:
@@ -2227,6 +2313,7 @@ class _AddQuestionButton extends StatelessWidget {
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.add, size: 18, color: AppColors.mono700),
             const SizedBox(width: 6),

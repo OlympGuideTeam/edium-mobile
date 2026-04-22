@@ -172,4 +172,22 @@ class CourseDatasourceMock implements ICourseDatasource {
     return _mockModules[moduleId] ??
         ModuleDetail(id: moduleId, title: 'Модуль', elementCount: 0, items: const []);
   }
+
+  @override
+  Future<void> deleteDraft(String draftId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+  }
+
+  @override
+  Future<void> deleteItem(String itemId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+  }
+
+  @override
+  Future<void> reorderModules({
+    required String courseId,
+    required List<String> moduleIds,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+  }
 }
