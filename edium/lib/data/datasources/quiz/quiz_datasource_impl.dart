@@ -226,4 +226,54 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
       parser: (_) {},
     );
   }
+
+  @override
+  Future<String> createTestSessionInline({
+    required String title,
+    String? description,
+    required String courseId,
+    required String moduleId,
+    required List<Map<String, dynamic>> questions,
+    int? totalTimeLimitSec,
+    bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
+  }) {
+    return request<String>(
+      'riddler/v1/sessions/test/inline',
+      method: HttpMethod.post,
+      req: {
+        'title': title,
+        if (description != null) 'description': description,
+        'course_id': courseId,
+        'module_id': moduleId,
+        'questions': questions,
+        if (totalTimeLimitSec != null) 'total_time_limit_sec': totalTimeLimitSec,
+        if (shuffleQuestions) 'shuffle_questions': shuffleQuestions,
+        if (startedAt != null) 'started_at': startedAt.toUtc().toIso8601String(),
+        if (finishedAt != null) 'finished_at': finishedAt.toUtc().toIso8601String(),
+      },
+      parser: (data) =>
+          (data as Map<String, dynamic>)['session_id'] as String,
+    );
+  }
+
+  @override
+  Future<void> deleteSession(String sessionId) {
+    return request(
+      'riddler/v1/sessions/$sessionId',
+      method: HttpMethod.delete,
+      parser: (_) {},
+    );
+  }
+
+  @override
+  Future<void> generateQuizQuestions(String quizId, String sourceText) {
+    return request<void>(
+      'riddler/v1/quizzes/$quizId/generate',
+      method: HttpMethod.post,
+      req: {'text': sourceText},
+      parser: (_) {},
+    );
+  }
 }

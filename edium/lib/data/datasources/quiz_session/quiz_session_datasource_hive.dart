@@ -68,7 +68,7 @@ class QuizSessionDatasourceHive implements IQuizSessionDatasource {
     try {
       final question = quiz.questions.firstWhere((q) => q.id == questionId);
 
-      if (question.type == 'text_input') {
+      if (question.type == 'with_free_answer') {
         final correct = question.correctAnswer?.trim().toLowerCase() ?? '';
         return answer.toString().trim().toLowerCase() == correct;
       }

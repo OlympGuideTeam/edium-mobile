@@ -38,8 +38,10 @@ class QuestionModel {
   final String type;
   final List<AnswerOptionModel> options;
   final String? explanation;
-  final String? correctAnswer; // for text_input type
+  final String? correctAnswer; // optional reference answer (e.g. demos)
   final int orderIndex;
+  final Map<String, dynamic>? metadata;
+  final int? maxScore;
 
   const QuestionModel({
     required this.id,
@@ -49,6 +51,8 @@ class QuestionModel {
     this.explanation,
     this.correctAnswer,
     required this.orderIndex,
+    this.metadata,
+    this.maxScore,
   });
 
   /// Teacher create flow uses [answer_options]; stored quizzes use [options].
@@ -79,6 +83,7 @@ class QuestionModel {
   }
 
   factory QuestionModel.fromJson(Map<String, dynamic> json) {
+    final metaRaw = json['metadata'];
     return QuestionModel(
       id: json['id'] as String,
       text: json['text'] as String,
@@ -89,6 +94,10 @@ class QuestionModel {
       explanation: json['explanation'] as String?,
       correctAnswer: json['correct_answer'] as String?,
       orderIndex: json['order_index'] as int? ?? 0,
+      metadata: metaRaw is Map<String, dynamic>
+          ? Map<String, dynamic>.from(metaRaw)
+          : null,
+      maxScore: json['max_score'] as int?,
     );
   }
 
@@ -100,6 +109,8 @@ class QuestionModel {
         if (explanation != null) 'explanation': explanation,
         if (correctAnswer != null) 'correct_answer': correctAnswer,
         'order_index': orderIndex,
+        if (metadata != null) 'metadata': metadata,
+        if (maxScore != null) 'max_score': maxScore,
       };
 
   Question toEntity() {
@@ -109,8 +120,17 @@ class QuestionModel {
       case 'multiple_choice':
         qType = QuestionType.multiChoice;
         break;
-      case 'text_input':
-        qType = QuestionType.textInput;
+      case 'with_free_answer':
+        qType = QuestionType.withFreeAnswer;
+        break;
+      case 'with_given_answer':
+        qType = QuestionType.withGivenAnswer;
+        break;
+      case 'drag':
+        qType = QuestionType.drag;
+        break;
+      case 'connection':
+        qType = QuestionType.connection;
         break;
       default:
         qType = QuestionType.singleChoice;
@@ -122,6 +142,8 @@ class QuestionModel {
       options: options.map((e) => e.toEntity()).toList(),
       explanation: explanation,
       orderIndex: orderIndex,
+      metadata: metadata != null ? Map<String, dynamic>.from(metadata!) : null,
+      maxScore: maxScore,
     );
   }
 
@@ -129,12 +151,21 @@ class QuestionModel {
     String typeStr;
     switch (q.type) {
       case QuestionType.multiChoice:
-        typeStr = 'multi_choice';
+        typeStr = 'multiple_choice';
         break;
-      case QuestionType.textInput:
-        typeStr = 'text_input';
+      case QuestionType.withFreeAnswer:
+        typeStr = 'with_free_answer';
         break;
-      default:
+      case QuestionType.withGivenAnswer:
+        typeStr = 'with_given_answer';
+        break;
+      case QuestionType.drag:
+        typeStr = 'drag';
+        break;
+      case QuestionType.connection:
+        typeStr = 'connection';
+        break;
+      case QuestionType.singleChoice:
         typeStr = 'single_choice';
     }
     return QuestionModel(
@@ -144,6 +175,8 @@ class QuestionModel {
       options: q.options.map(AnswerOptionModel.fromEntity).toList(),
       explanation: q.explanation,
       orderIndex: q.orderIndex,
+      metadata: q.metadata != null ? Map<String, dynamic>.from(q.metadata!) : null,
+      maxScore: q.maxScore,
     );
   }
 }
