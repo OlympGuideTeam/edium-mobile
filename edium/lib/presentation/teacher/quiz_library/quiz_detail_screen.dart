@@ -20,7 +20,14 @@ import 'package:flutter/material.dart';
 class QuizDetailScreen extends StatefulWidget {
   final String quizId;
 
-  const QuizDetailScreen({super.key, required this.quizId});
+  /// Передаётся из списка библиотеки: true, если квиз открыт из вкладки «Мои квизы».
+  final bool isOwnerHint;
+
+  const QuizDetailScreen({
+    super.key,
+    required this.quizId,
+    this.isOwnerHint = false,
+  });
 
   @override
   State<QuizDetailScreen> createState() => _QuizDetailScreenState();
@@ -31,7 +38,8 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
   bool _loading = true;
   bool _actionLoading = false;
 
-  bool get _isOwner => _quiz?.authorId == 'mock-user-1';
+  bool get _isOwner => widget.isOwnerHint;
+  bool get _canEdit => _isOwner && _quiz?.isPublic == false;
 
   @override
   void initState() {
@@ -79,6 +87,38 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
   }
 
   Future<void> _deleteQuiz() async {
+    if (_quiz?.isPublic == true) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text(
+            'Нельзя удалить',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: AppColors.mono900,
+            ),
+          ),
+          content: const Text(
+            'Публичный шаблон нельзя удалить — он доступен другим учителям.',
+            style: TextStyle(fontSize: 14, color: AppColors.mono600),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text(
+                'Понятно',
+                style: TextStyle(color: AppColors.mono900, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -250,9 +290,14 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
               ),
             ),
           if (_isOwner) ...[
+            if (_canEdit)
+              _TopBarButton(
+                icon: Icons.edit_outlined,
+                onTap: _actionLoading ? null : _editQuiz,
+              ),
             _TopBarButton(
-              icon: Icons.edit_outlined,
-              onTap: _actionLoading ? null : _editQuiz,
+              icon: Icons.copy_outlined,
+              onTap: _actionLoading ? null : _copyQuiz,
             ),
             _TopBarButton(
               icon: Icons.delete_outline,
@@ -286,6 +331,26 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
             ),
             const SizedBox(width: 8),
             _StatusChip(status: quiz.status),
+            if (quiz.isPublic) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.mono100,
+                  borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+                  border: Border.all(color: AppColors.mono200),
+                ),
+                child: const Text(
+                  'ПУБЛИЧНЫЙ',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.mono400,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
         const SizedBox(height: 10),
@@ -350,20 +415,6 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
           ],
         ),
         const Spacer(),
-        Row(
-          children: [
-            Icon(
-              quiz.isLiked ? Icons.favorite : Icons.favorite_border,
-              size: 16,
-              color: quiz.isLiked ? AppColors.error : AppColors.mono300,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              '${quiz.likesCount}',
-              style: AppTextStyles.screenSubtitle.copyWith(fontSize: 13),
-            ),
-          ],
-        ),
       ],
     );
   }

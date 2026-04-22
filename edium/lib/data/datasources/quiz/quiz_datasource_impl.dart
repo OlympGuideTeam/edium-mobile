@@ -164,8 +164,8 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
   @override
   Future<void> publishQuiz(String id, {required bool isPublic}) {
     return request(
-      'riddler/v1/quizzes/$id/publish',
-      method: HttpMethod.post,
+      'riddler/v1/quizzes/$id',
+      method: HttpMethod.patch,
       req: {'is_public': isPublic},
       parser: (_) {},
     );
