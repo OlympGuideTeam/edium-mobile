@@ -2165,28 +2165,26 @@ class _QuestionsList extends StatelessWidget {
     'connection': Icons.device_hub_outlined,
   };
 
+  /// Row внутри scroll получает бесконечную maxHeight — без явной высоты строка схлопывается.
   static const double _questionsActionRowHeight = 48;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: _questionsActionRowHeight,
-                child: _AddQuestionButton(onTap: onAdd),
+        SizedBox(
+          height: _questionsActionRowHeight,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: _AddQuestionButton(onTap: onAdd)),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 76,
+                child: _AIGenerateButton(onTap: onAIGenerate),
               ),
-            ),
-            const SizedBox(width: 10),
-            SizedBox(
-              height: _questionsActionRowHeight,
-              width: 76,
-              child: _AIGenerateButton(onTap: onAIGenerate),
-            ),
-          ],
+            ],
+          ),
         ),
         if (questions.isEmpty) ...[
           const SizedBox(height: 12),
