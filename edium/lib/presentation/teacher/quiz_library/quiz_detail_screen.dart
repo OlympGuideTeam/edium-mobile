@@ -14,6 +14,7 @@ import 'package:edium/domain/usecases/quiz/create_session_usecase.dart';
 import 'package:edium/presentation/shared/widgets/edium_button.dart';
 import 'package:edium/presentation/shared/widgets/edium_notification.dart';
 import 'package:edium/presentation/teacher/create_quiz/quiz_results_screen.dart';
+import 'package:edium/presentation/teacher/create_quiz/view_question_screen.dart';
 import 'package:edium/presentation/teacher/edit_quiz_template/edit_quiz_template_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -248,8 +249,6 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                       const SizedBox(height: 8),
                       _buildHeader(quiz),
                       const SizedBox(height: 20),
-                      _buildAuthorRow(quiz),
-                      const SizedBox(height: 20),
                       _buildSettingsRow(quiz),
                       const SizedBox(height: 24),
                       const Divider(height: 1, color: AppColors.mono100),
@@ -317,43 +316,26 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.mono900,
-                borderRadius: BorderRadius.circular(AppDimens.radiusXs),
-              ),
-              child: const Text('УЧИТЕЛЬ', style: AppTextStyles.badgeText),
-            ),
-            const SizedBox(width: 8),
-            _StatusChip(status: quiz.status),
-            if (quiz.isPublic) ...[
-              const SizedBox(width: 8),
+        if (quiz.isPublic) ...[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.mono100,
+                  color: AppColors.mono900,
                   borderRadius: BorderRadius.circular(AppDimens.radiusXs),
-                  border: Border.all(color: AppColors.mono200),
                 ),
                 child: const Text(
                   'ПУБЛИЧНЫЙ',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.mono400,
-                    letterSpacing: 0.3,
-                  ),
+                  style: AppTextStyles.badgeText,
                 ),
               ),
             ],
-          ],
-        ),
-        const SizedBox(height: 10),
+          ),
+          const SizedBox(height: 10),
+        ],
         Text(
           quiz.title,
           style: AppTextStyles.screenTitle.copyWith(fontSize: 24, height: 1.25),
@@ -373,72 +355,30 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
     );
   }
 
-  Widget _buildAuthorRow(Quiz quiz) {
-    return Row(
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: AppColors.mono100,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Center(
-            child: Text(
-              quiz.authorName.isNotEmpty
-                  ? quiz.authorName[0].toUpperCase()
-                  : '?',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: AppColors.mono600,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              quiz.authorName,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.mono900,
-              ),
-            ),
-            Text(
-              _isOwner ? 'Ваш квиз' : 'Автор',
-              style: AppTextStyles.screenSubtitle.copyWith(fontSize: 12),
-            ),
-          ],
-        ),
-        const Spacer(),
-      ],
-    );
-  }
-
   Widget _buildSettingsRow(Quiz quiz) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
-        _SettingChip(
-          icon: Icons.quiz_outlined,
-          label: '${quiz.questionsCount} вопр.',
-        ),
-        if (quiz.settings.timeLimitMinutes != null)
+        if (quiz.settings.totalTimeLimitSec != null &&
+            quiz.settings.totalTimeLimitSec! > 0)
+          _SettingChip(
+            icon: Icons.timer_outlined,
+            label: _quizTimeLimitTotalLabel(quiz.settings.totalTimeLimitSec!),
+          )
+        else if (quiz.settings.timeLimitMinutes != null)
           _SettingChip(
             icon: Icons.timer_outlined,
             label: '${quiz.settings.timeLimitMinutes} мин',
           ),
-        _SettingChip(
-          icon: quiz.settings.shuffleQuestions
-              ? Icons.shuffle
-              : Icons.format_list_numbered,
-          label: quiz.settings.shuffleQuestions ? 'Перемешан' : 'По порядку',
-        ),
+        if (quiz.settings.questionTimeLimitSec != null &&
+            quiz.settings.questionTimeLimitSec! > 0)
+          _SettingChip(
+            icon: Icons.timer_outlined,
+            label: _quizTimeLimitPerQuestionLabel(
+              quiz.settings.questionTimeLimitSec!,
+            ),
+          ),
         if (quiz.settings.deadline != null)
           _SettingChip(
             icon: Icons.event_outlined,
@@ -504,6 +444,15 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
                 (entry) => _QuestionTile(
                   index: entry.key + 1,
                   question: entry.value,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ViewQuestionScreen(
+                        index: entry.key + 1,
+                        question: entry.value,
+                      ),
+                    ),
+                  ),
                 ),
               ),
       ],
@@ -529,6 +478,30 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
       ),
     );
   }
+
+  /// Human-readable duration for quiz time limits (from seconds).
+  String _formatDurationSec(int sec) {
+    if (sec <= 0) return '0 с';
+    if (sec >= 3600) {
+      final h = sec ~/ 3600;
+      final rem = sec % 3600;
+      final m = rem ~/ 60;
+      if (m == 0) return '$h ч';
+      return '$h ч $m мин';
+    }
+    if (sec >= 60) {
+      final m = sec ~/ 60;
+      final s = sec % 60;
+      if (s == 0) return '$m мин';
+      return '$m мин $s с';
+    }
+    return '$sec с';
+  }
+
+  String _quizTimeLimitTotalLabel(int sec) => _formatDurationSec(sec);
+
+  String _quizTimeLimitPerQuestionLabel(int sec) =>
+      '${_formatDurationSec(sec)} на впр';
 
   String _fmtDeadline(DateTime dt) {
     return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
@@ -1048,58 +1021,6 @@ class _TopBarButton extends StatelessWidget {
   }
 }
 
-class _StatusChip extends StatelessWidget {
-  final QuizStatus status;
-  const _StatusChip({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    Color bg;
-    Color fg;
-    String label;
-
-    switch (status) {
-      case QuizStatus.draft:
-        bg = AppColors.mono100;
-        fg = AppColors.mono600;
-        label = 'Черновик';
-        break;
-      case QuizStatus.active:
-        bg = const Color(0xFFDCFCE7);
-        fg = const Color(0xFF16A34A);
-        label = 'Активен';
-        break;
-      case QuizStatus.completed:
-        bg = AppColors.mono100;
-        fg = AppColors.mono600;
-        label = 'Завершён';
-        break;
-      case QuizStatus.future:
-        bg = const Color(0xFFE0F2FE);
-        fg = const Color(0xFF0284C7);
-        label = 'Запланирован';
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(AppDimens.radiusXs),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: fg,
-          letterSpacing: 0.3,
-        ),
-      ),
-    );
-  }
-}
-
 class _SettingChip extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -1150,62 +1071,74 @@ class _SettingChip extends StatelessWidget {
 class _QuestionTile extends StatelessWidget {
   final int index;
   final Question question;
+  final VoidCallback? onTap;
 
-  const _QuestionTile({required this.index, required this.question});
+  const _QuestionTile({
+    required this.index,
+    required this.question,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.mono25,
-        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-        border: Border.all(
-            color: AppColors.mono100, width: AppDimens.borderWidth),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: AppColors.mono100,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(
-              child: Text(
-                '$index',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.mono600,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.mono25,
+          borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+          border: Border.all(
+              color: AppColors.mono100, width: AppDimens.borderWidth),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: AppColors.mono100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(
+                  '$index',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.mono600,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  question.text,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.mono900,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    question.text,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.mono900,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 5),
-                _QuestionTypeBadge(type: question.type),
-              ],
+                  const SizedBox(height: 5),
+                  _QuestionTypeBadge(type: question.type),
+                ],
+              ),
             ),
-          ),
-        ],
+            if (onTap != null) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right, size: 18, color: AppColors.mono300),
+            ],
+          ],
+        ),
       ),
     );
   }
