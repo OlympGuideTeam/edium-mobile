@@ -8,6 +8,9 @@ class QuizSettings {
   final bool showExplanations;
   final DateTime? deadline;
 
+  /// Riddler `default_settings.total_time_limit_sec` (test), when present.
+  final int? totalTimeLimitSec;
+
   /// Riddler `default_settings.mode` (`test` | `live`), when present.
   final String? riddlerMode;
 
@@ -23,6 +26,7 @@ class QuizSettings {
     this.shuffleQuestions = false,
     this.showExplanations = true,
     this.deadline,
+    this.totalTimeLimitSec,
     this.riddlerMode,
     this.questionTimeLimitSec,
     this.sessionStartedAt,
@@ -34,6 +38,7 @@ class QuizSettings {
     bool? shuffleQuestions,
     bool? showExplanations,
     DateTime? deadline,
+    int? totalTimeLimitSec,
     String? riddlerMode,
     int? questionTimeLimitSec,
     DateTime? sessionStartedAt,
@@ -44,6 +49,7 @@ class QuizSettings {
       shuffleQuestions: shuffleQuestions ?? this.shuffleQuestions,
       showExplanations: showExplanations ?? this.showExplanations,
       deadline: deadline ?? this.deadline,
+      totalTimeLimitSec: totalTimeLimitSec ?? this.totalTimeLimitSec,
       riddlerMode: riddlerMode ?? this.riddlerMode,
       questionTimeLimitSec: questionTimeLimitSec ?? this.questionTimeLimitSec,
       sessionStartedAt: sessionStartedAt ?? this.sessionStartedAt,

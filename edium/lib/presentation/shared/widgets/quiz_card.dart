@@ -7,13 +7,14 @@ import 'package:flutter/material.dart';
 class QuizCard extends StatelessWidget {
   final Quiz quiz;
   final VoidCallback? onTap;
-  final bool showAuthor;
+
+  final bool showPublicBadge;
 
   const QuizCard({
     super.key,
     required this.quiz,
     this.onTap,
-    this.showAuthor = true,
+    this.showPublicBadge = true,
   });
 
   @override
@@ -40,11 +41,12 @@ class QuizCard extends StatelessWidget {
                     _SubjectChip(subject: quiz.subject),
                     const SizedBox(width: 6),
                   ],
-                  if (quiz.isPublic)
+                  if (showPublicBadge && quiz.isPublic)
                     _PublicBadge(),
                 ],
               ),
-              if (quiz.subject.trim().isNotEmpty || quiz.isPublic)
+              if (quiz.subject.trim().isNotEmpty ||
+                  (showPublicBadge && quiz.isPublic))
                 const SizedBox(height: 8),
               Text(
                 quiz.title,
@@ -52,8 +54,6 @@ class QuizCard extends StatelessWidget {
                   color: AppColors.mono900,
                   height: 1.25,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 10),
               Wrap(
@@ -62,38 +62,31 @@ class QuizCard extends StatelessWidget {
                 children: [
                   _InfoChip(
                     icon: Icons.quiz_outlined,
-                    label: '${quiz.questionsCount} вопр.',
+                    label: '${quiz.questionsCount}',
                   ),
-                  if (quiz.settings.timeLimitMinutes != null)
+                  if (quiz.settings.totalTimeLimitSec != null &&
+                      quiz.settings.totalTimeLimitSec! > 0)
+                    _InfoChip(
+                      icon: Icons.timer_outlined,
+                      label: _formatQuizDurationSec(
+                        quiz.settings.totalTimeLimitSec!,
+                      ),
+                    )
+                  else if (quiz.settings.timeLimitMinutes != null)
                     _InfoChip(
                       icon: Icons.timer_outlined,
                       label: '${quiz.settings.timeLimitMinutes} мин',
                     ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Container(height: 1, color: AppColors.mono100),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  if (showAuthor) ...[
-                    const Icon(Icons.person_outline,
-                        size: 13, color: AppColors.mono300),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        quiz.authorName,
-                        style: AppTextStyles.caption
-                            .copyWith(color: AppColors.mono400),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                  if (quiz.settings.questionTimeLimitSec != null &&
+                      quiz.settings.questionTimeLimitSec! > 0)
+                    _InfoChip(
+                      icon: Icons.timer_outlined,
+                      label:
+                          '${_formatQuizDurationSec(quiz.settings.questionTimeLimitSec!)} на впр',
                     ),
-                  ] else
-                    const Spacer(),
-                  Text(
-                    _formatDate(quiz.createdAt),
-                    style: AppTextStyles.caption
-                        .copyWith(color: AppColors.mono300),
+                  _InfoChip(
+                    icon: Icons.calendar_today_outlined,
+                    label: _formatDate(quiz.createdAt),
                   ),
                 ],
               ),
@@ -107,6 +100,26 @@ class QuizCard extends StatelessWidget {
   String _formatDate(DateTime dt) {
     return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
   }
+}
+
+/// Human-readable duration for quiz time limits (from seconds).
+/// Matches [QuizDetailScreen] labels for consistency.
+String _formatQuizDurationSec(int sec) {
+  if (sec <= 0) return '0 с';
+  if (sec >= 3600) {
+    final h = sec ~/ 3600;
+    final rem = sec % 3600;
+    final m = rem ~/ 60;
+    if (m == 0) return '$h ч';
+    return '$h ч $m мин';
+  }
+  if (sec >= 60) {
+    final m = sec ~/ 60;
+    final s = sec % 60;
+    if (s == 0) return '$m мин';
+    return '$m мин $s с';
+  }
+  return '$sec с';
 }
 
 class _InfoChip extends StatelessWidget {
@@ -147,20 +160,14 @@ class _PublicBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.mono100,
+        color: AppColors.mono900,
         borderRadius: BorderRadius.circular(AppDimens.radiusXs),
-        border: Border.all(color: AppColors.mono200),
       ),
       child: const Text(
         'ПУБЛИЧНЫЙ',
-        style: TextStyle(
-          fontSize: 9,
-          fontWeight: FontWeight.w700,
-          color: AppColors.mono400,
-          letterSpacing: 0.4,
-        ),
+        style: AppTextStyles.badgeText,
       ),
     );
   }

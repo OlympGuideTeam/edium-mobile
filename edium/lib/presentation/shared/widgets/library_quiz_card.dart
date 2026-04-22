@@ -71,7 +71,7 @@ class LibraryQuizCard extends StatelessWidget {
               children: [
                 _InfoChip(
                   icon: Icons.quiz_outlined,
-                  label: '${quiz.questionCount} вопр.',
+                  label: '${quiz.questionCount}',
                 ),
                 if (quiz.hasTimeLimit) ...[
                   const SizedBox(width: 8),

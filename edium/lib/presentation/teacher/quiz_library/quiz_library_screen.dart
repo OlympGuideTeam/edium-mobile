@@ -242,6 +242,7 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
                         final quiz = state.quizzes[i];
                         final card = QuizCard(
                           quiz: quiz,
+                          showPublicBadge: isMineTab,
                           onTap: () => _openQuiz(context, quiz, isMineTab),
                         );
                         if (!isMineTab) return card;

@@ -105,9 +105,10 @@ CreateQuizState createQuizStateFromQuiz(
     // Riddler template is authoritative; Caesar draft payload can disagree.
     shuffle = quiz.settings.shuffleQuestions;
     questionSec = quiz.settings.questionTimeLimitSec;
-    totalSec = quiz.settings.timeLimitMinutes != null
-        ? quiz.settings.timeLimitMinutes! * 60
-        : null;
+    totalSec = quiz.settings.totalTimeLimitSec ??
+        (quiz.settings.timeLimitMinutes != null
+            ? quiz.settings.timeLimitMinutes! * 60
+            : null);
     startedAt = quiz.settings.sessionStartedAt;
     finishedAt = quiz.settings.sessionFinishedAt;
   } else {
