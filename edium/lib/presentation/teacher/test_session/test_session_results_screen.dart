@@ -67,13 +67,10 @@ class _View extends StatelessWidget {
 
   Widget _body(BuildContext context, TestSessionResultsState state) {
     if (!isTeacher) {
-      return const Center(
+      return Center(
         child: Text(
           'Нет доступа',
-          style: TextStyle(
-            fontSize: 15,
-            color: AppColors.mono400,
-          ),
+          style: AppTextStyles.screenSubtitle,
         ),
       );
     }
