@@ -657,10 +657,19 @@ class _RainbowBorderPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
+    // Stroke is centered on the path; inset so the full stroke stays inside [size]
+    // and matches neighbors that use in-box borders (e.g. «Добавить вопрос»).
+    final inset = borderWidth / 2;
+    final rect = Rect.fromLTWH(
+      inset,
+      inset,
+      size.width - borderWidth,
+      size.height - borderWidth,
+    );
+    final r = borderRadius <= inset ? 0.0 : borderRadius - inset;
     final rrect = RRect.fromRectAndRadius(
       rect,
-      Radius.circular(borderRadius),
+      Radius.circular(r),
     );
 
     final colors = [
