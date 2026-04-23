@@ -1148,9 +1148,21 @@ class _ModuleSectionState extends State<_ModuleSection>
                                     onTap: item.isTestQuiz
                                         ? () {
                                             if (widget.isTeacher) {
-                                              context.push('/test/${item.refId}/results', extra: item);
+                                              context.push(
+                                                '/test/${item.refId}/results',
+                                                extra: {
+                                                  'courseItem': item,
+                                                  'isTeacher': true,
+                                                },
+                                              );
                                             } else {
-                                              context.push('/test/${item.refId}', extra: item);
+                                              context.push(
+                                                '/test/${item.refId}',
+                                                extra: {
+                                                  'courseItem': item,
+                                                  'isTeacher': false,
+                                                },
+                                              );
                                             }
                                           }
                                         : null,
