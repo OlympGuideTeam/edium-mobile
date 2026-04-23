@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/storage/profile_storage.dart';
+import 'package:edium/domain/entities/course_detail.dart';
 import 'package:edium/domain/entities/user.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
@@ -16,8 +17,11 @@ import 'package:edium/presentation/teacher/course_detail/course_detail_screen.da
 import 'package:edium/presentation/teacher/create_course/create_course_screen.dart';
 import 'package:edium/presentation/profile/edit_profile/edit_profile_screen.dart';
 import 'package:edium/presentation/profile/notifications/notifications_screen.dart';
+import 'package:edium/presentation/shared/test/attempt_review_screen.dart';
 import 'package:edium/presentation/student/home/student_home_screen.dart';
+import 'package:edium/presentation/student/test/test_preview_screen.dart';
 import 'package:edium/presentation/teacher/home/teacher_home_screen.dart';
+import 'package:edium/presentation/teacher/test_session/test_session_results_screen.dart';
 import 'package:edium/services/notification_service/deep_link_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -129,6 +133,36 @@ GoRouter buildRouter() {
         builder: (_, state) {
           final courseId = state.pathParameters['courseId']!;
           return CourseDetailScreen(courseId: courseId);
+        },
+      ),
+      GoRoute(
+        path: '/test/:sessionId',
+        builder: (_, state) {
+          final sid = state.pathParameters['sessionId']!;
+          final extra = state.extra as Map<String, dynamic>?;
+          final courseItem = extra?['courseItem'] as CourseItem?;
+          return TestPreviewScreen(sessionId: sid, courseItem: courseItem);
+        },
+      ),
+      GoRoute(
+        path: '/test/:sessionId/results',
+        builder: (_, state) {
+          final sid = state.pathParameters['sessionId']!;
+          final extra = state.extra as Map<String, dynamic>?;
+          final courseItem = extra?['courseItem'] as CourseItem?;
+          final isTeacher = extra?['isTeacher'] as bool? ?? false;
+          return TestSessionResultsScreen(
+            sessionId: sid,
+            courseItem: courseItem,
+            isTeacher: isTeacher,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/test/:sessionId/attempts/:attemptId',
+        builder: (_, state) {
+          final aid = state.pathParameters['attemptId']!;
+          return AttemptReviewScreen(attemptId: aid);
         },
       ),
     ],
