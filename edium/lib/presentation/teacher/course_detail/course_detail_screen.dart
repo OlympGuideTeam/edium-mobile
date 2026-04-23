@@ -20,6 +20,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+/// Возвращает action-label для студента по состоянию элемента курса.
+/// Вызывать только когда [item.isPassed] == false.
+String studentTestActionLabel(CourseItem item) {
+  return switch (item.state) {
+    'in_progress' => 'Продолжить →',
+    'waiting' => 'Ожидает',
+    'running' => 'Идёт',
+    'completed' => 'Завершён',
+    _ => 'Начать →',
+  };
+}
+
 class CourseDetailScreen extends StatelessWidget {
   final String courseId;
 
@@ -224,7 +236,10 @@ class _CourseDetailBody extends StatelessWidget {
                         if (i < course.modules.length) {
                           return Padding(
                             padding: const EdgeInsets.only(top: 12),
-                            child: _ModuleSection(module: course.modules[i]),
+                            child: _ModuleSection(
+                              module: course.modules[i],
+                              isTeacher: course.isTeacher,
+                            ),
                           );
                         }
                         final draftIndex = i - course.modules.length;
@@ -962,8 +977,9 @@ class _TemplateCard extends StatelessWidget {
 
 class _ModuleSection extends StatefulWidget {
   final ModuleDetail module;
+  final bool isTeacher;
 
-  const _ModuleSection({required this.module});
+  const _ModuleSection({required this.module, required this.isTeacher});
 
   @override
   State<_ModuleSection> createState() => _ModuleSectionState();
@@ -1126,7 +1142,19 @@ class _ModuleSectionState extends State<_ModuleSection>
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         child: Column(
                           children: widget.module.items
-                              .map((item) => _QuizItemTile(item: item))
+                              .map((item) => _QuizItemTile(
+                                    item: item,
+                                    isTeacher: widget.isTeacher,
+                                    onTap: item.isTestQuiz
+                                        ? () {
+                                            if (widget.isTeacher) {
+                                              context.push('/test/${item.refId}/results', extra: item);
+                                            } else {
+                                              context.push('/test/${item.refId}', extra: item);
+                                            }
+                                          }
+                                        : null,
+                                  ))
                               .toList(),
                         ),
                       ),
@@ -1159,95 +1187,137 @@ class _ModuleSectionState extends State<_ModuleSection>
 
 class _QuizItemTile extends StatelessWidget {
   final CourseItem item;
+  final bool isTeacher;
+  final VoidCallback? onTap;
 
-  const _QuizItemTile({required this.item});
+  const _QuizItemTile({
+    required this.item,
+    required this.isTeacher,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isPassed = item.isPassed;
-    final scoreText = isPassed
-        ? '${item.score!.toStringAsFixed(item.score! % 1 == 0 ? 0 : 1)}%'
-        : null;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-          border: Border.all(
-            color: AppColors.mono150,
-            width: AppDimens.borderWidth,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+            border: Border.all(
+              color: AppColors.mono150,
+              width: AppDimens.borderWidth,
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-              decoration: BoxDecoration(
-                color: AppColors.mono100,
-                borderRadius: BorderRadius.circular(AppDimens.radiusXs),
-              ),
-              child: const Text(
-                'КВИЗ',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.mono400,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Квиз ${item.orderIndex + 1}',
-                style: AppTextStyles.fieldText.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            if (isPassed)
+          child: Row(
+            children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
                   color: AppColors.mono100,
-                  borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                  borderRadius: BorderRadius.circular(AppDimens.radiusXs),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.check_circle_outline,
-                      size: 13,
-                      color: AppColors.mono600,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      scoreText!,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.mono600,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else
-              const Text(
-                'Не пройден',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.mono300,
+                child: const Text(
+                  'ТЕСТ',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.mono400,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
+              if (isTeacher && item.needEvaluation) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.mono900,
+                    borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+                  ),
+                  child: const Text(
+                    'ИИ',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  item.title ?? 'Квиз ${item.orderIndex + 1}',
+                  style: AppTextStyles.fieldText.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              _TrailingBadge(item: item, isTeacher: isTeacher),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TrailingBadge extends StatelessWidget {
+  final CourseItem item;
+  final bool isTeacher;
+  const _TrailingBadge({required this.item, required this.isTeacher});
+
+  @override
+  Widget build(BuildContext context) {
+    if (item.isPassed) {
+      final scoreText =
+          '${item.score!.toStringAsFixed(item.score! % 1 == 0 ? 0 : 1)}%';
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: AppColors.mono100,
+          borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.check_circle_outline,
+                size: 13, color: AppColors.mono600),
+            const SizedBox(width: 4),
+            Text(
+              scoreText,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.mono600,
+              ),
+            ),
           ],
         ),
+      );
+    }
+
+    final label = switch (item.state) {
+      'in_progress' => 'В процессе',
+      'not_started' => 'Не начат',
+      'completed' => 'Завершён',
+      _ => 'Не пройден',
+    };
+    return Text(
+      label,
+      style: const TextStyle(
+        fontSize: 12,
+        color: AppColors.mono300,
       ),
     );
   }
