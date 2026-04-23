@@ -1279,6 +1279,7 @@ class _TrailingBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Chip со счётом — одинаков для обоих ролей (студент после прохождения).
     if (item.isPassed) {
       final scoreText =
           '${item.score!.toStringAsFixed(item.score! % 1 == 0 ? 0 : 1)}%';
@@ -1307,10 +1308,29 @@ class _TrailingBadge extends StatelessWidget {
       );
     }
 
+    if (!isTeacher) {
+      // Студент: action-oriented метка.
+      final label = studentTestActionLabel(item);
+      final isActionable = item.state == 'in_progress' ||
+          item.state == null ||
+          item.state == 'not_started';
+      return Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: isActionable ? FontWeight.w600 : FontWeight.w400,
+          color: isActionable ? AppColors.mono900 : AppColors.mono300,
+        ),
+      );
+    }
+
+    // Учитель: нейтральная метка состояния.
     final label = switch (item.state) {
       'in_progress' => 'В процессе',
       'not_started' => 'Не начат',
-      'completed' => 'Завершён',
+      'waiting'     => 'Ожидает',
+      'running'     => 'Идёт',
+      'completed'   => 'Завершён',
       _ => 'Не пройден',
     };
     return Text(
