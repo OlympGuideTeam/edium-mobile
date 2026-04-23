@@ -25,21 +25,37 @@ class TestSessionResultsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!isTeacher) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _TopBar(onBack: () => context.pop()),
+              Expanded(
+                child: Center(
+                  child: Text('Нет доступа', style: AppTextStyles.screenSubtitle),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     final title = courseItem?.title ?? 'Тест';
     return BlocProvider(
       create: (_) => TestSessionResultsBloc(
         listAttempts: getIt(),
         repo: getIt(),
       )..add(LoadSessionResultsEvent(sessionId: sessionId, title: title)),
-      child: _View(sessionId: sessionId, isTeacher: isTeacher),
+      child: _View(sessionId: sessionId),
     );
   }
 }
 
 class _View extends StatelessWidget {
   final String sessionId;
-  final bool isTeacher;
-  const _View({required this.sessionId, required this.isTeacher});
+  const _View({required this.sessionId});
 
   @override
   Widget build(BuildContext context) {
@@ -66,14 +82,6 @@ class _View extends StatelessWidget {
   }
 
   Widget _body(BuildContext context, TestSessionResultsState state) {
-    if (!isTeacher) {
-      return Center(
-        child: Text(
-          'Нет доступа',
-          style: AppTextStyles.screenSubtitle,
-        ),
-      );
-    }
     if (state is TestSessionResultsLoading ||
         state is TestSessionResultsInitial) {
       return const Center(
