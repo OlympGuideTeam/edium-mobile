@@ -150,6 +150,8 @@ GoRouter buildRouter() {
           final sid = state.pathParameters['sessionId']!;
           final extra = state.extra as Map<String, dynamic>?;
           final courseItem = extra?['courseItem'] as CourseItem?;
+          // extra is null only if navigating without context.push (e.g., deep link).
+          // Defaulting to false is the correct security posture: deny teacher access.
           final isTeacher = extra?['isTeacher'] as bool? ?? false;
           return TestSessionResultsScreen(
             sessionId: sid,
