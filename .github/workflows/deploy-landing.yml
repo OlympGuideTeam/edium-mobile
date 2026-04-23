@@ -47,6 +47,6 @@ jobs:
           script: |
             set -e
             mkdir -p /opt/edium/landing
-            rsync -a --delete /tmp/landing-deploy/landing/dist/ /opt/edium/landing/
+            sudo rsync -a --delete /tmp/landing-deploy/landing/dist/ /opt/edium/landing/
             rm -rf /tmp/landing-deploy
             echo "Лендинг задеплоен: $(date)" >> /opt/edium/landing-deploy.log
