@@ -1,6 +1,5 @@
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
-import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:flutter/material.dart';
 
 class SearchBarWidget extends StatefulWidget {
@@ -8,11 +7,15 @@ class SearchBarWidget extends StatefulWidget {
   final String hint;
   final VoidCallback? onClear;
 
+  /// Опциональный внешний контроллер. Если не передан — создаётся внутренний.
+  final TextEditingController? controller;
+
   const SearchBarWidget({
     super.key,
     required this.onChanged,
     this.hint = 'Поиск...',
     this.onClear,
+    this.controller,
   });
 
   @override
@@ -20,68 +23,71 @@ class SearchBarWidget extends StatefulWidget {
 }
 
 class _SearchBarWidgetState extends State<SearchBarWidget> {
-  final _controller = TextEditingController();
-  final _focusNode = FocusNode();
-  bool _focused = false;
+  late final TextEditingController _internal;
+  bool get _ownsController => widget.controller == null;
+
+  TextEditingController get _controller =>
+      widget.controller ?? _internal;
 
   @override
   void initState() {
     super.initState();
-    _focusNode.addListener(() {
-      if (_focusNode.hasFocus != _focused) {
-        setState(() => _focused = _focusNode.hasFocus);
-      }
-    });
+    if (_ownsController) _internal = TextEditingController();
+    _controller.addListener(_onControllerTick);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
+    _controller.removeListener(_onControllerTick);
+    if (_ownsController) _internal.dispose();
     super.dispose();
+  }
+
+  void _onControllerTick() {
+    if (mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      height: AppDimens.inputH,
+    return Container(
+      height: 44,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.mono25,
         borderRadius: BorderRadius.circular(AppDimens.radiusMd),
         border: Border.all(
-          color: _focused ? AppColors.mono700 : AppColors.mono200,
+          color: AppColors.mono100,
           width: AppDimens.borderWidth,
         ),
       ),
       child: TextField(
         controller: _controller,
-        focusNode: _focusNode,
-        onChanged: (v) {
-          setState(() {});
-          widget.onChanged(v);
-        },
-        style: AppTextStyles.fieldText,
+        cursorColor: AppColors.mono900,
+        style: const TextStyle(fontSize: 14, color: AppColors.mono700),
+        onChanged: widget.onChanged,
         decoration: InputDecoration(
           hintText: widget.hint,
-          hintStyle: AppTextStyles.fieldHint,
-          prefixIcon: Icon(Icons.search, size: 20, color: AppColors.mono300),
+          hintStyle:
+              const TextStyle(fontSize: 14, color: AppColors.mono250),
+          prefixIcon:
+              const Icon(Icons.search, size: 18, color: AppColors.mono250),
           suffixIcon: _controller.text.isNotEmpty
               ? GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () {
                     _controller.clear();
                     widget.onChanged('');
                     widget.onClear?.call();
-                    setState(() {});
                   },
-                  child: Icon(Icons.clear, size: 18, color: AppColors.mono300),
+                  child: const Icon(Icons.clear,
+                      size: 16, color: AppColors.mono250),
                 )
               : null,
+          filled: false,
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
           contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           isDense: true,
         ),
       ),

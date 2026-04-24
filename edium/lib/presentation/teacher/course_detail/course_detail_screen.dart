@@ -25,6 +25,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+/// Возвращает action-label для студента по состоянию элемента курса.
+/// Вызывать только когда [item.isPassed] == false.
+String studentTestActionLabel(CourseItem item) {
+  return switch (item.state) {
+    'in_progress' => 'Продолжить →',
+    'waiting' => 'Ожидает',
+    'running' => 'Идёт',
+    'completed' => 'Завершён',
+    _ => 'Начать →',
+  };
+}
+
 class CourseDetailScreen extends StatelessWidget {
   final String courseId;
 
@@ -36,7 +48,7 @@ class CourseDetailScreen extends StatelessWidget {
       create: (_) => CourseDetailBloc(
         getCourseDetail: getIt(),
         createModule: getIt(),
-        courseRepository: getIt(),
+        profileStorage: getIt(),
         courseId: courseId,
       )..add(LoadCourseDetailEvent(courseId)),
       child: const _CourseDetailView(),
@@ -220,16 +232,38 @@ class _CourseDetailBody extends StatelessWidget {
                         ],
                       ),
                     )
-                  : _CourseContentList(
-                      course: course,
-                      onDraftTap: (draft) =>
-                          _openCreateQuizFromDraft(context, draft),
-                      onDraftDelete: (draft) => context
-                          .read<CourseDetailBloc>()
-                          .add(DeleteDraftEvent(draft.id)),
-                      onModulesReorder: (ids) => context
-                          .read<CourseDetailBloc>()
-                          .add(ReorderModulesEvent(ids)),
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppDimens.screenPaddingH,
+                        8,
+                        AppDimens.screenPaddingH,
+                        24,
+                      ),
+                      itemCount: course.modules.length +
+                          (course.drafts.isNotEmpty ? course.drafts.length + 1 : 0),
+                      itemBuilder: (context, i) {
+                        if (i < course.modules.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: _ModuleSection(
+                              module: course.modules[i],
+                              isTeacher: course.isTeacher,
+                            ),
+                          );
+                        }
+                        final draftIndex = i - course.modules.length;
+                        if (draftIndex == 0) {
+                          return const Padding(
+                            padding: EdgeInsets.only(top: 20, bottom: 4),
+                            child: _DraftsSectionHeader(),
+                          );
+                        }
+                        final draft = course.drafts[draftIndex - 1];
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: _DraftTile(draft: draft),
+                        );
+                      },
                     ),
             ),
           ],
@@ -1399,13 +1433,37 @@ class _ModuleSectionState extends State<_ModuleSection>
                         ),
                       )
                     else
-                      Column(
-                        children: _loadedItems!
-                            .map((item) => _QuizItemTile(
-                                  item: item,
-                                  isTeacher: widget.isTeacher,
-                                ))
-                            .toList(),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Column(
+                          children: widget.module.items
+                              .map((item) => _QuizItemTile(
+                                    item: item,
+                                    isTeacher: widget.isTeacher,
+                                    onTap: item.isTestQuiz
+                                        ? () {
+                                            if (widget.isTeacher) {
+                                              context.push(
+                                                '/test/${item.refId}/results',
+                                                extra: {
+                                                  'courseItem': item,
+                                                  'isTeacher': true,
+                                                },
+                                              );
+                                            } else {
+                                              context.push(
+                                                '/test/${item.refId}',
+                                                extra: {
+                                                  'courseItem': item,
+                                                  'isTeacher': false,
+                                                },
+                                              );
+                                            }
+                                          }
+                                        : null,
+                                  ))
+                              .toList(),
+                        ),
                       ),
                   ],
                 ),
@@ -1437,128 +1495,154 @@ class _ModuleSectionState extends State<_ModuleSection>
 class _QuizItemTile extends StatelessWidget {
   final CourseItem item;
   final bool isTeacher;
+  final VoidCallback? onTap;
 
-  const _QuizItemTile({required this.item, required this.isTeacher});
+  const _QuizItemTile({
+    required this.item,
+    required this.isTeacher,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isPassed = item.isPassed;
-    final scoreText = isPassed
-        ? '${item.score!.toStringAsFixed(item.score! % 1 == 0 ? 0 : 1)}%'
-        : null;
-    final payload = item.payload;
-    final isLive = payload?.mode == 'live';
-    final title = payload?.title?.isNotEmpty == true
-        ? payload!.title!
-        : 'Квиз ${item.orderIndex + 1}';
-    final meta = _buildMeta(payload);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Divider(height: 1, color: AppColors.mono100),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => QuizDetailScreen(quizId: item.refId),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+            border: Border.all(
+              color: AppColors.mono150,
+              width: AppDimens.borderWidth,
             ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Бейдж режима
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.mono100,
+                  borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+                ),
+                child: const Text(
+                  'ТЕСТ',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.mono400,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              if (isTeacher && item.needEvaluation) ...[
+                const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 7, vertical: 3),
                   decoration: BoxDecoration(
-                    color: isLive ? AppColors.mono900 : AppColors.mono100,
+                    color: AppColors.mono900,
                     borderRadius: BorderRadius.circular(AppDimens.radiusXs),
                   ),
-                  child: Text(
-                    isLive ? 'ЛАЙВ' : 'ТЕСТ',
+                  child: const Text(
+                    'ИИ',
                     style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w800,
-                      color: isLive ? Colors.white : AppColors.mono400,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
                       letterSpacing: 0.5,
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                // Основная информация
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: AppTextStyles.fieldText.copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (meta.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          meta,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.mono400,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                if (!isTeacher) ...[
-                  if (isPassed)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.mono100,
-                        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.check_circle_outline,
-                              size: 12, color: AppColors.mono600),
-                          const SizedBox(width: 3),
-                          Text(
-                            scoreText!,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.mono600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    const Text(
-                      'Не пройден',
-                      style: TextStyle(fontSize: 11, color: AppColors.mono300),
-                    ),
-                ] else
-                  const Icon(
-                    Icons.chevron_right,
-                    size: 16,
-                    color: AppColors.mono250,
-                  ),
               ],
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  item.title ?? 'Квиз ${item.orderIndex + 1}',
+                  style: AppTextStyles.fieldText.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              _TrailingBadge(item: item, isTeacher: isTeacher),
+            ],
           ),
         ),
-      ],
+      ),
+    );
+  }
+}
+
+class _TrailingBadge extends StatelessWidget {
+  final CourseItem item;
+  final bool isTeacher;
+  const _TrailingBadge({required this.item, required this.isTeacher});
+
+  @override
+  Widget build(BuildContext context) {
+    if (item.isPassed) {
+      final scoreText =
+          '${item.score!.toStringAsFixed(item.score! % 1 == 0 ? 0 : 1)}%';
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: AppColors.mono100,
+          borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.check_circle_outline,
+                size: 13, color: AppColors.mono600),
+            const SizedBox(width: 4),
+            Text(
+              scoreText,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.mono600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (!isTeacher) {
+      final label = studentTestActionLabel(item);
+      final isActionable = item.state == 'in_progress' ||
+          item.state == null ||
+          item.state == 'not_started';
+      return Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: isActionable ? FontWeight.w600 : FontWeight.w400,
+          color: isActionable ? AppColors.mono900 : AppColors.mono300,
+        ),
+      );
+    }
+
+    final label = switch (item.state) {
+      'in_progress' => 'В процессе',
+      'not_started' => 'Не начат',
+      'waiting'     => 'Ожидает',
+      'running'     => 'Идёт',
+      'completed'   => 'Завершён',
+      _ => 'Не пройден',
+    };
+    return Text(
+      label,
+      style: const TextStyle(
+        fontSize: 12,
+        color: AppColors.mono300,
+      ),
     );
   }
 

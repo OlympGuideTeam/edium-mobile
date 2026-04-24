@@ -2,6 +2,7 @@ import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/library_quiz.dart';
+import 'package:edium/domain/repositories/test_session_repository.dart';
 import 'package:edium/domain/usecases/library_quiz/create_attempt_usecase.dart';
 import 'package:edium/domain/usecases/library_quiz/finish_attempt_usecase.dart';
 import 'package:edium/domain/usecases/library_quiz/get_attempt_result_usecase.dart';
@@ -188,11 +189,13 @@ class _QuizPreviewScreenState extends State<QuizPreviewScreen> {
             submitAnswer: getIt<SubmitAttemptAnswerUsecase>(),
             finishAttempt: getIt<FinishAttemptUsecase>(),
             getResult: getIt<GetAttemptResultUsecase>(),
+            testSessionRepo: getIt<ITestSessionRepository>(),
           ),
           child: TakeQuizScreen(
             sessionId: sessionId,
             quizTitle: quiz.title,
             totalTimeLimitSec: quiz.defaultSettings.totalTimeLimitSec,
+            // useCache: false (default) — public library не использует кэш.
           ),
         ),
       ),

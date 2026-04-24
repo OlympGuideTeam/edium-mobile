@@ -6,6 +6,7 @@ import 'package:edium/domain/entities/quiz.dart';
 import 'package:edium/domain/repositories/quiz_repository.dart';
 import 'package:edium/domain/usecases/quiz/create_session_usecase.dart';
 import 'package:edium/presentation/shared/widgets/quiz_card.dart';
+import 'package:edium/presentation/shared/widgets/search_bar_widget.dart';
 import 'package:edium/presentation/teacher/create_quiz/bloc/create_quiz_bloc.dart';
 import 'package:edium/presentation/teacher/create_quiz/create_quiz_screen.dart';
 import 'package:edium/presentation/teacher/edit_quiz_template/edit_quiz_template_screen.dart';
@@ -153,34 +154,11 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(
                   horizontal: AppDimens.screenPaddingH),
-              child: Container(
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.mono25,
-                  borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-                  border: Border.all(
-                      color: AppColors.mono100, width: AppDimens.borderWidth),
-                ),
-                child: TextField(
-                  controller: _searchCtrl,
-                  onChanged: (_) => _search(),
-                  cursorColor: AppColors.mono900,
-                  style: const TextStyle(
-                      fontSize: 14, color: AppColors.mono700),
-                  decoration: const InputDecoration(
-                    hintText: 'Найти квиз...',
-                    hintStyle:
-                        TextStyle(fontSize: 14, color: AppColors.mono250),
-                    prefixIcon: Icon(Icons.search,
-                        size: 18, color: AppColors.mono250),
-                    filled: false,
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  ),
-                ),
+              child: SearchBarWidget(
+                hint: 'Найти квиз...',
+                controller: _searchCtrl,
+                onChanged: (_) => _search(),
+                onClear: _search,
               ),
             ),
             const SizedBox(height: 12),
