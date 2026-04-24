@@ -1,7 +1,12 @@
+import 'package:edium/core/storage/profile_storage.dart';
 import 'package:edium/data/datasources/course/course_datasource.dart';
 import 'package:edium/domain/entities/course_detail.dart';
 
 class CourseDatasourceMock implements ICourseDatasource {
+  final ProfileStorage _profileStorage;
+
+  CourseDatasourceMock(this._profileStorage);
+
   @override
   Future<String> createCourse({
     required String title,
@@ -22,13 +27,14 @@ class CourseDatasourceMock implements ICourseDatasource {
   @override
   Future<CourseDetail> getCourseDetail({required String courseId}) async {
     await Future.delayed(const Duration(milliseconds: 400));
+    final isTeacher = _profileStorage.getRole() == 'teacher';
     return CourseDetail(
       id: courseId,
       title: 'Алгебра 10 класс',
       teacherName: 'Пётр Сидоров',
       moduleCount: 3,
       elementCount: 7,
-      isTeacher: true,
+      isTeacher: isTeacher,
       modules: [
         ModuleDetail(
           id: 'module-1',
@@ -37,27 +43,34 @@ class CourseDatasourceMock implements ICourseDatasource {
           items: [
             CourseItem(
               id: 'item-1',
-              refId: 'quiz-uuid-0001',
+              refId: 'mock-test-sess-1',
               type: 'quiz',
               orderIndex: 0,
-              attemptId: 'attempt-uuid-0001',
+              attemptId: 'mock-att-1-A',
               score: 87.5,
+              title: 'Многочлены: проверочный',
+              quizType: 'test',
+              state: 'completed',
             ),
             CourseItem(
               id: 'item-2',
-              refId: 'quiz-uuid-0002',
-              type: 'quiz_template',
+              refId: 'mock-test-sess-2',
+              type: 'quiz',
               orderIndex: 1,
-              attemptId: null,
-              score: null,
+              title: 'Уравнения I',
+              quizType: 'test',
+              state: 'in_progress',
             ),
             CourseItem(
               id: 'item-3',
-              refId: 'quiz-uuid-0003',
+              refId: 'mock-test-sess-3',
               type: 'quiz',
               orderIndex: 2,
-              attemptId: 'attempt-uuid-0003',
-              score: 60.0,
+              title: 'Функции — вводный',
+              quizType: 'test',
+              state: 'not_started',
+              startTime: DateTime.utc(2030, 1, 1, 9),
+              endTime: DateTime.utc(2030, 1, 10, 23, 59),
             ),
           ],
         ),
@@ -68,19 +81,21 @@ class CourseDatasourceMock implements ICourseDatasource {
           items: [
             CourseItem(
               id: 'item-4',
-              refId: 'quiz-uuid-0004',
+              refId: 'mock-test-sess-2',
               type: 'quiz',
               orderIndex: 0,
-              attemptId: null,
-              score: null,
+              title: 'Уравнения I (повтор)',
+              quizType: 'test',
+              state: 'not_started',
             ),
             CourseItem(
               id: 'item-5',
-              refId: 'quiz-uuid-0005',
+              refId: 'mock-test-sess-3',
               type: 'quiz',
               orderIndex: 1,
-              attemptId: null,
-              score: null,
+              title: 'Функции (тест)',
+              quizType: 'test',
+              state: 'not_started',
             ),
           ],
         ),
@@ -91,19 +106,21 @@ class CourseDatasourceMock implements ICourseDatasource {
           items: [
             CourseItem(
               id: 'item-6',
-              refId: 'quiz-uuid-0006',
+              refId: 'mock-test-sess-1',
               type: 'quiz',
               orderIndex: 0,
-              attemptId: null,
-              score: null,
+              title: 'Многочлены — итог',
+              quizType: 'test',
+              state: 'not_started',
             ),
             CourseItem(
               id: 'item-7',
-              refId: 'quiz-uuid-0007',
+              refId: 'mock-test-sess-2',
               type: 'quiz',
               orderIndex: 1,
-              attemptId: null,
-              score: null,
+              title: 'Уравнения — итог',
+              quizType: 'test',
+              state: 'not_started',
             ),
           ],
         ),
