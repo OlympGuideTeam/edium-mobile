@@ -88,4 +88,31 @@ class TestSessionDatasourceImpl extends BaseApiService
       parser: (_) {},
     );
   }
+
+  @override
+  Future<void> gradeSubmission({
+    required String attemptId,
+    required String submissionId,
+    required double score,
+    String? feedback,
+  }) {
+    return request(
+      'riddler/v1/attempts/$attemptId/submissions/$submissionId/grade',
+      method: HttpMethod.post,
+      req: {
+        'score': score,
+        if (feedback != null && feedback.isNotEmpty) 'feedback': feedback,
+      },
+      parser: (_) {},
+    );
+  }
+
+  @override
+  Future<void> completeAttempt(String attemptId) {
+    return request(
+      'riddler/v1/attempts/$attemptId/complete',
+      method: HttpMethod.post,
+      parser: (_) {},
+    );
+  }
 }
