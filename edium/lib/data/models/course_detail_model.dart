@@ -82,7 +82,12 @@ class CourseItemModel {
   final int orderIndex;
   final String? attemptId;
   final double? score;
-  final CourseItemPayloadModel? payload;
+  final String? title;
+  final String? quizType;
+  final String? state;
+  final String? startTime;
+  final String? endTime;
+  final bool needEvaluation;
 
   const CourseItemModel({
     required this.id,
@@ -91,7 +96,12 @@ class CourseItemModel {
     required this.orderIndex,
     this.attemptId,
     this.score,
-    this.payload,
+    this.title,
+    this.quizType,
+    this.state,
+    this.startTime,
+    this.endTime,
+    this.needEvaluation = false,
   });
 
   factory CourseItemModel.fromJson(Map<String, dynamic> json,
@@ -104,9 +114,12 @@ class CourseItemModel {
       orderIndex: (json['order_index'] as int?) ?? orderIndex,
       attemptId: json['attempt_id'] as String?,
       score: (json['score'] as num?)?.toDouble(),
-      payload: payloadJson != null
-          ? CourseItemPayloadModel.fromJson(payloadJson)
-          : null,
+      title: json['title'] as String?,
+      quizType: json['quiz_type'] as String?,
+      state: json['state'] as String?,
+      startTime: json['start_time'] as String?,
+      endTime: json['end_time'] as String?,
+      needEvaluation: (json['need_evaluation'] as bool?) ?? false,
     );
   }
 
@@ -118,7 +131,12 @@ class CourseItemModel {
       orderIndex: orderIndex,
       attemptId: attemptId,
       score: score,
-      payload: payload?.toEntity(),
+      title: title,
+      quizType: quizType,
+      state: state,
+      startTime: startTime != null ? DateTime.tryParse(startTime!) : null,
+      endTime: endTime != null ? DateTime.tryParse(endTime!) : null,
+      needEvaluation: needEvaluation,
     );
   }
 }

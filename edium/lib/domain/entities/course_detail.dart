@@ -27,6 +27,14 @@ class CourseItem {
   final double? score;
   final CourseItemPayload? payload;
 
+  // Новые поля из Caesar `QuizShort`:
+  final String? title;
+  final String? quizType;   // 'test' | 'live'
+  final String? state;      // для async: 'not_started' | 'in_progress' | 'completed'
+  final DateTime? startTime;
+  final DateTime? endTime;
+  final bool needEvaluation;
+
   const CourseItem({
     required this.id,
     required this.refId,
@@ -34,10 +42,16 @@ class CourseItem {
     required this.orderIndex,
     this.attemptId,
     this.score,
-    this.payload,
+    this.title,
+    this.quizType,
+    this.state,
+    this.startTime,
+    this.endTime,
+    this.needEvaluation = false,
   });
 
   bool get isPassed => score != null;
+  bool get isTestQuiz => quizType == 'test';
 
   @override
   bool operator ==(Object other) =>
@@ -133,4 +147,26 @@ class CourseDetail {
 
   @override
   String toString() => 'CourseDetail(id: $id, title: $title)';
+
+  CourseDetail copyWith({
+    String? id,
+    String? title,
+    String? teacherName,
+    int? moduleCount,
+    int? elementCount,
+    bool? isTeacher,
+    List<ModuleDetail>? modules,
+    List<CourseDraft>? drafts,
+  }) {
+    return CourseDetail(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      teacherName: teacherName ?? this.teacherName,
+      moduleCount: moduleCount ?? this.moduleCount,
+      elementCount: elementCount ?? this.elementCount,
+      isTeacher: isTeacher ?? this.isTeacher,
+      modules: modules ?? this.modules,
+      drafts: drafts ?? this.drafts,
+    );
+  }
 }
