@@ -12,9 +12,12 @@ abstract class IQuizDatasource {
   Future<String> createQuiz({
     required String title,
     String? description,
+    String? mode,
     int? totalTimeLimitSec,
     int? questionTimeLimitSec,
     bool shuffleQuestions,
+    DateTime? startedAt,
+    DateTime? finishedAt,
     required List<Map<String, dynamic>> questions,
     String? courseId,
   });
@@ -48,9 +51,32 @@ abstract class IQuizDatasource {
 
   Future<void> deleteQuiz(String id);
 
-  Future<void> updateQuiz(String id, {String? title, String? description});
+  Future<void> updateQuiz(
+    String id, {
+    String? title,
+    String? description,
+    Map<String, dynamic>? defaultSettings,
+  });
 
   Future<String> addQuestion(String quizId, Map<String, dynamic> questionData);
 
   Future<void> removeQuestion(String quizId, String questionId);
+
+  /// Creates quiz template + test session atomically (inline endpoint).
+  Future<String> createTestSessionInline({
+    required String title,
+    String? description,
+    required String courseId,
+    required String moduleId,
+    required List<Map<String, dynamic>> questions,
+    int? totalTimeLimitSec,
+    bool shuffleQuestions,
+    DateTime? startedAt,
+    DateTime? finishedAt,
+  });
+
+  Future<void> deleteSession(String sessionId);
+
+  /// Запускает асинхерную генерацию вопросов по тексту (уведомление по готовности).
+  Future<void> generateQuizQuestions(String quizId, String sourceText);
 }

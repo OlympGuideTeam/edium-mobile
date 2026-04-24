@@ -8,8 +8,9 @@ class AuthRepositoryMock implements IAuthRepository {
   AuthRepositoryMock(this._profileStorage);
 
   @override
-  Future<void> sendOtp({required String phone, required String channel}) async {
+  Future<int> sendOtp({required String phone, required String channel}) async {
     await Future.delayed(const Duration(milliseconds: 600));
+    return 60;
   }
 
   @override

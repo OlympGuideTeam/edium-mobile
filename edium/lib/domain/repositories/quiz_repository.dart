@@ -11,9 +11,12 @@ abstract class IQuizRepository {
   Future<String> createQuiz({
     required String title,
     String? description,
+    String? mode,
     int? totalTimeLimitSec,
     int? questionTimeLimitSec,
     bool shuffleQuestions,
+    DateTime? startedAt,
+    DateTime? finishedAt,
     required List<Map<String, dynamic>> questions,
     String? courseId,
   });
@@ -45,9 +48,30 @@ abstract class IQuizRepository {
 
   Future<void> deleteQuiz(String id);
 
-  Future<void> updateQuiz(String id, {String? title, String? description});
+  Future<void> updateQuiz(
+    String id, {
+    String? title,
+    String? description,
+    Map<String, dynamic>? defaultSettings,
+  });
 
   Future<String> addQuestion(String quizId, Map<String, dynamic> questionData);
 
   Future<void> removeQuestion(String quizId, String questionId);
+
+  Future<String> createTestSessionInline({
+    required String title,
+    String? description,
+    required String courseId,
+    required String moduleId,
+    required List<Map<String, dynamic>> questions,
+    int? totalTimeLimitSec,
+    bool shuffleQuestions,
+    DateTime? startedAt,
+    DateTime? finishedAt,
+  });
+
+  Future<void> deleteSession(String sessionId);
+
+  Future<void> generateQuizQuestions(String quizId, String sourceText);
 }

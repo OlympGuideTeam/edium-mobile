@@ -50,7 +50,7 @@ class QuizDatasourceMock implements IQuizDatasource {
           QuestionModel(
             id: 'q3',
             text: 'Чему равна сумма корней уравнения x² - 7x + 12 = 0?',
-            type: 'text_input',
+            type: 'with_free_answer',
             options: [],
             explanation: 'По теореме Виета: сумма корней = -b/a = 7/1 = 7',
             orderIndex: 2,
@@ -59,6 +59,7 @@ class QuizDatasourceMock implements IQuizDatasource {
         likesCount: 14,
         isLiked: false,
         createdAt: '2026-02-01T10:00:00Z',
+        isPublic: true,
       ),
       QuizModel(
         id: '2',
@@ -103,6 +104,7 @@ class QuizDatasourceMock implements IQuizDatasource {
         likesCount: 7,
         isLiked: true,
         createdAt: '2026-02-10T12:00:00Z',
+        isPublic: true,
       ),
       QuizModel(
         id: '3',
@@ -185,9 +187,12 @@ class QuizDatasourceMock implements IQuizDatasource {
   Future<String> createQuiz({
     required String title,
     String? description,
+    String? mode,
     int? totalTimeLimitSec,
     int? questionTimeLimitSec,
     bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
     required List<Map<String, dynamic>> questions,
     String? courseId,
   }) async {
@@ -263,13 +268,14 @@ class QuizDatasourceMock implements IQuizDatasource {
       subject: quiz.subject,
       authorId: quiz.authorId,
       authorName: quiz.authorName,
-      status: isPublic ? 'active' : 'active',
+      status: isPublic ? 'active' : 'draft',
       settings: quiz.settings,
       questions: quiz.questions,
       likesCount: quiz.likesCount,
       isLiked: quiz.isLiked,
       createdAt: quiz.createdAt,
       summaryQuestionCount: quiz.summaryQuestionCount,
+      isPublic: isPublic,
     );
   }
 
@@ -317,11 +323,19 @@ class QuizDatasourceMock implements IQuizDatasource {
   }
 
   @override
-  Future<void> updateQuiz(String id, {String? title, String? description}) async {
+  Future<void> updateQuiz(
+    String id, {
+    String? title,
+    String? description,
+    Map<String, dynamic>? defaultSettings,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final idx = _quizzes.indexWhere((q) => q.id == id);
     if (idx == -1) return;
     final q = _quizzes[idx];
+    final settings = defaultSettings != null
+        ? QuizSettingsModel.fromRiddlerDefaultSettings(defaultSettings)
+        : q.settings;
     _quizzes[idx] = QuizModel(
       id: q.id,
       title: title ?? q.title,
@@ -330,7 +344,7 @@ class QuizDatasourceMock implements IQuizDatasource {
       authorId: q.authorId,
       authorName: q.authorName,
       status: q.status,
-      settings: q.settings,
+      settings: settings,
       questions: q.questions,
       likesCount: q.likesCount,
       isLiked: q.isLiked,
@@ -346,8 +360,11 @@ class QuizDatasourceMock implements IQuizDatasource {
     if (idx == -1) throw Exception('Quiz not found');
     final q = _quizzes[idx];
     final newId = 'q_edit_${q.questions.length + 1}_${DateTime.now().millisecondsSinceEpoch}';
+    final normalized = QuestionModel.normalizeTeacherQuestionPayload(
+      Map<String, dynamic>.from(questionData),
+    );
     final newQuestion = QuestionModel.fromJson({
-      ...questionData,
+      ...normalized,
       'id': newId,
       'order_index': q.questions.length,
     });
@@ -366,6 +383,36 @@ class QuizDatasourceMock implements IQuizDatasource {
       createdAt: q.createdAt,
     );
     return newId;
+  }
+
+  @override
+  Future<String> createTestSessionInline({
+    required String title,
+    String? description,
+    required String courseId,
+    required String moduleId,
+    required List<Map<String, dynamic>> questions,
+    int? totalTimeLimitSec,
+    bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
+  }) async {
+    await createQuiz(
+      title: title,
+      description: description,
+      mode: 'test',
+      totalTimeLimitSec: totalTimeLimitSec,
+      shuffleQuestions: shuffleQuestions,
+      startedAt: startedAt,
+      finishedAt: finishedAt,
+      questions: questions,
+    );
+    return 'session-inline-${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  @override
+  Future<void> deleteSession(String sessionId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
   }
 
   @override
@@ -388,5 +435,10 @@ class QuizDatasourceMock implements IQuizDatasource {
       isLiked: q.isLiked,
       createdAt: q.createdAt,
     );
+  }
+
+  @override
+  Future<void> generateQuizQuestions(String quizId, String sourceText) async {
+    await Future.delayed(const Duration(milliseconds: 300));
   }
 }

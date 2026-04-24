@@ -16,6 +16,18 @@ class CreateQuizState extends Equatable {
   final bool success;
   final QuizCreationMode quizType;
   final bool isInCourseContext;
+  /// When set, [SubmitQuizEvent] updates this template instead of creating a new quiz.
+  final String? existingQuizTemplateId;
+  /// Server question ids to remove before re-adding [questions] (draft / edit flow).
+  final List<String> originalQuestionIds;
+  /// Module id that was selected when the quiz was successfully submitted.
+  /// null means saveOnly (becomes a draft), non-null means a session was created.
+  final String? submittedModuleId;
+
+  /// Запрос генерации вопросов по AI отправлен на сервер.
+  final bool isAiGenerating;
+  /// Увеличивается при успешной постановке задачи генерации (для one-shot UI).
+  final int aiGenerateAckVersion;
 
   const CreateQuizState({
     this.title = '',
@@ -31,6 +43,11 @@ class CreateQuizState extends Equatable {
     this.success = false,
     this.quizType = QuizCreationMode.template,
     this.isInCourseContext = false,
+    this.existingQuizTemplateId,
+    this.originalQuestionIds = const [],
+    this.submittedModuleId,
+    this.isAiGenerating = false,
+    this.aiGenerateAckVersion = 0,
   });
 
   bool get canSubmit => title.isNotEmpty && questions.isNotEmpty;
@@ -54,6 +71,13 @@ class CreateQuizState extends Equatable {
     bool? success,
     QuizCreationMode? quizType,
     bool? isInCourseContext,
+    String? existingQuizTemplateId,
+    bool clearExistingQuizTemplateId = false,
+    List<String>? originalQuestionIds,
+    String? submittedModuleId,
+    bool clearSubmittedModuleId = false,
+    bool? isAiGenerating,
+    int? aiGenerateAckVersion,
   }) {
     return CreateQuizState(
       title: title ?? this.title,
@@ -71,6 +95,16 @@ class CreateQuizState extends Equatable {
       success: success ?? this.success,
       quizType: quizType ?? this.quizType,
       isInCourseContext: isInCourseContext ?? this.isInCourseContext,
+      existingQuizTemplateId: clearExistingQuizTemplateId
+          ? null
+          : (existingQuizTemplateId ?? this.existingQuizTemplateId),
+      originalQuestionIds: originalQuestionIds ?? this.originalQuestionIds,
+      submittedModuleId: clearSubmittedModuleId
+          ? null
+          : (submittedModuleId ?? this.submittedModuleId),
+      isAiGenerating: isAiGenerating ?? this.isAiGenerating,
+      aiGenerateAckVersion:
+          aiGenerateAckVersion ?? this.aiGenerateAckVersion,
     );
   }
 
@@ -89,5 +123,10 @@ class CreateQuizState extends Equatable {
         success,
         quizType,
         isInCourseContext,
+        existingQuizTemplateId,
+        originalQuestionIds,
+        submittedModuleId,
+        isAiGenerating,
+        aiGenerateAckVersion,
       ];
 }

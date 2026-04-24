@@ -8,6 +8,7 @@ import 'package:edium/domain/entities/course_detail.dart';
 import 'package:edium/domain/usecases/class/get_class_detail_usecase.dart';
 import 'package:edium/domain/usecases/class/get_my_classes_usecase.dart';
 import 'package:edium/domain/usecases/course/get_course_detail_usecase.dart';
+import 'package:edium/domain/repositories/quiz_repository.dart';
 import 'package:edium/domain/usecases/quiz/create_session_usecase.dart';
 import 'package:edium/presentation/teacher/create_quiz/bloc/create_quiz_bloc.dart';
 import 'package:edium/presentation/teacher/create_quiz/create_quiz_screen.dart';
@@ -109,6 +110,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
           create: (_) => CreateQuizBloc(
             getIt(),
             getIt<CreateSessionUsecase>(),
+            getIt<IQuizRepository>(),
             inCourseContext: true,
           ),
           child: CreateQuizScreen(preselectedModuleId: moduleId),
@@ -468,7 +470,7 @@ class _CourseSection extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '${_modulesLabel(course.moduleCount)}  ·  ${_quizzesLabel(course.quizCount)}',
+                        '${_modulesLabel(course.moduleCount)}  ·  ${_quizzesLabel(course.elementCount)}',
                         style: const TextStyle(
                             fontSize: 12, color: AppColors.mono400),
                       ),

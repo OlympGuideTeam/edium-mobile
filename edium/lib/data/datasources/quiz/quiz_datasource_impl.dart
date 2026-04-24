@@ -88,9 +88,12 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
   Future<String> createQuiz({
     required String title,
     String? description,
+    String? mode,
     int? totalTimeLimitSec,
     int? questionTimeLimitSec,
     bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
     required List<Map<String, dynamic>> questions,
     String? courseId,
   }) async {
@@ -101,11 +104,16 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
         'title': title,
         if (description != null) 'description': description,
         'default_settings': {
+          if (mode != null) 'mode': mode,
           if (totalTimeLimitSec != null)
             'total_time_limit_sec': totalTimeLimitSec,
           if (questionTimeLimitSec != null)
             'question_time_limit_sec': questionTimeLimitSec,
           'shuffle_questions': shuffleQuestions,
+          if (startedAt != null)
+            'started_at': startedAt.toUtc().toIso8601String(),
+          if (finishedAt != null)
+            'finished_at': finishedAt.toUtc().toIso8601String(),
         },
         if (courseId != null)
           'attach_to_course': {'course_id': courseId},
@@ -155,10 +163,17 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
 
   @override
   Future<void> publishQuiz(String id, {required bool isPublic}) {
-    return request(
-      'riddler/v1/quizzes/$id/publish',
-      method: HttpMethod.post,
-      req: {'is_public': isPublic},
+    if (isPublic) {
+      return request<void>(
+        'riddler/v1/quizzes/$id/publish',
+        method: HttpMethod.post,
+        parser: (_) {},
+      );
+    }
+    return request<void>(
+      'riddler/v1/quizzes/$id',
+      method: HttpMethod.patch,
+      req: const {'is_public': false},
       parser: (_) {},
     );
   }
@@ -182,13 +197,19 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
   }
 
   @override
-  Future<void> updateQuiz(String id, {String? title, String? description}) {
+  Future<void> updateQuiz(
+    String id, {
+    String? title,
+    String? description,
+    Map<String, dynamic>? defaultSettings,
+  }) {
     return request(
       'riddler/v1/quizzes/$id',
       method: HttpMethod.patch,
       req: {
         if (title != null) 'title': title,
         if (description != null) 'description': description,
+        if (defaultSettings != null) 'default_settings': defaultSettings,
       },
       parser: (_) {},
     );
@@ -209,6 +230,56 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
     return request(
       'riddler/v1/quizzes/$quizId/questions/$questionId',
       method: HttpMethod.delete,
+      parser: (_) {},
+    );
+  }
+
+  @override
+  Future<String> createTestSessionInline({
+    required String title,
+    String? description,
+    required String courseId,
+    required String moduleId,
+    required List<Map<String, dynamic>> questions,
+    int? totalTimeLimitSec,
+    bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
+  }) {
+    return request<String>(
+      'riddler/v1/sessions/test/inline',
+      method: HttpMethod.post,
+      req: {
+        'title': title,
+        if (description != null) 'description': description,
+        'course_id': courseId,
+        'module_id': moduleId,
+        'questions': questions,
+        if (totalTimeLimitSec != null) 'total_time_limit_sec': totalTimeLimitSec,
+        if (shuffleQuestions) 'shuffle_questions': shuffleQuestions,
+        if (startedAt != null) 'started_at': startedAt.toUtc().toIso8601String(),
+        if (finishedAt != null) 'finished_at': finishedAt.toUtc().toIso8601String(),
+      },
+      parser: (data) =>
+          (data as Map<String, dynamic>)['session_id'] as String,
+    );
+  }
+
+  @override
+  Future<void> deleteSession(String sessionId) {
+    return request(
+      'riddler/v1/sessions/$sessionId',
+      method: HttpMethod.delete,
+      parser: (_) {},
+    );
+  }
+
+  @override
+  Future<void> generateQuizQuestions(String quizId, String sourceText) {
+    return request<void>(
+      'riddler/v1/quizzes/$quizId/generate',
+      method: HttpMethod.post,
+      req: {'text': sourceText},
       parser: (_) {},
     );
   }

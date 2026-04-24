@@ -176,9 +176,12 @@ class QuizDatasourceHive implements IQuizDatasource {
   Future<String> createQuiz({
     required String title,
     String? description,
+    String? mode,
     int? totalTimeLimitSec,
     int? questionTimeLimitSec,
     bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
     required List<Map<String, dynamic>> questions,
     String? courseId,
   }) async {
@@ -266,13 +269,14 @@ class QuizDatasourceHive implements IQuizDatasource {
       subject: quiz.subject,
       authorId: quiz.authorId,
       authorName: quiz.authorName,
-      status: 'active',
+      status: isPublic ? 'active' : 'draft',
       settings: quiz.settings,
       questions: quiz.questions,
       likesCount: quiz.likesCount,
       isLiked: quiz.isLiked,
       createdAt: quiz.createdAt,
       summaryQuestionCount: quiz.summaryQuestionCount,
+      isPublic: isPublic,
     );
     await HiveStorage.quizzesBox.put(id, jsonEncode(updated.toJson()));
   }
@@ -305,13 +309,24 @@ class QuizDatasourceHive implements IQuizDatasource {
   }
 
   @override
-  Future<void> updateQuiz(String id, {String? title, String? description}) async {
+  Future<void> updateQuiz(
+    String id, {
+    String? title,
+    String? description,
+    Map<String, dynamic>? defaultSettings,
+  }) async {
     final raw = HiveStorage.quizzesBox.get(id);
     if (raw == null) return;
     final json = jsonDecode(raw.toString()) as Map<String, dynamic>;
     if (title != null) json['title'] = title;
     json['description'] = description;
-    await HiveStorage.quizzesBox.put(id, jsonEncode(json));
+    if (defaultSettings != null) {
+      json['default_settings'] = defaultSettings;
+      final model = QuizModel.fromJson(json);
+      await HiveStorage.quizzesBox.put(id, jsonEncode(model.toJson()));
+    } else {
+      await HiveStorage.quizzesBox.put(id, jsonEncode(json));
+    }
   }
 
   @override
@@ -323,7 +338,10 @@ class QuizDatasourceHive implements IQuizDatasource {
       (json['questions'] as List<dynamic>? ?? []).map((e) => e as Map<String, dynamic>),
     );
     final newId = 'q_hive_${questions.length + 1}_${DateTime.now().millisecondsSinceEpoch}';
-    questions.add({...questionData, 'id': newId, 'order_index': questions.length});
+    final normalized = QuestionModel.normalizeTeacherQuestionPayload(
+      Map<String, dynamic>.from(questionData),
+    );
+    questions.add({...normalized, 'id': newId, 'order_index': questions.length});
     json['questions'] = questions;
     await HiveStorage.quizzesBox.put(quizId, jsonEncode(json));
     return newId;
@@ -340,6 +358,41 @@ class QuizDatasourceHive implements IQuizDatasource {
     questions.removeWhere((q) => q['id'] == questionId);
     json['questions'] = questions;
     await HiveStorage.quizzesBox.put(quizId, jsonEncode(json));
+  }
+
+  @override
+  Future<String> createTestSessionInline({
+    required String title,
+    String? description,
+    required String courseId,
+    required String moduleId,
+    required List<Map<String, dynamic>> questions,
+    int? totalTimeLimitSec,
+    bool shuffleQuestions = false,
+    DateTime? startedAt,
+    DateTime? finishedAt,
+  }) async {
+    await createQuiz(
+      title: title,
+      description: description,
+      mode: 'test',
+      totalTimeLimitSec: totalTimeLimitSec,
+      shuffleQuestions: shuffleQuestions,
+      startedAt: startedAt,
+      finishedAt: finishedAt,
+      questions: questions,
+    );
+    return 'session-inline-${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  @override
+  Future<void> deleteSession(String sessionId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+  }
+
+  @override
+  Future<void> generateQuizQuestions(String quizId, String sourceText) async {
+    await Future.delayed(const Duration(milliseconds: 200));
   }
 
   static List<QuizModel> _buildSeedQuizzes() => [
@@ -404,6 +457,7 @@ class QuizDatasourceHive implements IQuizDatasource {
           likesCount: 14,
           isLiked: false,
           createdAt: '2026-02-01T10:00:00Z',
+          isPublic: true,
         ),
         QuizModel(
           id: '2',
@@ -440,6 +494,7 @@ class QuizDatasourceHive implements IQuizDatasource {
           likesCount: 7,
           isLiked: true,
           createdAt: '2026-02-10T12:00:00Z',
+          isPublic: true,
         ),
         QuizModel(
           id: '3',
@@ -475,6 +530,7 @@ class QuizDatasourceHive implements IQuizDatasource {
           likesCount: 3,
           isLiked: false,
           createdAt: '2026-03-01T09:00:00Z',
+          isPublic: true,
         ),
       ];
 }

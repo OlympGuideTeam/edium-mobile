@@ -91,10 +91,10 @@ class ClassDatasourceMock implements IClassDatasource {
       ownerName: 'Иван Петров',
       isOwner: true,
       students: const [
-        MemberShortModel(id: 'student-1', name: 'Мария Кузнецова'),
-        MemberShortModel(id: 'student-2', name: 'Дмитрий Волков'),
-        MemberShortModel(id: 'student-3', name: 'Анна Соколова'),
-        MemberShortModel(id: 'student-4', name: 'Артём Новиков'),
+        MemberShortModel(id: 'student-1', name: 'Мария', surname: 'Кузнецова'),
+        MemberShortModel(id: 'student-2', name: 'Дмитрий', surname: 'Волков'),
+        MemberShortModel(id: 'student-3', name: 'Анна', surname: 'Соколова'),
+        MemberShortModel(id: 'student-4', name: 'Артём', surname: 'Новиков'),
       ],
       courses: const [
         CourseSummaryModel(
@@ -102,7 +102,7 @@ class ClassDatasourceMock implements IClassDatasource {
           title: 'Алгебра 7 класс',
           teacherName: 'Иван Петров',
           moduleCount: 4,
-          quizCount: 12,
+          elementCount: 12,
           isTeacher: true,
         ),
         CourseSummaryModel(
@@ -110,7 +110,7 @@ class ClassDatasourceMock implements IClassDatasource {
           title: 'Геометрия 7 класс',
           teacherName: 'Иван Петров',
           moduleCount: 3,
-          quizCount: 8,
+          elementCount: 8,
           isTeacher: true,
         ),
         CourseSummaryModel(
@@ -118,13 +118,13 @@ class ClassDatasourceMock implements IClassDatasource {
           title: 'Информатика',
           teacherName: 'Елена Смирнова',
           moduleCount: 5,
-          quizCount: 15,
+          elementCount: 15,
           isTeacher: false,
         ),
       ],
       teachers: const [
-        MemberShortModel(id: 'teacher-1', name: 'Иван Петров'),
-        MemberShortModel(id: 'teacher-2', name: 'Елена Смирнова'),
+        MemberShortModel(id: 'teacher-1', name: 'Иван', surname: 'Петров'),
+        MemberShortModel(id: 'teacher-2', name: 'Елена', surname: 'Смирнова'),
       ],
     );
   }

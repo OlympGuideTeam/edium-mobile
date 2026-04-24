@@ -3,17 +3,76 @@ import 'package:edium/domain/entities/course_detail.dart';
 class CourseDraftModel {
   final String id;
   final String quizTemplateId;
+  final CourseItemPayloadModel? payload;
 
-  const CourseDraftModel({required this.id, required this.quizTemplateId});
+  const CourseDraftModel({
+    required this.id,
+    required this.quizTemplateId,
+    this.payload,
+  });
 
   factory CourseDraftModel.fromJson(Map<String, dynamic> json) {
+    final payloadJson = json['payload'] as Map<String, dynamic>?;
     return CourseDraftModel(
       id: json['id'] as String,
       quizTemplateId: json['quiz_template_id'] as String,
+      payload: payloadJson != null
+          ? CourseItemPayloadModel.fromJson(payloadJson)
+          : null,
     );
   }
 
-  CourseDraft toEntity() => CourseDraft(id: id, quizTemplateId: quizTemplateId);
+  CourseDraft toEntity() => CourseDraft(
+        id: id,
+        quizTemplateId: quizTemplateId,
+        payload: payload?.toEntity(),
+      );
+}
+
+class CourseItemPayloadModel {
+  final String? title;
+  final String mode;
+  final int? totalTimeLimitSec;
+  final int? questionTimeLimitSec;
+  final bool? shuffleQuestions;
+  final DateTime? startedAt;
+  final DateTime? finishedAt;
+
+  const CourseItemPayloadModel({
+    this.title,
+    required this.mode,
+    this.totalTimeLimitSec,
+    this.questionTimeLimitSec,
+    this.shuffleQuestions,
+    this.startedAt,
+    this.finishedAt,
+  });
+
+  factory CourseItemPayloadModel.fromJson(Map<String, dynamic> json) {
+    return CourseItemPayloadModel(
+      title: json['title'] as String?,
+      mode: json['mode'] as String? ?? 'test',
+      totalTimeLimitSec: json['total_time_limit_sec'] as int?,
+      questionTimeLimitSec: json['question_time_limit_sec'] as int?,
+      shuffleQuestions: json['shuffle_questions'] as bool?,
+      startedAt: json['started_at'] != null
+          ? DateTime.tryParse(json['started_at'] as String)
+          : null,
+      finishedAt: json['finished_at'] != null
+          ? DateTime.tryParse(json['finished_at'] as String)
+          : null,
+    );
+  }
+
+  CourseItemPayload toEntity() => CourseItemPayload(
+        title: title,
+        mode: mode,
+        totalTimeLimitSec: totalTimeLimitSec,
+        questionTimeLimitSec: questionTimeLimitSec,
+        shuffleQuestions: shuffleQuestions,
+        startedAt: startedAt,
+        finishedAt: finishedAt,
+      );
 }
 
 class CourseItemModel {
@@ -47,6 +106,7 @@ class CourseItemModel {
 
   factory CourseItemModel.fromJson(Map<String, dynamic> json,
       {int orderIndex = 0}) {
+    final payloadJson = json['payload'] as Map<String, dynamic>?;
     return CourseItemModel(
       id: json['id'] as String,
       refId: json['object_id'] as String,
