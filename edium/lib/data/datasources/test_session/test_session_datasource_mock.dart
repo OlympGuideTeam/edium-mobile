@@ -5,6 +5,7 @@ import 'package:edium/data/models/quiz_attempt_model.dart';
 import 'package:edium/data/models/test_session_meta_model.dart';
 
 class TestSessionDatasourceMock implements ITestSessionDatasource {
+  static final Map<String, Map<String, _GradeEntry>> _teacherGrades = {};
   // sessionId → meta
   static final Map<String, TestSessionMetaModel> _sessions = _buildSessions();
   // sessionId → questions
@@ -86,6 +87,23 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
   Future<void> deleteSession(String sessionId) async {
     await Future.delayed(const Duration(milliseconds: 150));
     // Noop в мока (или можно удалить из статической карты, но state shared).
+  }
+
+  @override
+  Future<void> gradeSubmission({
+    required String attemptId,
+    required String submissionId,
+    required double score,
+    String? feedback,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    _teacherGrades.putIfAbsent(attemptId, () => {})[submissionId] =
+        _GradeEntry(score: score, feedback: feedback);
+  }
+
+  @override
+  Future<void> completeAttempt(String attemptId) async {
+    await Future.delayed(const Duration(milliseconds: 150));
   }
 
   // ── Seed data ──────────────────────────────────────────────────────────
@@ -335,4 +353,10 @@ class _MockAttempt {
     required this.status,
     required this.score,
   });
+}
+
+class _GradeEntry {
+  final double score;
+  final String? feedback;
+  const _GradeEntry({required this.score, this.feedback});
 }
