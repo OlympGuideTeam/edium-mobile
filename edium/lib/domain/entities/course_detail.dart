@@ -1,3 +1,23 @@
+class CourseItemPayload {
+  final String? title;
+  final String mode; // test | live
+  final int? totalTimeLimitSec;
+  final int? questionTimeLimitSec;
+  final bool? shuffleQuestions;
+  final DateTime? startedAt;
+  final DateTime? finishedAt;
+
+  const CourseItemPayload({
+    this.title,
+    required this.mode,
+    this.totalTimeLimitSec,
+    this.questionTimeLimitSec,
+    this.shuffleQuestions,
+    this.startedAt,
+    this.finishedAt,
+  });
+}
+
 class CourseItem {
   final String id;
   final String refId;
@@ -5,6 +25,7 @@ class CourseItem {
   final int orderIndex;
   final String? attemptId;
   final double? score;
+  final CourseItemPayload? payload;
 
   // Новые поля из Caesar `QuizShort`:
   final String? title;
@@ -74,8 +95,15 @@ class ModuleDetail {
 class CourseDraft {
   final String id;
   final String quizTemplateId;
+  final CourseItemPayload? payload;
 
-  const CourseDraft({required this.id, required this.quizTemplateId});
+  const CourseDraft({
+    required this.id,
+    required this.quizTemplateId,
+    this.payload,
+  });
+
+  String get title => payload?.title ?? '';
 
   @override
   bool operator ==(Object other) =>

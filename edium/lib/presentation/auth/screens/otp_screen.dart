@@ -18,22 +18,24 @@ import 'package:url_launcher/url_launcher.dart';
 class OtpScreen extends StatefulWidget {
   final String phone;
   final String channel;
+  final int retryAfter;
 
-  const OtpScreen({super.key, required this.phone, this.channel = 'sms'});
+  const OtpScreen({super.key, required this.phone, this.channel = 'sms', this.retryAfter = 180});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
 }
 
 class _OtpScreenState extends State<OtpScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   bool get _isTelegram => widget.channel == 'tg';
   static const int _codeLength = 6;
 
   final _hiddenController = TextEditingController();
   final _hiddenFocus = FocusNode();
   String? _error;
-  int _countdown = 60;
+  String? _lastPastedCode;
+  late int _countdown;
   Timer? _timer;
 
   late final AnimationController _shakeController;
@@ -42,7 +44,9 @@ class _OtpScreenState extends State<OtpScreen>
   @override
   void initState() {
     super.initState();
-    if (!_isTelegram) _startCountdown();
+    _countdown = widget.retryAfter;
+    if (!_isTelegram) _startCountdown(widget.retryAfter);
+    WidgetsBinding.instance.addObserver(this);
 
     _shakeController = AnimationController(
       vsync: this,
@@ -62,12 +66,38 @@ class _OtpScreenState extends State<OtpScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _hiddenFocus.requestFocus();
+      _checkClipboard();
     });
   }
 
-  void _startCountdown() {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkClipboard();
+    }
+  }
+
+  Future<void> _checkClipboard() async {
+    if (_hiddenController.text.length == _codeLength) return;
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = data?.text ?? '';
+    final match = RegExp('\\d{$_codeLength}').firstMatch(text);
+    final code = match?.group(0);
+    if (!mounted || code == null) return;
+    if (code == _lastPastedCode) return;
+    _lastPastedCode = code;
+    _hiddenController.value = TextEditingValue(
+      text: code,
+      selection: TextSelection.collapsed(offset: code.length),
+    );
+    HapticFeedback.selectionClick();
+    setState(() => _error = null);
+    _submit();
+  }
+
+  void _startCountdown(int seconds) {
     _timer?.cancel();
-    setState(() => _countdown = 60);
+    setState(() => _countdown = seconds);
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (!mounted) {
         t.cancel();
@@ -85,6 +115,7 @@ class _OtpScreenState extends State<OtpScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _hiddenController.dispose();
     _hiddenFocus.dispose();
     _shakeController.dispose();
@@ -94,9 +125,9 @@ class _OtpScreenState extends State<OtpScreen>
 
   String get _maskedPhone {
     final p = widget.phone;
-    if (p.length >= 12) {
-      return '${p.substring(0, 5)} ···-··-${p.substring(p.length - 2)}';
-    }
+    // if (p.length >= 12) {
+    //   return '${p.substring(0, 5)} ···-··-${p.substring(p.length - 2)}';
+    // }
     return p;
   }
 
@@ -155,15 +186,16 @@ class _OtpScreenState extends State<OtpScreen>
       _openTelegramBot();
       return;
     }
+    int retryAfter = 180;
     try {
-      await getIt<SendOtpUsecase>()(
+      retryAfter = await getIt<SendOtpUsecase>()(
         phone: widget.phone,
         channel: widget.channel,
       );
     } catch (_) {
       // OTP_ALREADY_SENT и прочие ошибки игнорируем — таймер всё равно перезапускаем
     }
-    _startCountdown();
+    _startCountdown(retryAfter);
     _hiddenController.clear();
     _hiddenFocus.requestFocus();
   }

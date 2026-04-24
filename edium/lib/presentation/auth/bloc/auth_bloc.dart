@@ -85,16 +85,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     if (event.channel == 'tg') {
-      emit(AuthOtpSent(event.phone, channel: event.channel));
+      emit(AuthOtpSent(event.phone, channel: event.channel, retryAfter: 0));
       return;
     }
     emit(const AuthLoading());
     try {
-      await sendOtp(phone: event.phone, channel: event.channel);
-      emit(AuthOtpSent(event.phone, channel: event.channel));
+      final retryAfter = await sendOtp(phone: event.phone, channel: event.channel);
+      emit(AuthOtpSent(event.phone, channel: event.channel, retryAfter: retryAfter));
     } catch (e) {
       if (e is ApiException && e.code == 'OTP_ALREADY_SENT') {
-        emit(AuthOtpSent(event.phone, channel: event.channel));
+        final retryAfter = e.details?['retry_after'] as int? ?? 180;
+        emit(AuthOtpSent(event.phone, channel: event.channel, retryAfter: retryAfter));
         return;
       }
       emit(AuthError(e.toString()));
@@ -114,6 +115,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
 
+      await dioHandler.syncTokenFromStorage();
       await profileStorage.savePhone(event.phone);
       final user = await getMe();
       await profileStorage.saveName(user.name);
@@ -146,6 +148,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         name: event.name,
         surname: event.surname,
       );
+      await dioHandler.syncTokenFromStorage();
       await profileStorage.savePhone(event.phone);
       await profileStorage.saveName(event.name);
       final user = User(
