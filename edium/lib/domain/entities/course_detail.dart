@@ -42,6 +42,7 @@ class CourseItem {
     required this.orderIndex,
     this.attemptId,
     this.score,
+    this.payload,
     this.title,
     this.quizType,
     this.state,
