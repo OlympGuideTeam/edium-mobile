@@ -49,6 +49,7 @@ class CourseDetailScreen extends StatelessWidget {
         getCourseDetail: getIt(),
         createModule: getIt(),
         profileStorage: getIt(),
+        courseRepository: getIt(),
         courseId: courseId,
       )..add(LoadCourseDetailEvent(courseId)),
       child: const _CourseDetailView(),
@@ -261,7 +262,10 @@ class _CourseDetailBody extends StatelessWidget {
                         final draft = course.drafts[draftIndex - 1];
                         return Padding(
                           padding: const EdgeInsets.only(top: 8),
-                          child: _DraftTile(draft: draft),
+                          child: _DraftTile(
+                            draft: draft,
+                            onTap: () => _openCreateQuizFromDraft(context, draft),
+                          ),
                         );
                       },
                     ),

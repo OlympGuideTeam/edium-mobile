@@ -11,16 +11,19 @@ class CourseDetailBloc extends Bloc<CourseDetailEvent, CourseDetailState> {
   final GetCourseDetailUsecase _getCourseDetail;
   final CreateModuleUsecase _createModule;
   final ProfileStorage _profileStorage;
+  final ICourseRepository _courseRepository;
   final String courseId;
 
   CourseDetailBloc({
     required GetCourseDetailUsecase getCourseDetail,
     required CreateModuleUsecase createModule,
     required ProfileStorage profileStorage,
+    required ICourseRepository courseRepository,
     required this.courseId,
   })  : _getCourseDetail = getCourseDetail,
         _createModule = createModule,
         _profileStorage = profileStorage,
+        _courseRepository = courseRepository,
         super(const CourseDetailInitial()) {
     on<LoadCourseDetailEvent>(_onLoad);
     on<SilentReloadCourseDetailEvent>(_onSilentReload);
