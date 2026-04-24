@@ -1,6 +1,8 @@
 import 'package:edium/core/config/api_config.dart';
 import 'package:edium/core/storage/profile_storage.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
+import 'package:edium/data/datasources/attempt_cache/attempt_cache_datasource.dart';
+import 'package:edium/data/datasources/attempt_cache/attempt_cache_datasource_hive.dart';
 import 'package:edium/data/datasources/class/class_datasource.dart';
 import 'package:edium/data/datasources/class/class_datasource_impl.dart';
 import 'package:edium/data/datasources/class/class_datasource_mock.dart';
@@ -13,6 +15,9 @@ import 'package:edium/data/datasources/quiz/quiz_datasource_impl.dart';
 import 'package:edium/data/datasources/quiz_session/quiz_session_datasource.dart';
 import 'package:edium/data/datasources/quiz_session/quiz_session_datasource_impl.dart';
 import 'package:edium/data/datasources/quiz_session/quiz_session_datasource_hive.dart';
+import 'package:edium/data/datasources/test_session/test_session_datasource.dart';
+import 'package:edium/data/datasources/test_session/test_session_datasource_impl.dart';
+import 'package:edium/data/datasources/test_session/test_session_datasource_mock.dart';
 import 'package:edium/data/datasources/user/user_datasource.dart';
 import 'package:edium/data/datasources/user/user_datasource_impl.dart';
 import 'package:edium/data/datasources/user/user_datasource_mock.dart';
@@ -22,17 +27,25 @@ import 'package:edium/data/repositories/class_repository_impl.dart';
 import 'package:edium/data/repositories/library_quiz_repository_impl.dart';
 import 'package:edium/data/repositories/quiz_repository_impl.dart';
 import 'package:edium/data/repositories/quiz_session_repository_impl.dart';
+import 'package:edium/data/repositories/test_session_repository_impl.dart';
 import 'package:edium/data/repositories/user_repository_impl.dart';
 import 'package:edium/domain/repositories/auth_repository.dart';
 import 'package:edium/domain/repositories/class_repository.dart';
 import 'package:edium/domain/repositories/library_quiz_repository.dart';
 import 'package:edium/domain/repositories/quiz_repository.dart';
 import 'package:edium/domain/repositories/quiz_session_repository.dart';
+import 'package:edium/domain/repositories/test_session_repository.dart';
 import 'package:edium/domain/repositories/user_repository.dart';
 import 'package:edium/domain/usecases/auth/logout_usecase.dart';
 import 'package:edium/domain/usecases/auth/register_usecase.dart';
 import 'package:edium/domain/usecases/auth/send_otp_usecase.dart';
 import 'package:edium/domain/usecases/auth/verify_otp_usecase.dart';
+import 'package:edium/domain/usecases/test_session/finish_attempt_usecase.dart' as test_session_finish;
+import 'package:edium/domain/usecases/test_session/get_attempt_review_usecase.dart';
+import 'package:edium/domain/usecases/test_session/get_test_session_meta_usecase.dart';
+import 'package:edium/domain/usecases/test_session/list_session_attempts_usecase.dart';
+import 'package:edium/domain/usecases/test_session/persist_answer_locally_usecase.dart';
+import 'package:edium/domain/usecases/test_session/start_or_resume_attempt_usecase.dart';
 import 'package:edium/domain/usecases/library_quiz/create_attempt_usecase.dart';
 import 'package:edium/domain/usecases/library_quiz/finish_attempt_usecase.dart';
 import 'package:edium/domain/usecases/library_quiz/get_attempt_result_usecase.dart';
@@ -133,7 +146,9 @@ Future<void> initializeDependencies({
     getIt.registerLazySingleton<IClassDatasource>(
         () => ClassDatasourceMock());
     getIt.registerLazySingleton<ICourseDatasource>(
-        () => CourseDatasourceMock());
+        () => CourseDatasourceMock(getIt<ProfileStorage>()));
+    getIt.registerLazySingleton<ITestSessionDatasource>(
+        () => TestSessionDatasourceMock());
   } else {
     getIt.registerLazySingleton<IUserDatasource>(
         () => UserDatasourceImpl(getIt<DioHandler>().dio));
@@ -147,7 +162,12 @@ Future<void> initializeDependencies({
         () => ClassDatasourceImpl(getIt<DioHandler>().dio));
     getIt.registerLazySingleton<ICourseDatasource>(
         () => CourseDatasourceImpl(getIt<DioHandler>().dio));
+    getIt.registerLazySingleton<ITestSessionDatasource>(
+        () => TestSessionDatasourceImpl(getIt<DioHandler>().dio));
   }
+
+  getIt.registerLazySingleton<IAttemptCacheDatasource>(
+      () => AttemptCacheDatasourceHive());
 
   if (ApiConfig.useMock) {
     getIt.registerLazySingleton<IAuthRepository>(() => AuthRepositoryMock(getIt()));
@@ -177,6 +197,12 @@ Future<void> initializeDependencies({
   );
   getIt.registerLazySingleton<ICourseRepository>(
     () => CourseRepositoryImpl(getIt()),
+  );
+  getIt.registerLazySingleton<ITestSessionRepository>(
+    () => TestSessionRepositoryImpl(
+      datasource: getIt(),
+      cache: getIt(),
+    ),
   );
 
   getIt.registerLazySingleton(() => SendOtpUsecase(getIt()));
@@ -214,6 +240,13 @@ Future<void> initializeDependencies({
   getIt.registerLazySingleton(() => SubmitAttemptAnswerUsecase(getIt()));
   getIt.registerLazySingleton(() => FinishAttemptUsecase(getIt()));
   getIt.registerLazySingleton(() => GetAttemptResultUsecase(getIt()));
+  getIt.registerLazySingleton(() => GetTestSessionMetaUsecase(getIt()));
+  getIt.registerLazySingleton(() => StartOrResumeAttemptUsecase(getIt()));
+  getIt.registerLazySingleton(() => PersistAnswerLocallyUsecase(getIt()));
+  getIt.registerLazySingleton(
+      () => test_session_finish.FinishTestAttemptUsecase(getIt()));
+  getIt.registerLazySingleton(() => ListSessionAttemptsUsecase(getIt()));
+  getIt.registerLazySingleton(() => GetAttemptReviewUsecase(getIt()));
 
   getIt.registerSingleton<AuthBloc>(
     AuthBloc(
