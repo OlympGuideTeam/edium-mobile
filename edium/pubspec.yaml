@@ -27,7 +27,7 @@ dependencies:
   # Navigation
   go_router: ^14.3.0
   # Code generation annotations (runtime)
-  freezed_annotation: ^2.4.4
+  freezed_annotation: ^3.1.0
   json_annotation: ^4.9.0
   # Internationalisation
   intl: ^0.20.2
@@ -43,9 +43,11 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   build_runner: ^2.4.13
-  freezed: ^2.5.7
+  freezed: ^3.2.5
   json_serializable: ^6.8.0
   flutter_launcher_icons: ^0.14.3
+  bloc_test: ^9.1.7
+  mocktail: ^1.0.4
 
 flutter_launcher_icons:
   android: true
