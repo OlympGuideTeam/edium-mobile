@@ -27,13 +27,6 @@ class LibraryQuizCard extends StatelessWidget {
             // Tags row
             Row(
               children: [
-                if (quiz.needEvaluation)
-                  _Tag(
-                    label: 'ПРОВЕРКА ИИ',
-                    bg: AppColors.mono900,
-                    fg: Colors.white,
-                  ),
-                if (quiz.needEvaluation) const SizedBox(width: 8),
                 _Tag(
                   label: quiz.questionCount == 1
                       ? '1 ВОПРОС'

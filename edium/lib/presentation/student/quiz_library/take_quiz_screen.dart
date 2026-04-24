@@ -1,4 +1,5 @@
 import 'package:edium/core/theme/app_colors.dart';
+import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/quiz_attempt.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/take_quiz_bloc.dart';
@@ -12,12 +13,14 @@ class TakeQuizScreen extends StatefulWidget {
   final String sessionId;
   final String quizTitle;
   final int? totalTimeLimitSec;
+  final bool useCache;
 
   const TakeQuizScreen({
     super.key,
     required this.sessionId,
     required this.quizTitle,
     this.totalTimeLimitSec,
+    this.useCache = false,
   });
 
   @override
@@ -34,6 +37,7 @@ class _TakeQuizScreenState extends State<TakeQuizScreen> {
           sessionId: widget.sessionId,
           quizTitle: widget.quizTitle,
           totalTimeLimitSec: widget.totalTimeLimitSec,
+          useCache: widget.useCache,
         ));
   }
 
@@ -54,6 +58,8 @@ class _TakeQuizScreenState extends State<TakeQuizScreen> {
               builder: (_) => QuizResultScreen(
                 result: state.result,
                 maxPossibleScore: state.maxPossibleScore,
+                quizTitle: state.quizTitle,
+                questions: state.questions,
               ),
             ),
           );
@@ -164,24 +170,16 @@ class _TakeQuizScreenState extends State<TakeQuizScreen> {
 
   Widget _buildQuizBody(BuildContext context, TakeQuizInProgress state) {
     final question = state.currentQuestion;
-    final total = state.attempt.questions.length;
-    final progress = (state.currentIndex + 1) / total;
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
-            // Top bar: back + timer + progress
+            // Top bar: back + timer + title
             _TopBar(state: state, onBack: () => Navigator.pop(context)),
-            // Progress bar
-            LinearProgressIndicator(
-              value: progress,
-              backgroundColor: AppColors.mono100,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.mono900),
-              minHeight: 3,
-            ),
+            // Navigation strip
+            _QuestionStrip(state: state),
             // Question content
             Expanded(
               child: GestureDetector(
@@ -191,31 +189,11 @@ class _TakeQuizScreenState extends State<TakeQuizScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Counter + type badge
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.mono50,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: AppColors.mono150),
-                            ),
-                            child: Text(
-                              '${state.currentIndex + 1} / $total',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.mono700,
-                              ),
-                            ),
-                          ),
-                          const Spacer(),
-                          _TypeBadge(type: question.type),
-                        ],
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: _TypeBadge(type: question.type),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
                       // Question text
                       Text(
                         question.text,
@@ -479,17 +457,19 @@ class _TakeQuizScreenState extends State<TakeQuizScreen> {
       case QuizQuestionType.withFreeAnswer:
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.mono250, width: 1.5),
+            color: AppColors.mono25,
+            borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+            border: Border.all(
+              color: AppColors.mono100,
+              width: AppDimens.borderWidth,
+            ),
           ),
           child: TextField(
             controller: _textController,
             maxLines: question.type == QuizQuestionType.withFreeAnswer
                 ? 5
                 : 1,
-            style: const TextStyle(
-                fontSize: 15, color: AppColors.mono700),
+            style: const TextStyle(fontSize: 15, color: AppColors.mono700),
             cursorColor: AppColors.mono900,
             onChanged: (v) => context
                 .read<TakeQuizBloc>()
@@ -500,7 +480,10 @@ class _TakeQuizScreenState extends State<TakeQuizScreen> {
                   : 'Введите ответ…',
               hintStyle: const TextStyle(
                   fontSize: 15, color: AppColors.mono250),
+              filled: false,
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
               contentPadding: const EdgeInsets.all(16),
             ),
           ),
@@ -613,6 +596,71 @@ class _TopBar extends StatelessWidget {
 }
 
 // ── Type Badge ───────────────────────────────────────────────────────────────
+
+class _QuestionStrip extends StatelessWidget {
+  final TakeQuizInProgress state;
+  const _QuestionStrip({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final total = state.attempt.questions.length;
+    return SizedBox(
+      height: 52,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        scrollDirection: Axis.horizontal,
+        itemCount: total,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final isCurrent = i == state.currentIndex;
+          final q = state.attempt.questions[i];
+          final isAnswered = state.answers[q.id] != null;
+
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => context
+                .read<TakeQuizBloc>()
+                .add(JumpToQuestionEvent(i)),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: isCurrent
+                    ? AppColors.mono900
+                    : isAnswered
+                        ? AppColors.mono100
+                        : Colors.transparent,
+                shape: BoxShape.circle,
+                border: isCurrent
+                    ? null
+                    : Border.all(
+                        color: isAnswered
+                            ? AppColors.mono150
+                            : AppColors.mono200,
+                        width: 1,
+                      ),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                '${i + 1}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: isCurrent
+                      ? Colors.white
+                      : isAnswered
+                          ? AppColors.mono700
+                          : AppColors.mono400,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
 
 class _TypeBadge extends StatelessWidget {
   final QuizQuestionType type;
