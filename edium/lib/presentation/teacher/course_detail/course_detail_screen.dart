@@ -43,6 +43,7 @@ class CourseDetailScreen extends StatelessWidget {
       create: (_) => CourseDetailBloc(
         getCourseDetail: getIt(),
         createModule: getIt(),
+        profileStorage: getIt(),
         courseId: courseId,
       )..add(LoadCourseDetailEvent(courseId)),
       child: const _CourseDetailView(),
