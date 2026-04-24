@@ -37,4 +37,15 @@ abstract class ITestSessionDatasource {
 
   /// `DELETE /sessions/:sessionId`. 409 если есть попытки.
   Future<void> deleteSession(String sessionId);
+
+  /// `POST /attempts/:attemptId/submissions/:submissionId/grade`
+  Future<void> gradeSubmission({
+    required String attemptId,
+    required String submissionId,
+    required double score,
+    String? feedback,
+  });
+
+  /// `POST /attempts/:attemptId/complete`
+  Future<void> completeAttempt(String attemptId);
 }
