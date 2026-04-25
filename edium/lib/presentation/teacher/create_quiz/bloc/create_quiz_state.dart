@@ -50,7 +50,8 @@ class CreateQuizState extends Equatable {
     this.aiGenerateAckVersion = 0,
   });
 
-  bool get canSubmit => title.isNotEmpty && questions.isNotEmpty;
+  bool get canSave => title.isNotEmpty;
+  bool get canPublish => title.isNotEmpty && questions.isNotEmpty;
 
   CreateQuizState copyWith({
     String? title,

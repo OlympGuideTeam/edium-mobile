@@ -50,4 +50,9 @@ class CourseRepositoryImpl implements ICourseRepository {
   }) {
     return _datasource.reorderModules(courseId: courseId, moduleIds: moduleIds);
   }
+
+  @override
+  Future<CourseSheet> getCourseSheet({required String courseId}) {
+    return _datasource.getCourseSheet(courseId: courseId);
+  }
 }
