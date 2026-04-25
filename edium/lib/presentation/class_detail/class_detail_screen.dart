@@ -578,7 +578,10 @@ class _CoursesTab extends StatelessWidget {
                   );
                   if (courseId != null && context.mounted) {
                     bloc.add(LoadClassDetailEvent(bloc.classId));
-                    context.push('/course/$courseId');
+                    context.push(
+                      '/course/$courseId',
+                      extra: {'classId': bloc.classId},
+                    );
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -610,7 +613,10 @@ class _CourseCard extends StatelessWidget {
     final card = SizedBox(
       width: double.infinity,
       child: GestureDetector(
-      onTap: () => context.push('/course/${course.id}'),
+      onTap: () {
+        final classId = context.read<ClassDetailBloc>().classId;
+        context.push('/course/${course.id}', extra: {'classId': classId});
+      },
       child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(

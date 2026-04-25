@@ -39,8 +39,9 @@ String studentTestActionLabel(CourseItem item) {
 
 class CourseDetailScreen extends StatelessWidget {
   final String courseId;
+  final String? classId;
 
-  const CourseDetailScreen({super.key, required this.courseId});
+  const CourseDetailScreen({super.key, required this.courseId, this.classId});
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +53,7 @@ class CourseDetailScreen extends StatelessWidget {
         courseRepository: getIt(),
         courseId: courseId,
       )..add(LoadCourseDetailEvent(courseId)),
-      child: const _CourseDetailView(),
+      child: _CourseDetailView(classId: classId),
     );
   }
 }
@@ -60,7 +61,8 @@ class CourseDetailScreen extends StatelessWidget {
 // ─── Корневой вид ─────────────────────────────────────────────────────────────
 
 class _CourseDetailView extends StatelessWidget {
-  const _CourseDetailView();
+  final String? classId;
+  const _CourseDetailView({this.classId});
 
   CourseDetail? _extractCourse(CourseDetailState state) {
     if (state is CourseDetailLoaded) return state.course;
@@ -151,7 +153,7 @@ class _CourseDetailView extends StatelessWidget {
         final course = _extractCourse(state);
         if (course == null) return const SizedBox.shrink();
 
-        return _CourseDetailBody(course: course);
+        return _CourseDetailBody(course: course, classId: classId);
       },
     );
   }
@@ -161,8 +163,9 @@ class _CourseDetailView extends StatelessWidget {
 
 class _CourseDetailBody extends StatelessWidget {
   final CourseDetail course;
+  final String? classId;
 
-  const _CourseDetailBody({required this.course});
+  const _CourseDetailBody({required this.course, this.classId});
 
   @override
   Widget build(BuildContext context) {
@@ -249,6 +252,7 @@ class _CourseDetailBody extends StatelessWidget {
                             child: _ModuleSection(
                               module: course.modules[i],
                               isTeacher: course.isTeacher,
+                              classId: classId,
                             ),
                           );
                         }
@@ -1243,8 +1247,13 @@ class _DismissibleDraftTile extends StatelessWidget {
 class _ModuleSection extends StatefulWidget {
   final ModuleDetail module;
   final bool isTeacher;
+  final String? classId;
 
-  const _ModuleSection({required this.module, required this.isTeacher});
+  const _ModuleSection({
+    required this.module,
+    required this.isTeacher,
+    this.classId,
+  });
 
   @override
   State<_ModuleSection> createState() => _ModuleSectionState();
@@ -1447,13 +1456,24 @@ class _ModuleSectionState extends State<_ModuleSection>
                                     onTap: item.isTestQuiz
                                         ? () {
                                             if (widget.isTeacher) {
-                                              context.push(
-                                                '/test/${item.refId}/results',
-                                                extra: {
-                                                  'courseItem': item,
-                                                  'isTeacher': true,
-                                                },
-                                              );
+                                              if (item.state == 'in_progress' &&
+                                                  widget.classId != null) {
+                                                context.push(
+                                                  '/test/${item.refId}/monitor',
+                                                  extra: {
+                                                    'courseItem': item,
+                                                    'classId': widget.classId,
+                                                  },
+                                                );
+                                              } else {
+                                                context.push(
+                                                  '/test/${item.refId}/results',
+                                                  extra: {
+                                                    'courseItem': item,
+                                                    'isTeacher': true,
+                                                  },
+                                                );
+                                              }
                                             } else {
                                               context.push(
                                                 '/test/${item.refId}',
