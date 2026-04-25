@@ -34,6 +34,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   var _syncedControllersFromBloc = false;
+  var _excludeFocus = false;
 
   @override
   void didChangeDependencies() {
@@ -177,10 +178,12 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
         );
   }
 
-  void _openAIGenerateSheet() {
+  Future<void> _openAIGenerateSheet() async {
+    FocusScope.of(context).unfocus();
+    setState(() => _excludeFocus = true);
     final hostContext = context;
     final bloc = context.read<CreateQuizBloc>();
-    showModalBottomSheet(
+    await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
       isScrollControlled: true,
@@ -217,6 +220,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
         );
       },
     );
+    if (mounted) setState(() => _excludeFocus = false);
   }
 
   @override
@@ -242,7 +246,9 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
         }
       },
       builder: (context, state) {
-        return Scaffold(
+        return ExcludeFocus(
+          excluding: _excludeFocus,
+          child: Scaffold(
           backgroundColor: Colors.white,
           appBar: _buildAppBar(context, state),
           body: GestureDetector(
@@ -299,6 +305,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
               ],
             ),
           ),
+        ),
         );
       },
     );
@@ -326,11 +333,15 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
   }
 
   Future<void> _openAddQuestion(BuildContext context) async {
+    FocusScope.of(context).unfocus();
+    setState(() => _excludeFocus = true);
     final q = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(builder: (_) => const AddQuestionScreen()),
     );
-    if (q != null && context.mounted) {
+    if (!mounted) return;
+    setState(() => _excludeFocus = false);
+    if (q != null) {
       context.read<CreateQuizBloc>().add(AddQuestionEvent(q));
     }
   }
@@ -340,13 +351,17 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     int index,
     Map<String, dynamic> existing,
   ) async {
+    FocusScope.of(context).unfocus();
+    setState(() => _excludeFocus = true);
     final q = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(
         builder: (_) => AddQuestionScreen(initialQuestion: existing),
       ),
     );
-    if (q != null && context.mounted) {
+    if (!mounted) return;
+    setState(() => _excludeFocus = false);
+    if (q != null) {
       context.read<CreateQuizBloc>().add(ReplaceQuestionEvent(index, q));
     }
   }
@@ -440,7 +455,7 @@ class _AIGenerateSheetState extends State<_AIGenerateSheet> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Вставьте текст — AI создаст вопросы',
+                          'Вставьте текст – Edium AI создаст вопросы',
                           style: AppTextStyles.caption
                               .copyWith(color: AppColors.mono400),
                         ),
@@ -461,65 +476,74 @@ class _AIGenerateSheetState extends State<_AIGenerateSheet> {
                         : AppColors.mono150,
                   ),
                 ),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _textCtrl,
-                      focusNode: _fieldFocus,
-                      maxLength: _maxLength,
-                      maxLines: 8,
-                      minLines: 5,
-                      textCapitalization: TextCapitalization.sentences,
-                      style: AppTextStyles.fieldText
-                          .copyWith(color: AppColors.mono700),
-                      decoration: InputDecoration(
-                        hintText:
-                            'Вставьте текст лекции, главы учебника или любой материал...',
-                        hintStyle: AppTextStyles.fieldHint,
-                        border: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        contentPadding: const EdgeInsets.all(14),
-                        counterText: '',
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(13),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _textCtrl,
+                        focusNode: _fieldFocus,
+                        maxLength: _maxLength,
+                        maxLines: 8,
+                        minLines: 5,
+                        textCapitalization: TextCapitalization.sentences,
+                        style: AppTextStyles.fieldText
+                            .copyWith(color: AppColors.mono700),
+                        decoration: InputDecoration(
+                          hintText:
+                              'Вставьте текст лекции, главы учебника или любой материал...',
+                          hintStyle: AppTextStyles.fieldHint,
+                          filled: true,
+                          fillColor: Colors.transparent,
+                          border: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          focusedErrorBorder: InputBorder.none,
+                          contentPadding: const EdgeInsets.all(14),
+                          counterText: '',
+                        ),
+                        cursorColor: AppColors.mono900,
                       ),
-                      cursorColor: AppColors.mono900,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(
-                          left: 14, right: 14, bottom: 10),
-                      child: Row(
-                        children: [
-                          ListenableBuilder(
-                            listenable: _textCtrl,
-                            builder: (_, __) {
-                              final len = _textCtrl.text.length;
-                              if (len > 0 && len < _minGenerateLength) {
-                                return Text(
-                                  'Минимум $_minGenerateLength символов',
-                                  style: AppTextStyles.caption.copyWith(
-                                    color: AppColors.mono400,
-                                    fontSize: 11,
-                                  ),
-                                );
-                              }
-                              return const SizedBox.shrink();
-                            },
-                          ),
-                          const Spacer(),
-                          ListenableBuilder(
-                            listenable: _textCtrl,
-                            builder: (_, __) => Text(
-                              '${_textCtrl.text.length}/$_maxLength',
-                              style: AppTextStyles.caption.copyWith(
-                                  color: AppColors.mono300, fontSize: 11),
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            left: 14, right: 14, bottom: 10),
+                        child: Row(
+                          children: [
+                            ListenableBuilder(
+                              listenable: _textCtrl,
+                              builder: (_, __) {
+                                final len = _textCtrl.text.length;
+                                if (len > 0 && len < _minGenerateLength) {
+                                  return Text(
+                                    'Минимум $_minGenerateLength символов',
+                                    style: AppTextStyles.caption.copyWith(
+                                      color: AppColors.mono400,
+                                      fontSize: 11,
+                                    ),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
                             ),
-                          ),
-                        ],
+                            const Spacer(),
+                            ListenableBuilder(
+                              listenable: _textCtrl,
+                              builder: (_, __) => Text(
+                                '${_textCtrl.text.length}/$_maxLength',
+                                style: AppTextStyles.caption.copyWith(
+                                    color: AppColors.mono300, fontSize: 11),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
+
               const SizedBox(height: 20),
               ListenableBuilder(
                 listenable: _textCtrl,
@@ -534,7 +558,10 @@ class _AIGenerateSheetState extends State<_AIGenerateSheet> {
                       enabled: canTap,
                       isBusy: widget.isGenerating,
                       onTap: canTap
-                          ? () => widget.onGenerate(_textCtrl.text.trim())
+                          ? () {
+                              _fieldFocus.unfocus();
+                              widget.onGenerate(_textCtrl.text.trim());
+                            }
                           : null,
                       child: widget.isGenerating
                           ? const SizedBox(
@@ -629,7 +656,7 @@ class _RainbowBorderButtonState extends State<_RainbowBorderButton>
               child: Container(
                 decoration: BoxDecoration(
                   color: AppColors.mono900,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(11.5),
                 ),
                 margin: const EdgeInsets.all(2.5),
                 alignment: Alignment.center,
@@ -2238,21 +2265,24 @@ class _SwipeToDeleteTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dismissible(
-      key: key!,
-      direction: DismissDirection.endToStart,
-      onDismissed: (_) => onDelete(),
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 16),
-        decoration: BoxDecoration(
-          color: AppColors.error,
-          borderRadius: BorderRadius.circular(12),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        color: AppColors.error,
+        child: Dismissible(
+          key: key!,
+          direction: DismissDirection.endToStart,
+          onDismissed: (_) => onDelete(),
+          background: Container(
+            color: AppColors.error,
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 16),
+            child: const Icon(Icons.delete_outline,
+                color: Colors.white, size: 20),
+          ),
+          child: child,
         ),
-        child: const Icon(Icons.delete_outline,
-            color: Colors.white, size: 20),
       ),
-      child: child,
     );
   }
 }

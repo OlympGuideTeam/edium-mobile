@@ -339,7 +339,12 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
               onSave: () {
                 FocusScope.of(context).unfocus();
                 final q = _buildQuestion();
-                if (q != null) Navigator.pop(context, q);
+                if (q != null) {
+                  final ctx = context;
+                  Future.delayed(const Duration(milliseconds: 100), () {
+                    if (ctx.mounted) Navigator.pop(ctx, q);
+                  });
+                }
               },
             ),
           ],

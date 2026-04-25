@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
@@ -178,6 +180,34 @@ class _EditQuizTemplateScreenState extends State<EditQuizTemplateScreen> {
     if (result != null && mounted) {
       setState(() => _modifiedQuestions[q.id] = result);
     }
+  }
+
+  Future<void> _openAIGenerateSheet() async {
+    FocusScope.of(context).unfocus();
+    final hostContext = context;
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) {
+        return _AIGenerateSheet(
+          onGenerate: (text) async {
+            await getIt<IQuizRepository>()
+                .generateQuizQuestions(widget.quizId, text);
+            if (sheetCtx.mounted) Navigator.pop(sheetCtx);
+            if (hostContext.mounted) {
+              EdiumNotification.show(
+                hostContext,
+                'Мы пришлём вам уведомление, когда вопросы будут готовы.',
+              );
+            }
+          },
+        );
+      },
+    );
   }
 
   Future<void> _editNewQuestion(int index) async {
@@ -409,52 +439,68 @@ class _EditQuizTemplateScreenState extends State<EditQuizTemplateScreen> {
 
     return Column(
       children: [
-        if (!hasAny) _EmptyState(onAdd: _addQuestion),
-
-        // Existing questions (editable, can delete)
-        ...List.generate(_existingQuestions.length, (i) {
-          final q = _existingQuestions[i];
-          final isModified = _modifiedQuestions.containsKey(q.id);
-          final displayMap =
-              isModified ? _modifiedQuestions[q.id]! : null;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _SwipeToDeleteTile(
-              key: ValueKey('existing-${q.id}-$isModified'),
-              onDelete: () => _removeExisting(q),
-              child: _ExistingQuestionTile(
-                index: i + 1,
-                question: q,
-                overrideText: displayMap?['text'] as String?,
-                overrideType: displayMap?['type'] as String?,
-                isModified: isModified,
-                onTap: () => _editExistingQuestion(i),
+        SizedBox(
+          height: 48,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: _AddQuestionButton(onTap: _addQuestion)),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 76,
+                child: _AIGenerateButton(onTap: _openAIGenerateSheet),
               ),
-            ),
-          );
-        }),
-
-        // New questions (editable)
-        ...List.generate(_newQuestions.length, (i) {
-          final q = _newQuestions[i];
-          final type = q['type'] as String? ?? 'single_choice';
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _SwipeToDeleteTile(
-              key: ValueKey('new-$i-${q['text']}'),
-              onDelete: () => _removeNew(i),
-              child: _NewQuestionTile(
-                index: _existingQuestions.length + i + 1,
-                text: q['text'] as String? ?? '',
-                type: type,
-                onTap: () => _editNewQuestion(i),
+            ],
+          ),
+        ),
+        if (!hasAny) ...[
+          const SizedBox(height: 12),
+          const _EmptyState(),
+        ],
+        if (hasAny) ...[
+          const SizedBox(height: 12),
+          // Existing questions (editable, can delete)
+          ...List.generate(_existingQuestions.length, (i) {
+            final q = _existingQuestions[i];
+            final isModified = _modifiedQuestions.containsKey(q.id);
+            final displayMap =
+                isModified ? _modifiedQuestions[q.id]! : null;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _SwipeToDeleteTile(
+                key: ValueKey('existing-${q.id}-$isModified'),
+                onDelete: () => _removeExisting(q),
+                child: _ExistingQuestionTile(
+                  index: i + 1,
+                  question: q,
+                  overrideText: displayMap?['text'] as String?,
+                  overrideType: displayMap?['type'] as String?,
+                  isModified: isModified,
+                  onTap: () => _editExistingQuestion(i),
+                ),
               ),
-            ),
-          );
-        }),
+            );
+          }),
 
-        if (hasAny)
-          _AddQuestionButton(onTap: _addQuestion),
+          // New questions (editable)
+          ...List.generate(_newQuestions.length, (i) {
+            final q = _newQuestions[i];
+            final type = q['type'] as String? ?? 'single_choice';
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _SwipeToDeleteTile(
+                key: ValueKey('new-$i-${q['text']}'),
+                onDelete: () => _removeNew(i),
+                child: _NewQuestionTile(
+                  index: _existingQuestions.length + i + 1,
+                  text: q['text'] as String? ?? '',
+                  type: type,
+                  onTap: () => _editNewQuestion(i),
+                ),
+              ),
+            );
+          }),
+        ],
       ],
     );
   }
@@ -609,20 +655,23 @@ class _SwipeToDeleteTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dismissible(
-      key: key!,
-      direction: DismissDirection.endToStart,
-      onDismissed: (_) => onDelete(),
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 16),
-        decoration: BoxDecoration(
-          color: AppColors.error,
-          borderRadius: BorderRadius.circular(12),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        color: AppColors.error,
+        child: Dismissible(
+          key: key!,
+          direction: DismissDirection.endToStart,
+          onDismissed: (_) => onDelete(),
+          background: Container(
+            color: AppColors.error,
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 16),
+            child: const Icon(Icons.delete_outline, color: Colors.white, size: 20),
+          ),
+          child: child,
         ),
-        child: const Icon(Icons.delete_outline, color: Colors.white, size: 20),
       ),
-      child: child,
     );
   }
 }
@@ -853,51 +902,44 @@ class _NewQuestionTile extends StatelessWidget {
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
-  final VoidCallback onAdd;
-  const _EmptyState({required this.onAdd});
+  const _EmptyState();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            color: AppColors.mono25,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.mono100),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: AppColors.mono25,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.mono100),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.mono100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.quiz_outlined, size: 24, color: AppColors.mono400),
           ),
-          child: Column(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.mono100,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.quiz_outlined, size: 24, color: AppColors.mono400),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Вопросов нет',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.mono700,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Добавьте хотя бы один вопрос',
-                style: AppTextStyles.caption,
-              ),
-            ],
+          const SizedBox(height: 12),
+          Text(
+            'Вопросов нет',
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.mono700,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        _AddQuestionButton(onTap: onAdd),
-      ],
+          const SizedBox(height: 4),
+          Text(
+            'Добавьте хотя бы один вопрос',
+            style: AppTextStyles.caption,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1318,6 +1360,459 @@ class _EditTimeInputDialogState extends State<_EditTimeInputDialog> {
     );
   }
 }
+
+// ─── AI Generate button (rainbow animated border) ────────────────────────────
+
+class _AIGenerateButton extends StatefulWidget {
+  final VoidCallback onTap;
+  const _AIGenerateButton({required this.onTap});
+
+  @override
+  State<_AIGenerateButton> createState() => _AIGenerateButtonState();
+}
+
+class _AIGenerateButtonState extends State<_AIGenerateButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (context, child) {
+          return CustomPaint(
+            painter: _RainbowBorderPainter(
+              progress: _ctrl.value,
+              borderRadius: 11,
+              borderWidth: 1.5,
+            ),
+            child: Container(
+              margin: const EdgeInsets.all(1.5),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ShaderMask(
+                    shaderCallback: (bounds) {
+                      return SweepGradient(
+                        colors: const [
+                          Color(0xFF8B5CF6),
+                          Color(0xFFEC4899),
+                          Color(0xFFF59E0B),
+                          Color(0xFF10B981),
+                          Color(0xFF3B82F6),
+                          Color(0xFF8B5CF6),
+                        ],
+                        transform:
+                            GradientRotation(_ctrl.value * math.pi * 2),
+                      ).createShader(bounds);
+                    },
+                    child: const Icon(Icons.auto_awesome,
+                        size: 16, color: Colors.white),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'AI',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.mono900,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ─── AI Generate sheet ────────────────────────────────────────────────────────
+
+class _AIGenerateSheet extends StatefulWidget {
+  final Future<void> Function(String text) onGenerate;
+  const _AIGenerateSheet({required this.onGenerate});
+
+  @override
+  State<_AIGenerateSheet> createState() => _AIGenerateSheetState();
+}
+
+class _AIGenerateSheetState extends State<_AIGenerateSheet> {
+  final _textCtrl = TextEditingController();
+  final _fieldFocus = FocusNode();
+  bool _isGenerating = false;
+  static const _maxLength = 4000;
+  static const _minGenerateLength = 500;
+
+  @override
+  void initState() {
+    super.initState();
+    _fieldFocus.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _fieldFocus.dispose();
+    _textCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.mono150,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF8B5CF6),
+                          Color(0xFFEC4899),
+                          Color(0xFFF59E0B),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: const Icon(Icons.auto_awesome,
+                        size: 18, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Сгенерировать вопросы',
+                          style: AppTextStyles.subtitle
+                              .copyWith(color: AppColors.mono900),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Вставьте текст – Edium AI создаст вопросы',
+                          style: AppTextStyles.caption
+                              .copyWith(color: AppColors.mono400),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                decoration: BoxDecoration(
+                  color: AppColors.mono25,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: _fieldFocus.hasFocus
+                        ? AppColors.mono900
+                        : AppColors.mono150,
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(13),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _textCtrl,
+                        focusNode: _fieldFocus,
+                        maxLength: _maxLength,
+                        maxLines: 8,
+                        minLines: 5,
+                        textCapitalization: TextCapitalization.sentences,
+                        style: AppTextStyles.fieldText
+                            .copyWith(color: AppColors.mono700),
+                        decoration: InputDecoration(
+                          hintText:
+                              'Вставьте текст лекции, главы учебника или любой материал...',
+                          hintStyle: AppTextStyles.fieldHint,
+                          filled: true,
+                          fillColor: Colors.transparent,
+                          border: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          focusedErrorBorder: InputBorder.none,
+                          contentPadding: const EdgeInsets.all(14),
+                          counterText: '',
+                        ),
+                        cursorColor: AppColors.mono900,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            left: 14, right: 14, bottom: 10),
+                        child: Row(
+                          children: [
+                            ListenableBuilder(
+                              listenable: _textCtrl,
+                              builder: (_, __) {
+                                final len = _textCtrl.text.length;
+                                if (len > 0 && len < _minGenerateLength) {
+                                  return Text(
+                                    'Минимум $_minGenerateLength символов',
+                                    style: AppTextStyles.caption.copyWith(
+                                      color: AppColors.mono400,
+                                      fontSize: 11,
+                                    ),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
+                            ),
+                            const Spacer(),
+                            ListenableBuilder(
+                              listenable: _textCtrl,
+                              builder: (_, __) => Text(
+                                '${_textCtrl.text.length}/$_maxLength',
+                                style: AppTextStyles.caption.copyWith(
+                                    color: AppColors.mono300, fontSize: 11),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListenableBuilder(
+                listenable: _textCtrl,
+                builder: (_, __) {
+                  final hasEnoughText =
+                      _textCtrl.text.trim().length >= _minGenerateLength;
+                  final canTap = hasEnoughText && !_isGenerating;
+                  return SizedBox(
+                    width: double.infinity,
+                    height: AppDimens.buttonH,
+                    child: _RainbowBorderButton(
+                      enabled: canTap,
+                      isBusy: _isGenerating,
+                      onTap: canTap
+                          ? () async {
+                              _fieldFocus.unfocus();
+                              setState(() => _isGenerating = true);
+                              try {
+                                await widget.onGenerate(_textCtrl.text.trim());
+                              } catch (_) {
+                                if (mounted) {
+                                  setState(() => _isGenerating = false);
+                                }
+                              }
+                            }
+                          : null,
+                      child: _isGenerating
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.auto_awesome,
+                                    size: 16, color: Colors.white),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Сгенерировать',
+                                  style: AppTextStyles.primaryButton.copyWith(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  );
+                },
+              ),
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Rainbow border button ────────────────────────────────────────────────────
+
+class _RainbowBorderButton extends StatefulWidget {
+  final bool enabled;
+  final bool isBusy;
+  final VoidCallback? onTap;
+  final Widget child;
+
+  const _RainbowBorderButton({
+    required this.enabled,
+    this.isBusy = false,
+    required this.onTap,
+    required this.child,
+  });
+
+  @override
+  State<_RainbowBorderButton> createState() => _RainbowBorderButtonState();
+}
+
+class _RainbowBorderButtonState extends State<_RainbowBorderButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, child) {
+        return GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 200),
+            opacity: (!widget.enabled && !widget.isBusy) ? 0.5 : 1.0,
+            child: CustomPaint(
+              painter: _RainbowBorderPainter(
+                progress: _ctrl.value,
+                borderRadius: 14,
+                borderWidth: 2.5,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.mono900,
+                  borderRadius: BorderRadius.circular(11.5),
+                ),
+                margin: const EdgeInsets.all(2.5),
+                alignment: Alignment.center,
+                child: child,
+              ),
+            ),
+          ),
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+class _RainbowBorderPainter extends CustomPainter {
+  final double progress;
+  final double borderRadius;
+  final double borderWidth;
+
+  _RainbowBorderPainter({
+    required this.progress,
+    required this.borderRadius,
+    required this.borderWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final inset = borderWidth / 2;
+    final rect = Rect.fromLTWH(
+      inset,
+      inset,
+      size.width - borderWidth,
+      size.height - borderWidth,
+    );
+    final r = borderRadius <= inset ? 0.0 : borderRadius - inset;
+    final rrect = RRect.fromRectAndRadius(rect, Radius.circular(r));
+
+    final colors = [
+      const Color(0xFFFF0000),
+      const Color(0xFFFF8000),
+      const Color(0xFFFFFF00),
+      const Color(0xFF00FF00),
+      const Color(0xFF00FFFF),
+      const Color(0xFF0080FF),
+      const Color(0xFF8000FF),
+      const Color(0xFFFF00FF),
+      const Color(0xFFFF0000),
+    ];
+
+    final sweepGradient = SweepGradient(
+      startAngle: 0,
+      endAngle: math.pi * 2,
+      colors: colors,
+      transform: GradientRotation(progress * math.pi * 2),
+    );
+
+    final paint = Paint()
+      ..shader = sweepGradient.createShader(rect)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = borderWidth;
+
+    canvas.drawRRect(rrect, paint);
+  }
+
+  @override
+  bool shouldRepaint(_RainbowBorderPainter oldDelegate) =>
+      oldDelegate.progress != progress;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _EditMonoSwitch extends StatelessWidget {
   final bool value;

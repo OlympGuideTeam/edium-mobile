@@ -54,6 +54,8 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
   }
 
   void _openQuiz(BuildContext context, Quiz quiz, bool isMineTab) {
+    final libBloc = context.read<QuizLibraryBloc>();
+    final scope = _tabIndex == 0 ? 'global' : 'mine';
     final route = isMineTab && !quiz.isPublic
         ? MaterialPageRoute(
             builder: (_) => EditQuizTemplateScreen(quizId: quiz.id),
@@ -64,7 +66,11 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
               isOwnerHint: isMineTab,
             ),
           );
-    Navigator.push(context, route);
+    Navigator.push(context, route).then(
+      (updated) {
+        if (updated == true) libBloc.add(LoadQuizzesEvent(scope: scope));
+      },
+    );
   }
 
   @override

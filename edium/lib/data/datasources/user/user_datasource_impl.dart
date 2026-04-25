@@ -52,8 +52,16 @@ class UserDatasourceImpl extends BaseApiService implements IUserDatasource {
     return request(
       'caesar/v1/users/me/statistic',
       method: HttpMethod.get,
-      parser: (data) =>
-          UserStatisticModel.fromJson(data as Map<String, dynamic>),
+      parser: (data) => UserStatisticModel.fromJson(data as Map<String, dynamic>),
+    );
+  }
+
+  @override
+  Future<RiddlerUserStatisticModel> getRiddlerStatistic() {
+    return request(
+      'riddler/v1/users/me/statistic',
+      method: HttpMethod.get,
+      parser: (data) => RiddlerUserStatisticModel.fromJson(data as Map<String, dynamic>),
     );
   }
 }

@@ -82,7 +82,7 @@ class QuizCard extends StatelessWidget {
                     _InfoChip(
                       icon: Icons.timer_outlined,
                       label:
-                          '${_formatQuizDurationSec(quiz.settings.questionTimeLimitSec!)} на впр',
+                          '${_formatQuizDurationSec(quiz.settings.questionTimeLimitSec!)}/впр',
                     ),
                   _InfoChip(
                     icon: Icons.calendar_today_outlined,

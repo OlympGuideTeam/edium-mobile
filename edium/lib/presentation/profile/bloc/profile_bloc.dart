@@ -30,12 +30,13 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         statistic = await _getStatistic();
       } catch (_) {
         statistic = const UserStatistic(
-          quizCountCreated: 0,
           classTeacherCount: 0,
           studentCount: 0,
+          courseTeacherCount: 0,
           courseStudentCount: 0,
           quizCountPassed: 0,
           avgQuizScore: 0,
+          quizSessionsConducted: 0,
         );
       }
       emit(ProfileLoaded(user: user, statistic: statistic));
