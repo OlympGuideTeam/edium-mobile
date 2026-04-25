@@ -8,7 +8,6 @@ import 'package:edium/presentation/teacher/grade_attempt/bloc/teacher_grade_bloc
 import 'package:edium/presentation/teacher/grade_attempt/bloc/teacher_grade_event.dart';
 import 'package:edium/presentation/teacher/grade_attempt/bloc/teacher_grade_state.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -129,11 +128,20 @@ class _GradeBodyState extends State<_GradeBody> {
           TextEditingController(text: a.finalFeedback ?? ''),
         ),
     };
+    for (final pair in _controllers.values) {
+      pair.$1.addListener(_onScoreChanged);
+    }
   }
+
+  void _onScoreChanged() => setState(() {});
+
+  bool get _isReadyToSubmit => _controllers.values
+      .every((pair) => pair.$1.text.trim().isNotEmpty);
 
   @override
   void dispose() {
     for (final pair in _controllers.values) {
+      pair.$1.removeListener(_onScoreChanged);
       pair.$1.dispose();
       pair.$2.dispose();
     }
@@ -195,6 +203,7 @@ class _GradeBodyState extends State<_GradeBody> {
         ),
         _SubmitButton(
           isSaving: widget.isSaving,
+          isReady: _isReadyToSubmit,
           onTap: () {
             context.read<TeacherGradeBloc>().add(SubmitGradesEvent(
                   attemptId: widget.attemptId,
@@ -270,41 +279,8 @@ class _FreeAnswerGradeCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text('Балл', style: AppTextStyles.fieldLabel),
-          const SizedBox(height: 6),
-          SizedBox(
-            height: AppDimens.inputH,
-            child: TextField(
-              controller: scoreController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-              ],
-              style: AppTextStyles.fieldText,
-              decoration: InputDecoration(
-                hintText: '0',
-                hintStyle: AppTextStyles.fieldHint,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 14),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius:
-                      BorderRadius.circular(AppDimens.radiusMd),
-                  borderSide: const BorderSide(
-                      color: AppColors.mono150,
-                      width: AppDimens.borderWidth),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius:
-                      BorderRadius.circular(AppDimens.radiusMd),
-                  borderSide: const BorderSide(
-                      color: AppColors.mono600,
-                      width: AppDimens.borderWidth),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-            ),
-          ),
+          const SizedBox(height: 8),
+          _ScorePicker(controller: scoreController),
           const SizedBox(height: 10),
           Text('Комментарий', style: AppTextStyles.fieldLabel),
           const SizedBox(height: 6),
@@ -481,6 +457,91 @@ class _ReadonlyAnswerCard extends StatelessWidget {
   }
 }
 
+// ── Пикер баллов (1–10) ───────────────────────────────────────────────────
+
+class _ScorePicker extends StatelessWidget {
+  final TextEditingController controller;
+
+  const _ScorePicker({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = int.tryParse(controller.text.trim());
+    return Column(
+      children: [
+        _ScoreRow(values: const [1, 2, 3, 4, 5], selected: selected, controller: controller),
+        const SizedBox(height: 6),
+        _ScoreRow(values: const [6, 7, 8, 9, 10], selected: selected, controller: controller),
+      ],
+    );
+  }
+}
+
+class _ScoreRow extends StatelessWidget {
+  final List<int> values;
+  final int? selected;
+  final TextEditingController controller;
+
+  const _ScoreRow({
+    required this.values,
+    required this.selected,
+    required this.controller,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (int i = 0; i < values.length; i++) ...[
+          if (i > 0) const SizedBox(width: 6),
+          Expanded(child: _ScoreChip(value: values[i], isSelected: selected == values[i], controller: controller)),
+        ],
+      ],
+    );
+  }
+}
+
+class _ScoreChip extends StatelessWidget {
+  final int value;
+  final bool isSelected;
+  final TextEditingController controller;
+
+  const _ScoreChip({
+    required this.value,
+    required this.isSelected,
+    required this.controller,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => controller.text = value.toString(),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        height: 44,
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.mono900 : Colors.white,
+          borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+          border: Border.all(
+            color: isSelected ? AppColors.mono900 : AppColors.mono150,
+            width: AppDimens.borderWidth,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 150),
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: isSelected ? Colors.white : AppColors.mono600,
+          ),
+          child: Text('$value'),
+        ),
+      ),
+    );
+  }
+}
+
 // ── Shared widgets ────────────────────────────────────────────────────────
 
 class _IndexBadge extends StatelessWidget {
@@ -533,39 +594,59 @@ class _TopBar extends StatelessWidget {
 
 class _SubmitButton extends StatelessWidget {
   final bool isSaving;
+  final bool isReady;
   final VoidCallback onTap;
 
-  const _SubmitButton({required this.isSaving, required this.onTap});
+  const _SubmitButton({
+    required this.isSaving,
+    required this.isReady,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final enabled = isReady && !isSaving;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
           AppDimens.screenPaddingH, 8, AppDimens.screenPaddingH, 16),
-      child: SizedBox(
-        width: double.infinity,
-        height: AppDimens.buttonH,
-        child: ElevatedButton(
-          onPressed: isSaving ? null : onTap,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.mono900,
-            foregroundColor: Colors.white,
-            disabledBackgroundColor: AppColors.mono200,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!isReady && !isSaving)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Выставите баллы для всех вопросов',
+                style: AppTextStyles.caption.copyWith(color: AppColors.mono400),
+                textAlign: TextAlign.center,
+              ),
             ),
-            elevation: 0,
-            textStyle: AppTextStyles.primaryButton,
+          SizedBox(
+            width: double.infinity,
+            height: AppDimens.buttonH,
+            child: ElevatedButton(
+              onPressed: enabled ? onTap : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.mono900,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: AppColors.mono200,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                ),
+                elevation: 0,
+                textStyle: AppTextStyles.primaryButton,
+              ),
+              child: isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Завершить проверку'),
+            ),
           ),
-          child: isSaving
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
-                )
-              : const Text('Завершить проверку'),
-        ),
+        ],
       ),
     );
   }

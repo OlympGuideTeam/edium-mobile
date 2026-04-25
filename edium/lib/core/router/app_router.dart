@@ -22,6 +22,7 @@ import 'package:edium/presentation/teacher/grade_attempt/teacher_grade_attempt_s
 import 'package:edium/presentation/student/home/student_home_screen.dart';
 import 'package:edium/presentation/student/test/test_preview_screen.dart';
 import 'package:edium/presentation/teacher/home/teacher_home_screen.dart';
+import 'package:edium/presentation/teacher/test_monitoring/test_monitoring_screen.dart';
 import 'package:edium/presentation/teacher/test_session/test_session_results_screen.dart';
 import 'package:edium/services/notification_service/deep_link_service.dart';
 import 'package:flutter/material.dart';
@@ -134,7 +135,9 @@ GoRouter buildRouter() {
         path: '/course/:courseId',
         builder: (_, state) {
           final courseId = state.pathParameters['courseId']!;
-          return CourseDetailScreen(courseId: courseId);
+          final extra = state.extra as Map<String, dynamic>?;
+          final classId = extra?['classId'] as String?;
+          return CourseDetailScreen(courseId: courseId, classId: classId);
         },
       ),
       GoRoute(
@@ -159,6 +162,20 @@ GoRouter buildRouter() {
             sessionId: sid,
             courseItem: courseItem,
             isTeacher: isTeacher,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/test/:sessionId/monitor',
+        builder: (_, state) {
+          final sid = state.pathParameters['sessionId']!;
+          final extra = state.extra as Map<String, dynamic>?;
+          final courseItem = extra?['courseItem'] as CourseItem?;
+          final classId = extra?['classId'] as String? ?? '';
+          return TestMonitoringScreen(
+            sessionId: sid,
+            classId: classId,
+            courseItem: courseItem,
           );
         },
       ),
