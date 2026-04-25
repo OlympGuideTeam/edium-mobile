@@ -33,14 +33,18 @@ class UserRepositoryImpl implements IUserRepository {
 
   @override
   Future<UserStatistic> getStatistic() async {
-    final model = await _datasource.getStatistic();
+    final (caesar, riddler) = await (
+      _datasource.getStatistic(),
+      _datasource.getRiddlerStatistic(),
+    ).wait;
     return UserStatistic(
-      quizCountCreated: model.quizCountCreated,
-      classTeacherCount: model.classTeacherCount,
-      studentCount: model.studentCount,
-      courseStudentCount: model.courseStudentCount,
-      quizCountPassed: model.quizCountPassed,
-      avgQuizScore: model.avgQuizScore,
+      classTeacherCount: caesar.classTeacherCount,
+      studentCount: caesar.studentCount,
+      courseTeacherCount: caesar.courseTeacherCount,
+      courseStudentCount: caesar.courseStudentCount,
+      quizCountPassed: riddler.quizCountPassed,
+      avgQuizScore: riddler.avgQuizScore,
+      quizSessionsConducted: riddler.quizSessionsConducted,
     );
   }
 }

@@ -7,4 +7,5 @@ abstract class IUserDatasource {
   Future<UserModel> updateProfile({required String name, required String surname});
   Future<void> deleteAccount();
   Future<UserStatisticModel> getStatistic();
+  Future<RiddlerUserStatisticModel> getRiddlerStatistic();
 }

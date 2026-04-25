@@ -185,8 +185,8 @@ class _TeacherStats extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: _StatCard(
-            value: statistic.quizCountCreated.toString(),
-            label: 'Квизов',
+            value: statistic.quizSessionsConducted.toString(),
+            label: 'Квизы',
           ),
         ),
         const SizedBox(width: 10),
