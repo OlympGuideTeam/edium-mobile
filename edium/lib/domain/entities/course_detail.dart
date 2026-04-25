@@ -171,3 +171,36 @@ class CourseDetail {
     );
   }
 }
+
+class SheetScore {
+  final String itemId;
+  final double? score;
+
+  const SheetScore({required this.itemId, this.score});
+}
+
+class SheetRow {
+  final String studentId;
+  final String studentName;
+  final List<SheetScore> scores;
+
+  const SheetRow({
+    required this.studentId,
+    required this.studentName,
+    required this.scores,
+  });
+}
+
+class SheetColumn {
+  final String id;
+  final String objectId;
+
+  const SheetColumn({required this.id, required this.objectId});
+}
+
+class CourseSheet {
+  final List<SheetColumn> columns;
+  final List<SheetRow> rows;
+
+  const CourseSheet({required this.columns, required this.rows});
+}

@@ -231,3 +231,80 @@ class CourseDetailModel {
     );
   }
 }
+
+class SheetScoreModel {
+  final String itemId;
+  final double? score;
+
+  const SheetScoreModel({required this.itemId, this.score});
+
+  factory SheetScoreModel.fromJson(Map<String, dynamic> json) => SheetScoreModel(
+        itemId: json['item_id'] as String,
+        score: (json['score'] as num?)?.toDouble(),
+      );
+
+  SheetScore toEntity() => SheetScore(itemId: itemId, score: score);
+}
+
+class SheetRowModel {
+  final String studentId;
+  final String studentName;
+  final List<SheetScoreModel> scores;
+
+  const SheetRowModel({
+    required this.studentId,
+    required this.studentName,
+    required this.scores,
+  });
+
+  factory SheetRowModel.fromJson(Map<String, dynamic> json) => SheetRowModel(
+        studentId: json['student_id'] as String,
+        studentName: json['student_name'] as String,
+        scores: (json['scores'] as List<dynamic>)
+            .map((e) => SheetScoreModel.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+
+  SheetRow toEntity() => SheetRow(
+        studentId: studentId,
+        studentName: studentName,
+        scores: scores.map((s) => s.toEntity()).toList(),
+      );
+}
+
+class SheetColumnModel {
+  final String id;
+  final String objectId;
+
+  const SheetColumnModel({required this.id, required this.objectId});
+
+  factory SheetColumnModel.fromJson(Map<String, dynamic> json) =>
+      SheetColumnModel(
+        id: json['id'] as String,
+        objectId: json['object_id'] as String,
+      );
+
+  SheetColumn toEntity() => SheetColumn(id: id, objectId: objectId);
+}
+
+class CourseSheetModel {
+  final List<SheetColumnModel> columns;
+  final List<SheetRowModel> rows;
+
+  const CourseSheetModel({required this.columns, required this.rows});
+
+  factory CourseSheetModel.fromJson(Map<String, dynamic> json) =>
+      CourseSheetModel(
+        columns: (json['items'] as List<dynamic>)
+            .map((e) => SheetColumnModel.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        rows: (json['students'] as List<dynamic>)
+            .map((e) => SheetRowModel.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+
+  CourseSheet toEntity() => CourseSheet(
+        columns: columns.map((c) => c.toEntity()).toList(),
+        rows: rows.map((r) => r.toEntity()).toList(),
+      );
+}

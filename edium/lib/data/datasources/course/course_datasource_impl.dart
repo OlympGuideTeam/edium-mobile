@@ -83,4 +83,14 @@ class CourseDatasourceImpl extends BaseApiService implements ICourseDatasource {
       parser: (_) {},
     );
   }
+
+  @override
+  Future<CourseSheet> getCourseSheet({required String courseId}) {
+    return request(
+      'caesar/v1/courses/$courseId/sheet',
+      method: HttpMethod.get,
+      parser: (data) =>
+          CourseSheetModel.fromJson(data as Map<String, dynamic>).toEntity(),
+    );
+  }
 }
