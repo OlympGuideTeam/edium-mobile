@@ -46,6 +46,8 @@ import 'package:edium/domain/usecases/test_session/get_test_session_meta_usecase
 import 'package:edium/domain/usecases/test_session/list_session_attempts_usecase.dart';
 import 'package:edium/domain/usecases/test_session/persist_answer_locally_usecase.dart';
 import 'package:edium/domain/usecases/test_session/start_or_resume_attempt_usecase.dart';
+import 'package:edium/domain/usecases/test_session/grade_submission_usecase.dart';
+import 'package:edium/domain/usecases/test_session/complete_attempt_usecase.dart';
 import 'package:edium/domain/usecases/library_quiz/create_attempt_usecase.dart';
 import 'package:edium/domain/usecases/library_quiz/finish_attempt_usecase.dart';
 import 'package:edium/domain/usecases/library_quiz/get_attempt_result_usecase.dart';
@@ -249,6 +251,8 @@ Future<void> initializeDependencies({
       () => test_session_finish.FinishTestAttemptUsecase(getIt()));
   getIt.registerLazySingleton(() => ListSessionAttemptsUsecase(getIt()));
   getIt.registerLazySingleton(() => GetAttemptReviewUsecase(getIt()));
+  getIt.registerLazySingleton(() => GradeSubmissionUsecase(getIt()));
+  getIt.registerLazySingleton(() => CompleteAttemptUsecase(getIt()));
 
   getIt.registerSingleton<AuthBloc>(
     AuthBloc(

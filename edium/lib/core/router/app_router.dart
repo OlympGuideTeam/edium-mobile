@@ -18,6 +18,7 @@ import 'package:edium/presentation/teacher/create_course/create_course_screen.da
 import 'package:edium/presentation/profile/edit_profile/edit_profile_screen.dart';
 import 'package:edium/presentation/profile/notifications/notifications_screen.dart';
 import 'package:edium/presentation/shared/test/attempt_review_screen.dart';
+import 'package:edium/presentation/teacher/grade_attempt/teacher_grade_attempt_screen.dart';
 import 'package:edium/presentation/student/home/student_home_screen.dart';
 import 'package:edium/presentation/student/test/test_preview_screen.dart';
 import 'package:edium/presentation/teacher/home/teacher_home_screen.dart';
@@ -166,6 +167,13 @@ GoRouter buildRouter() {
         builder: (_, state) {
           final aid = state.pathParameters['attemptId']!;
           return AttemptReviewScreen(attemptId: aid);
+        },
+      ),
+      GoRoute(
+        path: '/test/:sessionId/attempts/:attemptId/grade',
+        builder: (_, state) {
+          final aid = state.pathParameters['attemptId']!;
+          return TeacherGradeAttemptScreen(attemptId: aid);
         },
       ),
     ],

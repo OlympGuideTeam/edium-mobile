@@ -134,9 +134,18 @@ class _View extends StatelessWidget {
               ...state.rows.map((r) => _StudentRowTile(
                     row: r,
                     onTap: r.attempt != null
-                        ? () => context.push(
-                              '/test/$sessionId/attempts/${r.attempt!.attemptId}',
-                            )
+                        ? () {
+                            final status = r.attempt!.status;
+                            if (status == AttemptStatus.graded) {
+                              context.push(
+                                '/test/$sessionId/attempts/${r.attempt!.attemptId}/grade',
+                              );
+                            } else {
+                              context.push(
+                                '/test/$sessionId/attempts/${r.attempt!.attemptId}',
+                              );
+                            }
+                          }
                         : null,
                   )),
             if (state.canDelete) ...[

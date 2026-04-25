@@ -36,6 +36,15 @@ abstract class ITestSessionRepository {
   Future<AttemptReview> getAttemptReview(String attemptId);
 
   Future<void> deleteSession(String sessionId);
+
+  Future<void> gradeSubmission({
+    required String attemptId,
+    required String submissionId,
+    required double score,
+    String? feedback,
+  });
+
+  Future<void> completeAttempt(String attemptId);
 }
 
 class StartOrResumeResult {
