@@ -118,7 +118,8 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
     SubmitQuizEvent event,
     Emitter<CreateQuizState> emit,
   ) async {
-    if (!state.canSubmit) return;
+    final required = event.saveOnly ? state.canSave : state.canPublish;
+    if (!required) return;
     emit(state.copyWith(isSubmitting: true, clearError: true));
     try {
       final mode = switch (state.quizType) {

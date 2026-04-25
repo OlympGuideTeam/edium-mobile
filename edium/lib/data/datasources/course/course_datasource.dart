@@ -11,4 +11,6 @@ abstract class ICourseDatasource {
     required String courseId,
     required List<String> moduleIds,
   });
+
+  Future<CourseSheet> getCourseSheet({required String courseId});
 }
