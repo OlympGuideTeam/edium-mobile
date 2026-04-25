@@ -139,6 +139,31 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
           startedAt: '2030-01-01T09:00:00Z',
           finishedAt: '2030-01-10T23:59:00Z',
         ),
+        // ── Мониторинг-демо ────────────────────────────────────────────
+        'mock-mon-sess-1': const TestSessionMetaModel(
+          sessionId: 'mock-mon-sess-1',
+          quizId: 'mock-mon-sess-1',
+          title: 'Тест: никто не начал',
+          questionCount: 2,
+          needEvaluation: false,
+          totalTimeLimitSec: 600,
+        ),
+        'mock-mon-sess-2': const TestSessionMetaModel(
+          sessionId: 'mock-mon-sess-2',
+          quizId: 'mock-mon-sess-2',
+          title: 'Тест: смешанный (развёрн. ответ)',
+          questionCount: 2,
+          needEvaluation: true,
+          totalTimeLimitSec: 900,
+        ),
+        'mock-mon-sess-3': const TestSessionMetaModel(
+          sessionId: 'mock-mon-sess-3',
+          quizId: 'mock-mon-sess-3',
+          title: 'Тест: итоги (все завершили)',
+          questionCount: 3,
+          needEvaluation: false,
+          totalTimeLimitSec: 600,
+        ),
       };
 
   static Map<String, List<QuizQuestionForStudentModel>> _buildQuestions() => {
@@ -206,6 +231,51 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
             maxScore: 10,
           ),
         ],
+        // ── Мониторинг-демо ────────────────────────────────────────────
+        'mock-mon-sess-2': [
+          const QuizQuestionForStudentModel(
+            id: 'qmon2-1',
+            type: 'with_free_answer',
+            text: 'Объясните метод решения линейных уравнений своими словами.',
+            maxScore: 20,
+          ),
+          QuizQuestionForStudentModel(
+            id: 'qmon2-2',
+            type: 'single_choice',
+            text: 'Чему равен корень уравнения 3x − 9 = 0?',
+            maxScore: 10,
+            options: const [
+              QuestionOptionForStudentModel(id: 'qmon2-2-a', text: '−3'),
+              QuestionOptionForStudentModel(id: 'qmon2-2-b', text: '3'),
+              QuestionOptionForStudentModel(id: 'qmon2-2-c', text: '9'),
+            ],
+          ),
+        ],
+        'mock-mon-sess-3': [
+          QuizQuestionForStudentModel(
+            id: 'qmon3-1',
+            type: 'single_choice',
+            text: 'Функция f(x) = x² является…',
+            maxScore: 10,
+            options: const [
+              QuestionOptionForStudentModel(id: 'qmon3-1-a', text: 'Линейной'),
+              QuestionOptionForStudentModel(id: 'qmon3-1-b', text: 'Квадратичной'),
+              QuestionOptionForStudentModel(id: 'qmon3-1-c', text: 'Обратной'),
+            ],
+          ),
+          const QuizQuestionForStudentModel(
+            id: 'qmon3-2',
+            type: 'with_given_answer',
+            text: 'Значение f(x)=x²−1 при x=3?',
+            maxScore: 10,
+          ),
+          const QuizQuestionForStudentModel(
+            id: 'qmon3-3',
+            type: 'with_given_answer',
+            text: 'Значение f(x)=2x+1 при x=−2?',
+            maxScore: 10,
+          ),
+        ],
       };
 
   static Map<String, List<_MockAttempt>> _buildAttempts() => {
@@ -232,6 +302,52 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
           ),
         ],
         'mock-test-sess-3': const [],
+        // ── Мониторинг-демо ────────────────────────────────────────────
+        // Стейт 1: никто не начал
+        'mock-mon-sess-1': const [],
+        // Стейт 2: двое начали (один graded — ждёт проверки, один in_progress),
+        //          двое не начинали
+        'mock-mon-sess-2': [
+          _MockAttempt(
+            attemptId: 'mock-mon-att-2-A',
+            userId: 'student-1',
+            status: 'graded',
+            score: null,
+          ),
+          _MockAttempt(
+            attemptId: 'mock-mon-att-2-B',
+            userId: 'student-2',
+            status: 'in_progress',
+            score: null,
+          ),
+        ],
+        // Стейт 3: все четыре завершили — мониторинг всегда остаётся на этом экране
+        'mock-mon-sess-3': [
+          _MockAttempt(
+            attemptId: 'mock-mon-att-3-A',
+            userId: 'student-1',
+            status: 'completed',
+            score: 90.0,
+          ),
+          _MockAttempt(
+            attemptId: 'mock-mon-att-3-B',
+            userId: 'student-2',
+            status: 'completed',
+            score: 70.0,
+          ),
+          _MockAttempt(
+            attemptId: 'mock-mon-att-3-C',
+            userId: 'student-3',
+            status: 'completed',
+            score: 85.0,
+          ),
+          _MockAttempt(
+            attemptId: 'mock-mon-att-3-D',
+            userId: 'student-4',
+            status: 'completed',
+            score: 60.0,
+          ),
+        ],
       };
 
   static Map<String, AttemptReviewModel> _buildReviews() => {
@@ -289,6 +405,49 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
                     id: 'qt1-3-c', text: '5', isCorrect: false),
                 TeacherAnswerOptionModel(
                     id: 'qt1-3-d', text: '3x+5', isCorrect: true),
+              ],
+            ),
+          ],
+        ),
+        // ── Мониторинг-демо: graded attempt (стейт 2) ─────────────────
+        'mock-mon-att-2-A': AttemptReviewModel(
+          attemptId: 'mock-mon-att-2-A',
+          userId: 'student-1',
+          status: 'graded',
+          score: null,
+          startedAt: '2026-04-25T11:00:00Z',
+          finishedAt: '2026-04-25T11:20:00Z',
+          answers: [
+            const AnswerReviewModel(
+              submissionId: 'sub-mon-1',
+              questionId: 'qmon2-1',
+              questionType: 'with_free_answer',
+              questionText:
+                  'Объясните метод решения линейных уравнений своими словами.',
+              answerData: {
+                'text':
+                    'Нужно перенести все члены с x на одну сторону, '
+                    'числа — на другую, затем разделить обе части на коэффициент при x.'
+              },
+              finalScore: null,
+              finalSource: null,
+              finalFeedback: null,
+            ),
+            AnswerReviewModel(
+              submissionId: 'sub-mon-2',
+              questionId: 'qmon2-2',
+              questionType: 'single_choice',
+              questionText: 'Чему равен корень уравнения 3x − 9 = 0?',
+              answerData: const {'selected_option_id': 'qmon2-2-b'},
+              finalScore: 10.0,
+              finalSource: 'auto',
+              options: [
+                TeacherAnswerOptionModel(
+                    id: 'qmon2-2-a', text: '−3', isCorrect: false),
+                TeacherAnswerOptionModel(
+                    id: 'qmon2-2-b', text: '3', isCorrect: true),
+                TeacherAnswerOptionModel(
+                    id: 'qmon2-2-c', text: '9', isCorrect: false),
               ],
             ),
           ],

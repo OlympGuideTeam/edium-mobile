@@ -91,6 +91,41 @@ const _mockModules = <String, ModuleDetail>{
       ),
     ],
   ),
+  'module-mon': ModuleDetail(
+    id: 'module-mon',
+    title: 'Мониторинг (демо)',
+    elementCount: 3,
+    items: [
+      CourseItem(
+        id: 'mon-item-1',
+        refId: 'mock-mon-sess-1',
+        type: 'quiz',
+        orderIndex: 0,
+        title: 'Тест: никто не начал',
+        quizType: 'test',
+        state: 'in_progress',
+      ),
+      CourseItem(
+        id: 'mon-item-2',
+        refId: 'mock-mon-sess-2',
+        type: 'quiz',
+        orderIndex: 1,
+        title: 'Тест: смешанный (развёрн. ответ)',
+        quizType: 'test',
+        state: 'in_progress',
+        needEvaluation: true,
+      ),
+      CourseItem(
+        id: 'mon-item-3',
+        refId: 'mock-mon-sess-3',
+        type: 'quiz',
+        orderIndex: 2,
+        title: 'Тест: итоги (все завершили)',
+        quizType: 'test',
+        state: 'in_progress',
+      ),
+    ],
+  ),
 };
 
 const _mockDrafts = [
@@ -144,8 +179,8 @@ class CourseDatasourceMock implements ICourseDatasource {
       id: courseId,
       title: 'Алгебра 10 класс',
       teacherName: 'Пётр Сидоров',
-      moduleCount: 3,
-      elementCount: 7,
+      moduleCount: 4,
+      elementCount: 10,
       isTeacher: isTeacher,
       modules: [
         ModuleDetail(
@@ -235,6 +270,12 @@ class CourseDatasourceMock implements ICourseDatasource {
               state: 'not_started',
             ),
           ],
+        ),
+        ModuleDetail(
+          id: 'module-mon',
+          title: 'Мониторинг (демо)',
+          elementCount: 3,
+          items: const [],
         ),
       ],
     );
