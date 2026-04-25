@@ -1,5 +1,10 @@
+import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:excel/excel.dart' as xl;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:edium/domain/usecases/course/get_course_sheet_usecase.dart';
 import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/domain/usecases/course/get_module_detail_usecase.dart';
@@ -166,113 +171,145 @@ class _CourseDetailBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _AppBar(
-              onBack: () => context.pop(),
-              trailing: course.isTeacher
-                  ? IconButton(
-                      icon: const Icon(
-                        Icons.add,
-                        size: 22,
-                        color: AppColors.mono900,
-                      ),
-                      onPressed: () => _showAddActionSheet(context),
-                    )
-                  : null,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimens.screenPaddingH,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(course.title, style: AppTextStyles.screenTitle),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${course.teacherName}  ·  '
-                    '${_modulesLabel(course.moduleCount)}  ·  '
-                    '${_elementsLabel(course.elementCount)}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.mono400,
+    final body = SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _AppBar(
+            onBack: () => context.pop(),
+            trailing: course.isTeacher
+                ? IconButton(
+                    icon: const Icon(
+                      Icons.add,
+                      size: 22,
+                      color: AppColors.mono900,
                     ),
+                    onPressed: () => _showAddActionSheet(context),
+                  )
+                : null,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDimens.screenPaddingH,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(course.title, style: AppTextStyles.screenTitle),
+                const SizedBox(height: 4),
+                Text(
+                  '${course.teacherName}  ·  '
+                  '${_modulesLabel(course.moduleCount)}  ·  '
+                  '${_elementsLabel(course.elementCount)}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.mono400,
                   ),
+                ),
+              ],
+            ),
+          ),
+          if (course.isTeacher) ...[
+            const SizedBox(height: 8),
+            TabBar(
+              labelColor: AppColors.mono900,
+              unselectedLabelColor: AppColors.mono400,
+              indicatorColor: AppColors.mono900,
+              indicatorWeight: 2,
+              splashFactory: NoSplash.splashFactory,
+              overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+              labelStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+              ),
+              tabs: const [Tab(text: 'Модули'), Tab(text: 'Ведомость')],
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _modulesContent(context),
+                  _CourseSheetTab(courseId: course.id, course: course),
                 ],
               ),
             ),
+          ] else ...[
             const SizedBox(height: 20),
-            Expanded(
-              child: (course.modules.isEmpty && course.drafts.isEmpty)
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Модулей пока нет',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.mono400,
-                            ),
-                          ),
-                          if (course.isTeacher) ...[
-                            const SizedBox(height: 16),
-                            TextButton(
-                              onPressed: () => _showAddActionSheet(context),
-                              child: const Text(
-                                'Добавить первый элемент',
-                                style: TextStyle(color: AppColors.mono900),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppDimens.screenPaddingH,
-                        8,
-                        AppDimens.screenPaddingH,
-                        24,
-                      ),
-                      itemCount: course.modules.length +
-                          (course.drafts.isNotEmpty ? course.drafts.length + 1 : 0),
-                      itemBuilder: (context, i) {
-                        if (i < course.modules.length) {
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: _ModuleSection(
-                              module: course.modules[i],
-                              isTeacher: course.isTeacher,
-                            ),
-                          );
-                        }
-                        final draftIndex = i - course.modules.length;
-                        if (draftIndex == 0) {
-                          return const Padding(
-                            padding: EdgeInsets.only(top: 20, bottom: 4),
-                            child: _DraftsSectionHeader(),
-                          );
-                        }
-                        final draft = course.drafts[draftIndex - 1];
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: _DraftTile(
-                            draft: draft,
-                            onTap: () => _openCreateQuizFromDraft(context, draft),
-                          ),
-                        );
-                      },
-                    ),
+            Expanded(child: _modulesContent(context)),
+          ],
+        ],
+      ),
+    );
+
+    final scaffold = Scaffold(backgroundColor: Colors.white, body: body);
+    if (course.isTeacher) {
+      return DefaultTabController(length: 2, child: scaffold);
+    }
+    return scaffold;
+  }
+
+  Widget _modulesContent(BuildContext context) {
+    if (course.modules.isEmpty && course.drafts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Модулей пока нет',
+              style: TextStyle(fontSize: 14, color: AppColors.mono400),
             ),
+            if (course.isTeacher) ...[
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => _showAddActionSheet(context),
+                child: const Text(
+                  'Добавить первый элемент',
+                  style: TextStyle(color: AppColors.mono900),
+                ),
+              ),
+            ],
           ],
         ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(
+        AppDimens.screenPaddingH,
+        8,
+        AppDimens.screenPaddingH,
+        24,
       ),
+      itemCount: course.modules.length +
+          (course.drafts.isNotEmpty ? course.drafts.length + 1 : 0),
+      itemBuilder: (context, i) {
+        if (i < course.modules.length) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: _ModuleSection(
+              module: course.modules[i],
+              isTeacher: course.isTeacher,
+            ),
+          );
+        }
+        final draftIndex = i - course.modules.length;
+        if (draftIndex == 0) {
+          return const Padding(
+            padding: EdgeInsets.only(top: 20, bottom: 4),
+            child: _DraftsSectionHeader(),
+          );
+        }
+        final draft = course.drafts[draftIndex - 1];
+        return Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: _DraftTile(
+            draft: draft,
+            onTap: () => _openCreateQuizFromDraft(context, draft),
+          ),
+        );
+      },
     );
   }
 
@@ -1850,6 +1887,634 @@ class _DraftTile extends StatelessWidget {
     }
 
     return parts.join('  ·  ');
+  }
+}
+
+// ─── Ведомость ────────────────────────────────────────────────────────────────
+
+class _CourseSheetTab extends StatefulWidget {
+  final String courseId;
+  final CourseDetail course;
+
+  const _CourseSheetTab({required this.courseId, required this.course});
+
+  @override
+  State<_CourseSheetTab> createState() => _CourseSheetTabState();
+}
+
+class _CourseSheetTabState extends State<_CourseSheetTab> {
+  late Future<CourseSheet> _future;
+  bool _exporting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = getIt<GetCourseSheetUsecase>()(courseId: widget.courseId);
+  }
+
+  Map<String, String> _buildTitleIndex() {
+    final index = <String, String>{};
+    for (final module in widget.course.modules) {
+      for (final item in module.items) {
+        if (item.title != null) index[item.id] = item.title!;
+      }
+    }
+    return index;
+  }
+
+  Future<void> _export(CourseSheet sheet, Map<String, String> titleIndex) async {
+    setState(() => _exporting = true);
+    try {
+      await _exportToXlsx(
+        sheet: sheet,
+        titleIndex: titleIndex,
+        courseName: widget.course.title,
+      );
+    } catch (_) {
+      if (mounted) {
+        EdiumNotification.show(
+          context,
+          'Не удалось экспортировать',
+          type: EdiumNotificationType.error,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<CourseSheet>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.mono900, strokeWidth: 2),
+          );
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Ошибка загрузки',
+                  style: TextStyle(fontSize: 14, color: AppColors.mono400),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => setState(() {
+                    _future =
+                        getIt<GetCourseSheetUsecase>()(courseId: widget.courseId);
+                  }),
+                  child: const Text('Повторить',
+                      style: TextStyle(color: AppColors.mono900)),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final sheet = snapshot.data!;
+        if (sheet.rows.isEmpty) {
+          return const Center(
+            child: Text(
+              'Нет данных о прохождениях',
+              style: TextStyle(fontSize: 14, color: AppColors.mono400),
+            ),
+          );
+        }
+
+        final titleIndex = _buildTitleIndex();
+        return Column(
+          children: [
+            // ── Тулбар ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppDimens.screenPaddingH, 6, AppDimens.screenPaddingH, 2),
+              child: Row(
+                children: [
+                  Text(
+                    '${sheet.rows.length} учеников · ${sheet.columns.length} квизов',
+                    style: const TextStyle(fontSize: 12, color: AppColors.mono400),
+                  ),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: _exporting ? null : () => _export(sheet, titleIndex),
+                    icon: _exporting
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.mono600,
+                            ),
+                          )
+                        : const Icon(Icons.file_download_outlined, size: 18),
+                    label: const Text('xlsx'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.mono600,
+                      textStyle: const TextStyle(fontSize: 13),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: AppColors.mono100),
+            Expanded(child: _SheetTable(sheet: sheet, titleIndex: titleIndex)),
+          ],
+        );
+      },
+    );
+  }
+}
+
+Future<void> _exportToXlsx({
+  required CourseSheet sheet,
+  required Map<String, String> titleIndex,
+  required String courseName,
+}) async {
+  final xls = xl.Excel.createExcel();
+  xls.rename('Sheet1', 'Ведомость');
+  final sh = xls['Ведомость'];
+
+  // Header row
+  final headers = <String>[
+    'Ученик',
+    ...sheet.columns.map((c) => titleIndex[c.id] ?? c.id),
+    'Средний балл',
+  ];
+  for (var i = 0; i < headers.length; i++) {
+    sh
+        .cell(xl.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+        .value = xl.TextCellValue(headers[i]);
+  }
+
+  // Data rows
+  for (var ri = 0; ri < sheet.rows.length; ri++) {
+    final row = sheet.rows[ri];
+    final scoreMap = {for (final s in row.scores) s.itemId: s.score};
+
+    sh
+        .cell(xl.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: ri + 1))
+        .value = xl.TextCellValue(row.studentName);
+
+    for (var ci = 0; ci < sheet.columns.length; ci++) {
+      final score = scoreMap[sheet.columns[ci].id];
+      final cell = sh.cell(
+          xl.CellIndex.indexByColumnRow(columnIndex: ci + 1, rowIndex: ri + 1));
+      cell.value =
+          score != null ? xl.DoubleCellValue(score) : xl.TextCellValue('—');
+    }
+
+    final passed = row.scores.where((s) => s.score != null).map((s) => s.score!).toList();
+    final avg = passed.isEmpty
+        ? null
+        : passed.reduce((a, b) => a + b) / passed.length;
+    sh
+        .cell(xl.CellIndex.indexByColumnRow(
+            columnIndex: sheet.columns.length + 1, rowIndex: ri + 1))
+        .value = avg != null ? xl.DoubleCellValue(avg) : xl.TextCellValue('—');
+  }
+
+  final bytes = xls.encode();
+  if (bytes == null) return;
+
+  final dir = await getTemporaryDirectory();
+  final safe = courseName.replaceAll(RegExp(r'[^\wа-яёА-ЯЁ ]'), '').trim();
+  final file = File('${dir.path}/${safe}_ведомость.xlsx');
+  await file.writeAsBytes(bytes);
+  await Share.shareXFiles([XFile(file.path)],
+      subject: 'Ведомость — $courseName');
+}
+
+// ─── Таблица ведомости ────────────────────────────────────────────────────────
+
+class _SheetTable extends StatefulWidget {
+  final CourseSheet sheet;
+  final Map<String, String> titleIndex;
+
+  const _SheetTable({required this.sheet, required this.titleIndex});
+
+  @override
+  State<_SheetTable> createState() => _SheetTableState();
+}
+
+class _SheetTableState extends State<_SheetTable> {
+  static const double _nameColWidth = 148.0;
+  static const double _scoreColWidth = 72.0;
+  static const double _avgColWidth = 60.0;
+  static const double _headerH = 80.0;
+  static const double _rowH = 48.0;
+
+  // Синхронизация горизонтального скролла между шапкой и телом
+  final _hHead = ScrollController();
+  final _hBody = ScrollController();
+  bool _syncing = false;
+
+  // Лучший/худший результат по каждой колонке
+  late final Map<String, double?> _colBest;
+  late final Map<String, double?> _colWorst;
+
+  @override
+  void initState() {
+    super.initState();
+    _hHead.addListener(_onHead);
+    _hBody.addListener(_onBody);
+    _computeStats();
+  }
+
+  void _computeStats() {
+    _colBest = {};
+    _colWorst = {};
+    for (final col in widget.sheet.columns) {
+      final vals = widget.sheet.rows
+          .expand((r) => r.scores)
+          .where((s) => s.itemId == col.id && s.score != null)
+          .map((s) => s.score!)
+          .toList();
+      if (vals.isEmpty) {
+        _colBest[col.id] = null;
+        _colWorst[col.id] = null;
+      } else {
+        _colBest[col.id] = vals.reduce(math.max);
+        _colWorst[col.id] = vals.reduce(math.min);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _hHead.dispose();
+    _hBody.dispose();
+    super.dispose();
+  }
+
+  void _onHead() {
+    if (_syncing || !_hBody.hasClients) return;
+    _syncing = true;
+    _hBody.jumpTo(_hHead.offset);
+    _syncing = false;
+  }
+
+  void _onBody() {
+    if (_syncing || !_hHead.hasClients) return;
+    _syncing = true;
+    _hHead.jumpTo(_hBody.offset);
+    _syncing = false;
+  }
+
+  double? _rowAvg(SheetRow row) {
+    final vals =
+        row.scores.where((s) => s.score != null).map((s) => s.score!).toList();
+    if (vals.isEmpty) return null;
+    return vals.reduce((a, b) => a + b) / vals.length;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cols = widget.sheet.columns;
+    final rows = widget.sheet.rows;
+
+    return Column(
+      children: [
+        // ── Sticky-шапка ──
+        Container(
+          color: Colors.white,
+          child: Row(
+            children: [
+              _hdrCell('Ученик', width: _nameColWidth, isName: true),
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _hHead,
+                  scrollDirection: Axis.horizontal,
+                  physics: const ClampingScrollPhysics(),
+                  child: Row(
+                    children: [
+                      ...cols.map((col) => _hdrCell(
+                            widget.titleIndex[col.id] ?? '—',
+                            width: _scoreColWidth,
+                          )),
+                      _hdrCell('Ср.', width: _avgColWidth, isAvg: true),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1, color: AppColors.mono150),
+        // ── Тело таблицы ──
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.vertical,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Frozen-колонка имён
+                Column(
+                  children: rows.asMap().entries.map((e) {
+                    return _nameCell(e.value, rowIdx: e.key);
+                  }).toList(),
+                ),
+                // Скроллируемые оценки
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _hBody,
+                    scrollDirection: Axis.horizontal,
+                    physics: const ClampingScrollPhysics(),
+                    child: Column(
+                      children: rows.asMap().entries.map((e) {
+                        final idx = e.key;
+                        final row = e.value;
+                        final rowBg =
+                            idx.isOdd ? AppColors.mono25 : Colors.white;
+                        final scoreMap = {
+                          for (final s in row.scores) s.itemId: s.score,
+                        };
+                        final avg = _rowAvg(row);
+
+                        return Row(
+                          children: [
+                            ...cols.map((col) {
+                              final score = scoreMap[col.id];
+                              final best = _colBest[col.id];
+                              final worst = _colWorst[col.id];
+                              final hasVariance =
+                                  best != null && worst != null && best != worst;
+                              return _scoreCell(
+                                score: score,
+                                rowBg: rowBg,
+                                isBest: hasVariance && score == best,
+                                isWorst: hasVariance && score == worst,
+                                onTap: () => _showDetails(
+                                  context,
+                                  studentName: row.studentName,
+                                  quizTitle:
+                                      widget.titleIndex[col.id] ?? '—',
+                                  score: score,
+                                ),
+                              );
+                            }),
+                            _avgCell(avg, rowBg: rowBg),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Ячейка шапки ──
+
+  Widget _hdrCell(
+    String text, {
+    required double width,
+    bool isName = false,
+    bool isAvg = false,
+  }) {
+    return Container(
+      width: width,
+      height: _headerH,
+      padding: const EdgeInsets.fromLTRB(10, 6, 6, 10),
+      decoration: BoxDecoration(
+        border: Border(
+          right: BorderSide(
+            color: isName ? AppColors.mono150 : AppColors.mono100,
+          ),
+        ),
+      ),
+      child: Align(
+        alignment: Alignment.bottomLeft,
+        child: Text(
+          text,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: isAvg ? AppColors.mono400 : AppColors.mono700,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Ячейка имени (frozen-колонка) ──
+
+  Widget _nameCell(SheetRow row, {required int rowIdx}) {
+    final bg = rowIdx.isOdd ? AppColors.mono25 : Colors.white;
+    return Container(
+      width: _nameColWidth,
+      height: _rowH,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: bg,
+        border: const Border(
+          bottom: BorderSide(color: AppColors.mono100),
+          right: BorderSide(color: AppColors.mono150),
+        ),
+      ),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          row.studentName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 13, color: AppColors.mono900),
+        ),
+      ),
+    );
+  }
+
+  // ── Ячейка оценки ──
+
+  Widget _scoreCell({
+    required double? score,
+    required Color rowBg,
+    required bool isBest,
+    required bool isWorst,
+    required VoidCallback onTap,
+  }) {
+    final effectiveScore = score ?? 0.0;
+    final Color chipBg;
+    final Color chipFg;
+    if (effectiveScore >= 80) {
+      chipBg = const Color(0xFFDCFCE7);
+      chipFg = const Color(0xFF15803D);
+    } else if (effectiveScore >= 60) {
+      chipBg = const Color(0xFFFEF9C3);
+      chipFg = const Color(0xFF854D0E);
+    } else {
+      chipBg = const Color(0xFFFEE2E2);
+      chipFg = const Color(0xFFB91C1C);
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: _scoreColWidth,
+        height: _rowH,
+        color: rowBg,
+        child: Center(
+          child: Container(
+            padding: EdgeInsets.fromLTRB(isBest ? 6 : 10, 5, 10, 5),
+            decoration: BoxDecoration(
+              color: chipBg,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isBest) ...[
+                  const Icon(
+                    Icons.star_rounded,
+                    size: 11,
+                    color: Color(0xFFD97706),
+                  ),
+                  const SizedBox(width: 3),
+                ],
+                Text(
+                  effectiveScore.toStringAsFixed(0),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: chipFg,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Ячейка среднего балла ──
+
+  Widget _avgCell(double? avg, {required Color rowBg}) {
+    return Container(
+      width: _avgColWidth,
+      height: _rowH,
+      decoration: BoxDecoration(
+        color: rowBg,
+        border: const Border(
+          left: BorderSide(color: AppColors.mono100),
+        ),
+      ),
+      child: Center(
+        child: avg != null
+            ? Text(
+                avg.toStringAsFixed(1),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mono600,
+                ),
+              )
+            : const Text('—',
+                style: TextStyle(fontSize: 12, color: AppColors.mono200)),
+      ),
+    );
+  }
+
+  // ── Детали ячейки ──
+
+  void _showDetails(
+    BuildContext context, {
+    required String studentName,
+    required String quizTitle,
+    required double? score,
+  }) {
+    final effectiveScore = score ?? 0.0;
+    final Color chipBg;
+    final Color chipFg;
+    if (effectiveScore >= 80) {
+      chipBg = const Color(0xFFDCFCE7);
+      chipFg = const Color(0xFF15803D);
+    } else if (effectiveScore >= 60) {
+      chipBg = const Color(0xFFFEF9C3);
+      chipFg = const Color(0xFF854D0E);
+    } else {
+      chipBg = const Color(0xFFFEE2E2);
+      chipFg = const Color(0xFFB91C1C);
+    }
+    final label = effectiveScore.toStringAsFixed(0);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.mono150,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              quizTitle,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.mono900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              studentName,
+              style: const TextStyle(fontSize: 13, color: AppColors.mono400),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: chipBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: chipFg,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  '/ 100',
+                  style: TextStyle(fontSize: 14, color: AppColors.mono300),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
