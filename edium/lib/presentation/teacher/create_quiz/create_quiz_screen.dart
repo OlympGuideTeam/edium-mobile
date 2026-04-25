@@ -33,6 +33,7 @@ class CreateQuizScreen extends StatefulWidget {
 class _CreateQuizScreenState extends State<CreateQuizScreen> {
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _aiTextCtrl = TextEditingController();
   var _syncedControllersFromBloc = false;
   var _excludeFocus = false;
 
@@ -50,6 +51,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
   void dispose() {
     _titleCtrl.dispose();
     _descCtrl.dispose();
+    _aiTextCtrl.dispose();
     super.dispose();
   }
 
@@ -179,6 +181,15 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
   }
 
   Future<void> _openAIGenerateSheet() async {
+    final title = context.read<CreateQuizBloc>().state.title;
+    if (title.trim().isEmpty) {
+      EdiumNotification.show(
+        context,
+        'Введите название перед генерацией',
+        type: EdiumNotificationType.error,
+      );
+      return;
+    }
     FocusScope.of(context).unfocus();
     setState(() => _excludeFocus = true);
     final hostContext = context;
@@ -207,6 +218,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
             buildWhen: (p, c) => p.isAiGenerating != c.isAiGenerating,
             builder: (ctx, s) => _AIGenerateSheet(
               isGenerating: s.isAiGenerating,
+              textController: _aiTextCtrl,
               onGenerate: (text) {
                 bloc.add(
                   GenerateQuizQuestionsWithAiEvent(
@@ -372,10 +384,12 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
 class _AIGenerateSheet extends StatefulWidget {
   final ValueChanged<String> onGenerate;
   final bool isGenerating;
+  final TextEditingController textController;
 
   const _AIGenerateSheet({
     required this.onGenerate,
     required this.isGenerating,
+    required this.textController,
   });
 
   @override
@@ -383,10 +397,11 @@ class _AIGenerateSheet extends StatefulWidget {
 }
 
 class _AIGenerateSheetState extends State<_AIGenerateSheet> {
-  final _textCtrl = TextEditingController();
   final _fieldFocus = FocusNode();
   static const _maxLength = 4000;
   static const _minGenerateLength = 500;
+
+  TextEditingController get _textCtrl => widget.textController;
 
   @override
   void initState() {
@@ -397,7 +412,6 @@ class _AIGenerateSheetState extends State<_AIGenerateSheet> {
   @override
   void dispose() {
     _fieldFocus.dispose();
-    _textCtrl.dispose();
     super.dispose();
   }
 
@@ -2464,7 +2478,15 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final canSubmit = state.canSubmit && !state.isSubmitting;
+    final canSave = state.canSave && !state.isSubmitting;
+    final canPublish = state.canPublish && !state.isSubmitting;
+
+    String? hint;
+    if (!state.canSave) {
+      hint = 'Введите название';
+    } else if (state.isInCourseContext && !state.canPublish) {
+      hint = 'Добавьте вопросы, чтобы начать';
+    }
 
     return Container(
       padding: EdgeInsets.only(
@@ -2480,27 +2502,26 @@ class _BottomBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (!state.canSubmit && state.title.isNotEmpty)
+          if (hint != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                state.questions.isEmpty
-                    ? 'Добавьте хотя бы один вопрос'
-                    : 'Введите название',
+                hint,
                 style: AppTextStyles.helperText,
                 textAlign: TextAlign.center,
               ),
             ),
           if (state.isInCourseContext)
             _CourseContextButtons(
-              canSubmit: canSubmit,
+              canSave: canSave,
+              canPublish: canPublish,
               isSubmitting: state.isSubmitting,
               onSave: onSave,
               onStart: onStart,
             )
           else
             _LibraryButton(
-              canSubmit: canSubmit,
+              canSubmit: canSave,
               isSubmitting: state.isSubmitting,
               onPressed: onSave,
             ),
@@ -2555,13 +2576,15 @@ class _LibraryButton extends StatelessWidget {
 }
 
 class _CourseContextButtons extends StatelessWidget {
-  final bool canSubmit;
+  final bool canSave;
+  final bool canPublish;
   final bool isSubmitting;
   final Future<void> Function() onSave;
   final Future<void> Function() onStart;
 
   const _CourseContextButtons({
-    required this.canSubmit,
+    required this.canSave,
+    required this.canPublish,
     required this.isSubmitting,
     required this.onSave,
     required this.onStart,
@@ -2575,13 +2598,13 @@ class _CourseContextButtons extends StatelessWidget {
           child: SizedBox(
             height: AppDimens.buttonH,
             child: OutlinedButton(
-              onPressed: canSubmit ? onSave : null,
+              onPressed: canSave ? onSave : null,
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.mono900,
                 disabledForegroundColor: AppColors.mono300,
                 side: BorderSide(
                   color:
-                      canSubmit ? AppColors.mono300 : AppColors.mono150,
+                      canSave ? AppColors.mono300 : AppColors.mono150,
                 ),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -2599,7 +2622,7 @@ class _CourseContextButtons extends StatelessWidget {
           child: SizedBox(
             height: AppDimens.buttonH,
             child: ElevatedButton(
-              onPressed: canSubmit ? onStart : null,
+              onPressed: canPublish ? onStart : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.mono900,
                 foregroundColor: Colors.white,

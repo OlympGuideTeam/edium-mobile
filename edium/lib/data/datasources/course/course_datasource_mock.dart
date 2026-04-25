@@ -264,4 +264,64 @@ class CourseDatasourceMock implements ICourseDatasource {
   }) async {
     await Future.delayed(const Duration(milliseconds: 200));
   }
+
+  @override
+  Future<CourseSheet> getCourseSheet({required String courseId}) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    return const CourseSheet(
+      columns: [
+        SheetColumn(id: 'item-1', objectId: 'quiz-uuid-0001'),
+        SheetColumn(id: 'item-2', objectId: 'quiz-uuid-0002'),
+        SheetColumn(id: 'item-3', objectId: 'quiz-uuid-0003'),
+        SheetColumn(id: 'item-4', objectId: 'quiz-uuid-0004'),
+        SheetColumn(id: 'item-5', objectId: 'quiz-uuid-0005'),
+      ],
+      rows: [
+        SheetRow(
+          studentId: 'stud-1',
+          studentName: 'Мария Кузнецова',
+          scores: [
+            SheetScore(itemId: 'item-1', score: 85.0),
+            SheetScore(itemId: 'item-2', score: 72.0),
+            SheetScore(itemId: 'item-3'),
+            SheetScore(itemId: 'item-4', score: 91.0),
+            SheetScore(itemId: 'item-5', score: 60.0),
+          ],
+        ),
+        SheetRow(
+          studentId: 'stud-2',
+          studentName: 'Алексей Петров',
+          scores: [
+            SheetScore(itemId: 'item-1', score: 91.5),
+            SheetScore(itemId: 'item-2'),
+            SheetScore(itemId: 'item-3', score: 60.0),
+            SheetScore(itemId: 'item-4', score: 45.0),
+            SheetScore(itemId: 'item-5'),
+          ],
+        ),
+        SheetRow(
+          studentId: 'stud-3',
+          studentName: 'Ирина Смирнова',
+          scores: [
+            SheetScore(itemId: 'item-1'),
+            SheetScore(itemId: 'item-2', score: 55.0),
+            SheetScore(itemId: 'item-3', score: 88.0),
+            SheetScore(itemId: 'item-4'),
+            SheetScore(itemId: 'item-5', score: 77.0),
+          ],
+        ),
+        SheetRow(
+          studentId: 'stud-4',
+          studentName: 'Дмитрий Новиков',
+          scores: [
+            SheetScore(itemId: 'item-1', score: 100.0),
+            SheetScore(itemId: 'item-2', score: 95.0),
+            SheetScore(itemId: 'item-3', score: 82.0),
+            SheetScore(itemId: 'item-4', score: 78.0),
+            SheetScore(itemId: 'item-5', score: 90.0),
+          ],
+        ),
+      ],
+    );
+  }
 }
