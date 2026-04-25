@@ -304,7 +304,7 @@ class _CourseDetailBody extends StatelessWidget {
                         );
                       },
                     ),
-            Expanded(child: _modulesContent(context)),
+            ),
           ],
         ],
       ),
