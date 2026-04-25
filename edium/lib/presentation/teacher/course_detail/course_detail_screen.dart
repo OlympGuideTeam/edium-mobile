@@ -1440,7 +1440,7 @@ class _ModuleSectionState extends State<_ModuleSection>
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         child: Column(
-                          children: widget.module.items
+                          children: (_loadedItems ?? [])
                               .map((item) => _QuizItemTile(
                                     item: item,
                                     isTeacher: widget.isTeacher,
@@ -1529,15 +1529,19 @@ class _QuizItemTile extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.mono100,
+                  color: item.quizType == 'live'
+                      ? AppColors.mono900
+                      : AppColors.mono100,
                   borderRadius: BorderRadius.circular(AppDimens.radiusXs),
                 ),
-                child: const Text(
-                  'ТЕСТ',
+                child: Text(
+                  item.quizType == 'live' ? 'ЛАЙВ' : 'ТЕСТ',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.mono400,
+                    color: item.quizType == 'live'
+                        ? Colors.white
+                        : AppColors.mono400,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -1639,7 +1643,7 @@ class _TrailingBadge extends StatelessWidget {
       'waiting'     => 'Ожидает',
       'running'     => 'Идёт',
       'completed'   => 'Завершён',
-      _ => 'Не пройден',
+      _ => 'Не начат',
     };
     return Text(
       label,
