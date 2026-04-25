@@ -57,12 +57,20 @@ class UserDatasourceMock implements IUserDatasource {
   Future<UserStatisticModel> getStatistic() async {
     await Future.delayed(const Duration(milliseconds: 300));
     return const UserStatisticModel(
-      quizCountCreated: 18,
       classTeacherCount: 4,
       studentCount: 79,
+      courseTeacherCount: 7,
       courseStudentCount: 3,
+    );
+  }
+
+  @override
+  Future<RiddlerUserStatisticModel> getRiddlerStatistic() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    return const RiddlerUserStatisticModel(
       quizCountPassed: 24,
-      avgQuizScore: 78.5,
+      avgQuizScore: 8.5,
+      quizSessionsConducted: 12,
     );
   }
 }
