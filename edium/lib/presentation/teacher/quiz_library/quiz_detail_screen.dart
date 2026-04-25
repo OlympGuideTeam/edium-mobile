@@ -501,7 +501,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
   String _quizTimeLimitTotalLabel(int sec) => _formatDurationSec(sec);
 
   String _quizTimeLimitPerQuestionLabel(int sec) =>
-      '${_formatDurationSec(sec)} на впр';
+      '${_formatDurationSec(sec)}/впр';
 
   String _fmtDeadline(DateTime dt) {
     return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
