@@ -138,4 +138,22 @@ class TestSessionRepositoryImpl implements ITestSessionRepository {
     await _ds.deleteSession(sessionId);
     await _cache.delete(sessionId);
   }
+
+  @override
+  Future<void> gradeSubmission({
+    required String attemptId,
+    required String submissionId,
+    required double score,
+    String? feedback,
+  }) =>
+      _ds.gradeSubmission(
+        attemptId: attemptId,
+        submissionId: submissionId,
+        score: score,
+        feedback: feedback,
+      );
+
+  @override
+  Future<void> completeAttempt(String attemptId) =>
+      _ds.completeAttempt(attemptId);
 }
