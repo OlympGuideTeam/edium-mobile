@@ -114,11 +114,11 @@ class CourseItemModel {
       orderIndex: (json['order_index'] as int?) ?? orderIndex,
       attemptId: json['attempt_id'] as String?,
       score: (json['score'] as num?)?.toDouble(),
-      title: json['title'] as String?,
-      quizType: json['quiz_type'] as String?,
+      title: (json['title'] as String?) ?? payloadJson?['title'] as String?,
+      quizType: (json['quiz_type'] as String?) ?? payloadJson?['mode'] as String?,
       state: json['state'] as String?,
-      startTime: json['start_time'] as String?,
-      endTime: json['end_time'] as String?,
+      startTime: (json['start_time'] as String?) ?? payloadJson?['started_at'] as String?,
+      endTime: (json['end_time'] as String?) ?? payloadJson?['finished_at'] as String?,
       needEvaluation: (json['need_evaluation'] as bool?) ?? false,
     );
   }
