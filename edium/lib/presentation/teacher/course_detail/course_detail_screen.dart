@@ -2118,35 +2118,11 @@ class _SheetTableState extends State<_SheetTable> {
   final _hBody = ScrollController();
   bool _syncing = false;
 
-  // Лучший/худший результат по каждой колонке
-  late final Map<String, double?> _colBest;
-  late final Map<String, double?> _colWorst;
-
   @override
   void initState() {
     super.initState();
     _hHead.addListener(_onHead);
     _hBody.addListener(_onBody);
-    _computeStats();
-  }
-
-  void _computeStats() {
-    _colBest = {};
-    _colWorst = {};
-    for (final col in widget.sheet.columns) {
-      final vals = widget.sheet.rows
-          .expand((r) => r.scores)
-          .where((s) => s.itemId == col.id && s.score != null)
-          .map((s) => s.score!)
-          .toList();
-      if (vals.isEmpty) {
-        _colBest[col.id] = null;
-        _colWorst[col.id] = null;
-      } else {
-        _colBest[col.id] = vals.reduce(math.max);
-        _colWorst[col.id] = vals.reduce(math.min);
-      }
-    }
   }
 
   @override
@@ -2244,15 +2220,9 @@ class _SheetTableState extends State<_SheetTable> {
                           children: [
                             ...cols.map((col) {
                               final score = scoreMap[col.id];
-                              final best = _colBest[col.id];
-                              final worst = _colWorst[col.id];
-                              final hasVariance =
-                                  best != null && worst != null && best != worst;
                               return _scoreCell(
                                 score: score,
                                 rowBg: rowBg,
-                                isBest: hasVariance && score == best,
-                                isWorst: hasVariance && score == worst,
                                 onTap: () => _showDetails(
                                   context,
                                   studentName: row.studentName,
@@ -2344,8 +2314,6 @@ class _SheetTableState extends State<_SheetTable> {
   Widget _scoreCell({
     required double? score,
     required Color rowBg,
-    required bool isBest,
-    required bool isWorst,
     required VoidCallback onTap,
   }) {
     final effectiveScore = score ?? 0.0;
@@ -2370,31 +2338,18 @@ class _SheetTableState extends State<_SheetTable> {
         color: rowBg,
         child: Center(
           child: Container(
-            padding: EdgeInsets.fromLTRB(isBest ? 6 : 10, 5, 10, 5),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: chipBg,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (isBest) ...[
-                  const Icon(
-                    Icons.star_rounded,
-                    size: 11,
-                    color: Color(0xFFD97706),
-                  ),
-                  const SizedBox(width: 3),
-                ],
-                Text(
-                  effectiveScore.toStringAsFixed(0),
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: chipFg,
-                  ),
-                ),
-              ],
+            child: Text(
+              effectiveScore.toStringAsFixed(0),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: chipFg,
+              ),
             ),
           ),
         ),
