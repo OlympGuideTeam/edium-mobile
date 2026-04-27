@@ -1,5 +1,3 @@
-# .github/workflows/android-rustore.yml
-
 name: Android → RuStore
 
 on:
@@ -8,7 +6,7 @@ on:
       release_notes:
         description: "Что изменилось"
         required: false
-        default: "Внутренняя сборка"
+        default: "CI build"
 
 jobs:
   deploy:
@@ -17,16 +15,18 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      # ── Исходники ─────────────────────────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ── Java (нужно для Android) ─────────────────────────────
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
-          cache: gradle
 
+      # ── Flutter ─────────────────────────────────────────────
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -37,63 +37,49 @@ jobs:
         working-directory: edium
         run: flutter pub get
 
-      # ── Keystore ─────────────────────────────────────────────
+      # ── Подпись Android ─────────────────────────────────────
       - name: Decode keystore
         env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          echo -n "$ANDROID_KEYSTORE_BASE64" | base64 --decode \
-            > "$RUNNER_TEMP/upload-keystore.jks"
+          echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
 
       - name: Create key.properties
-        working-directory: edium/android
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS:         ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD:      ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          cat > key.properties <<EOF
-          storePassword=$ANDROID_KEYSTORE_PASSWORD
-          keyPassword=$ANDROID_KEY_PASSWORD
-          keyAlias=$ANDROID_KEY_ALIAS
-          storeFile=$RUNNER_TEMP/upload-keystore.jks
+          cat <<EOF > edium/android/key.properties
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=../../keystore.jks
           EOF
 
-      # ── Build APK ───────────────────────────────────────────
-      - name: Flutter build APK
+      # ── Сборка ───────────────────────────────────────────────
+      - name: Build APK
         working-directory: edium
-        run: flutter build apk --release
+        run: flutter build apk --release --build-number ${{ github.run_number }}
 
-      # ── Ruby / Fastlane ──────────────────────────────────────
+      # (рекомендую AAB, но RuStore принимает APK тоже)
+      # flutter build appbundle
+
+      # ── Установка Fastlane ──────────────────────────────────
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
-          bundler: latest
           bundler-cache: true
           working-directory: edium
 
-      # ── Upload ───────────────────────────────────────────────
+      # ── Деплой в RuStore ────────────────────────────────────
       - name: Upload to RuStore
         working-directory: edium
         env:
-          RUSTORE_KEY_ID:      ${{ secrets.RUSTORE_KEY_ID }}
+          RUSTORE_KEY_ID: ${{ secrets.RUSTORE_KEY_ID }}
           RUSTORE_PRIVATE_KEY_BASE64: ${{ secrets.RUSTORE_PRIVATE_KEY_BASE64 }}
-          RELEASE_NOTES:      ${{ github.event.inputs.release_notes }}
         run: bundle exec fastlane android beta
 
-      # ── Артефакт ─────────────────────────────────────────────
-      - name: Upload APK artifact
-        if: success()
+      # ── Артефакт ────────────────────────────────────────────
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Edium-${{ github.run_number }}.apk
+          name: app-release-${{ github.run_number }}
           path: edium/build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 7
-
-      # ── Cleanup ──────────────────────────────────────────────
-      - name: Cleanup
-        if: always()
-        run: |
-          rm -f "$RUNNER_TEMP/upload-keystore.jks"
-          rm -f edium/android/key.properties
