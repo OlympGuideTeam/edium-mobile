@@ -368,45 +368,27 @@ class _ClassTile extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isOwner ? const Color(0xFF60A5FA) : const Color(0xFFDDDDDD),
-              width: isOwner ? 2.0 : 1.5,
+              color: const Color(0xFFDDDDDD),
+              width: 1.5,
             ),
           ),
           child: Row(
             children: [
-              // Иконка
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEEEEEE),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Center(
-                  child: Text('🏫', style: TextStyle(fontSize: 22)),
-                ),
-              ),
-              const SizedBox(width: 14),
-              // Текст
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            classSummary.title,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF1A1A1A),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                    if (isTeacher) ...[
+                      _OwnershipBadge(isOwner: isOwner),
+                      const SizedBox(height: 6),
+                    ],
+                    Text(
+                      classSummary.title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1A1A1A),
+                      ),
                     ),
                     const SizedBox(height: 3),
                     Text(
@@ -446,6 +428,32 @@ class _ClassTile extends StatelessWidget {
       default:
         return '$count учеников';
     }
+  }
+}
+
+class _OwnershipBadge extends StatelessWidget {
+  final bool isOwner;
+
+  const _OwnershipBadge({required this.isOwner});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: isOwner ? AppColors.mono900 : AppColors.mono100,
+        borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+      ),
+      child: Text(
+        isOwner ? 'ВЛАДЕЛЕЦ' : 'УЧИТЕЛЬ',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: isOwner ? Colors.white : AppColors.mono400,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
   }
 }
 
