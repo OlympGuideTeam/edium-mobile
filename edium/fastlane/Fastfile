@@ -53,6 +53,7 @@ platform :android do
       Dir.pwd, "..", "build", "app", "outputs",
       "flutter-apk", "app-release.apk"
     )
+
     UI.user_error!("APK не найден: #{apk_path}") unless File.exist?(apk_path)
 
     rustore_publish(
@@ -61,6 +62,8 @@ platform :android do
       package_name: "online.edium.app",
       gms_apk:      apk_path,
       publish_type: "MANUAL",
+      # можно добавить:
+      # release_notes: ENV["RELEASE_NOTES"]
     )
 
     UI.success("✅ Загружено в RuStore")
