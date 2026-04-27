@@ -341,41 +341,12 @@ class _CourseDetailBody extends StatelessWidget {
         ),
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(
-        AppDimens.screenPaddingH,
-        8,
-        AppDimens.screenPaddingH,
-        24,
-      ),
-      itemCount: course.modules.length +
-          (course.drafts.isNotEmpty ? course.drafts.length + 1 : 0),
-      itemBuilder: (context, i) {
-        if (i < course.modules.length) {
-          return Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: _ModuleSection(
-              module: course.modules[i],
-              isTeacher: course.isTeacher,
-            ),
-          );
-        }
-        final draftIndex = i - course.modules.length;
-        if (draftIndex == 0) {
-          return const Padding(
-            padding: EdgeInsets.only(top: 20, bottom: 4),
-            child: _DraftsSectionHeader(),
-          );
-        }
-        final draft = course.drafts[draftIndex - 1];
-        return Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: _DraftTile(
-            draft: draft,
-            onTap: () => _openCreateQuizFromDraft(context, draft),
-          ),
-        );
-      },
+    final bloc = context.read<CourseDetailBloc>();
+    return _CourseContentList(
+      course: course,
+      onDraftTap: (draft) => _openCreateQuizFromDraft(context, draft),
+      onDraftDelete: (draft) => bloc.add(DeleteDraftEvent(draft.id)),
+      onModulesReorder: (ids) => bloc.add(ReorderModulesEvent(ids)),
     );
   }
 
