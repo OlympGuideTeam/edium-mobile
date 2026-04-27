@@ -1,4 +1,4 @@
-package com.example.edium
+package online.edium.app
 
 import io.flutter.embedding.android.FlutterActivity
 
