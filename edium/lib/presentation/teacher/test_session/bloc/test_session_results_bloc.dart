@@ -37,12 +37,10 @@ class TestSessionResultsBloc
     try {
       final attempts = await _listAttempts(sid);
 
-      // TODO(spec §8): в будущем — получить class members через Caesar
-      // и смёрджить по user_id → name. Пока отображаем userId.
       final rows = attempts
           .map((a) => StudentRow(
                 userId: a.userId,
-                displayName: a.userId,
+                displayName: a.userName ?? a.userId,
                 attempt: a,
               ))
           .toList();

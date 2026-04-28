@@ -4,12 +4,14 @@ import 'package:edium/domain/entities/quiz_attempt.dart' show AttemptStatus;
 class AttemptSummaryModel {
   final String attemptId;
   final String userId;
+  final String? userName;
   final String status;
   final double? score;
 
   const AttemptSummaryModel({
     required this.attemptId,
     required this.userId,
+    this.userName,
     required this.status,
     this.score,
   });
@@ -18,6 +20,7 @@ class AttemptSummaryModel {
     return AttemptSummaryModel(
       attemptId: json['attempt_id'] as String,
       userId: json['user_id'] as String,
+      userName: json['user_name'] as String?,
       status: json['status'] as String? ?? 'in_progress',
       score: (json['score'] as num?)?.toDouble(),
     );
@@ -26,6 +29,7 @@ class AttemptSummaryModel {
   AttemptSummary toEntity() => AttemptSummary(
         attemptId: attemptId,
         userId: userId,
+        userName: userName,
         status: _parseStatus(status),
         score: score,
       );

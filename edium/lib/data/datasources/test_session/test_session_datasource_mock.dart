@@ -5,6 +5,15 @@ import 'package:edium/data/models/quiz_attempt_model.dart';
 import 'package:edium/data/models/test_session_meta_model.dart';
 
 class TestSessionDatasourceMock implements ITestSessionDatasource {
+  static const Map<String, String> _userNames = {
+    'student-1': 'Мария Кузнецова',
+    'student-2': 'Дмитрий Волков',
+    'student-3': 'Анна Соколова',
+    'student-4': 'Артём Новиков',
+    'mock-user-S1': 'Иван Смирнов',
+    'mock-user-S2': 'Полина Захарова',
+  };
+
   static final Map<String, Map<String, _GradeEntry>> _teacherGrades = {};
   // sessionId → meta
   static final Map<String, TestSessionMetaModel> _sessions = _buildSessions();
@@ -69,6 +78,7 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
         .map((a) => AttemptSummaryModel(
               attemptId: a.attemptId,
               userId: a.userId,
+              userName: _userNames[a.userId],
               status: a.status,
               score: a.score,
             ))
@@ -112,7 +122,7 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
         'mock-test-sess-1': const TestSessionMetaModel(
           sessionId: 'mock-test-sess-1',
           quizId: 'quiz-uuid-0001',
-          title: 'Многочлены: проверочный',
+          title: 'Степени и многочлены',
           description: 'Короткий тест по теме «Многочлены».',
           questionCount: 3,
           needEvaluation: false,
@@ -124,7 +134,7 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
         'mock-test-sess-2': const TestSessionMetaModel(
           sessionId: 'mock-test-sess-2',
           quizId: 'quiz-uuid-0002',
-          title: 'Уравнения I',
+          title: 'Линейные уравнения',
           questionCount: 2,
           needEvaluation: true,
           totalTimeLimitSec: 1200,
@@ -132,7 +142,7 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
         'mock-test-sess-3': const TestSessionMetaModel(
           sessionId: 'mock-test-sess-3',
           quizId: 'quiz-uuid-0003',
-          title: 'Функции — вводный',
+          title: 'Квадратные уравнения',
           questionCount: 2,
           needEvaluation: false,
           totalTimeLimitSec: 300,
@@ -143,7 +153,7 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
         'mock-mon-sess-1': const TestSessionMetaModel(
           sessionId: 'mock-mon-sess-1',
           quizId: 'mock-mon-sess-1',
-          title: 'Тест: никто не начал',
+          title: 'Геометрические прогрессии',
           questionCount: 2,
           needEvaluation: false,
           totalTimeLimitSec: 600,
@@ -151,7 +161,7 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
         'mock-mon-sess-2': const TestSessionMetaModel(
           sessionId: 'mock-mon-sess-2',
           quizId: 'mock-mon-sess-2',
-          title: 'Тест: смешанный (развёрн. ответ)',
+          title: 'Уравнения: итоговый тест',
           questionCount: 2,
           needEvaluation: true,
           totalTimeLimitSec: 900,
@@ -159,9 +169,9 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
         'mock-mon-sess-3': const TestSessionMetaModel(
           sessionId: 'mock-mon-sess-3',
           quizId: 'mock-mon-sess-3',
-          title: 'Тест: итоги (все завершили)',
-          questionCount: 3,
-          needEvaluation: false,
+          title: 'Квадратные уравнения',
+          questionCount: 4,
+          needEvaluation: true,
           totalTimeLimitSec: 600,
         ),
       };
@@ -273,6 +283,12 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
             id: 'qmon3-3',
             type: 'with_given_answer',
             text: 'Значение f(x)=2x+1 при x=−2?',
+            maxScore: 10,
+          ),
+          const QuizQuestionForStudentModel(
+            id: 'qmon3-4',
+            type: 'with_free_answer',
+            text: 'Объясните, почему уравнение ax²+bx+c=0 имеет два различных корня при D > 0.',
             maxScore: 10,
           ),
         ],
@@ -494,6 +510,72 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
                 TeacherAnswerOptionModel(
                     id: 'qt2-2-c', text: '0', isCorrect: false),
               ],
+            ),
+          ],
+        ),
+        // ── Мониторинг-демо: completed + teacher-graded (стейт 3) ──────
+        'mock-mon-att-3-A': AttemptReviewModel(
+          attemptId: 'mock-mon-att-3-A',
+          userId: 'student-1',
+          status: 'completed',
+          score: 90.0,
+          startedAt: '2026-04-28T10:00:00Z',
+          finishedAt: '2026-04-28T10:14:00Z',
+          answers: [
+            AnswerReviewModel(
+              submissionId: 'sub-m3-1',
+              questionId: 'qmon3-1',
+              questionType: 'single_choice',
+              questionText: 'Функция f(x) = x² является…',
+              answerData: const {'selected_option_id': 'qmon3-1-b'},
+              finalScore: 10.0,
+              finalSource: 'auto',
+              options: const [
+                TeacherAnswerOptionModel(
+                    id: 'qmon3-1-a', text: 'Линейной', isCorrect: false),
+                TeacherAnswerOptionModel(
+                    id: 'qmon3-1-b', text: 'Квадратичной', isCorrect: true),
+                TeacherAnswerOptionModel(
+                    id: 'qmon3-1-c', text: 'Обратной', isCorrect: false),
+              ],
+            ),
+            const AnswerReviewModel(
+              submissionId: 'sub-m3-2',
+              questionId: 'qmon3-2',
+              questionType: 'with_given_answer',
+              questionText: 'Значение f(x)=x²−1 при x=3?',
+              answerData: {'text': '8'},
+              finalScore: 10.0,
+              finalSource: 'auto',
+              metadata: {'correct_answers': ['8']},
+            ),
+            const AnswerReviewModel(
+              submissionId: 'sub-m3-3',
+              questionId: 'qmon3-3',
+              questionType: 'with_given_answer',
+              questionText: 'Значение f(x)=2x+1 при x=−2?',
+              answerData: {'text': '-3'},
+              finalScore: 10.0,
+              finalSource: 'auto',
+              metadata: {'correct_answers': ['-3']},
+            ),
+            const AnswerReviewModel(
+              submissionId: 'sub-m3-4',
+              questionId: 'qmon3-4',
+              questionType: 'with_free_answer',
+              questionText:
+                  'Объясните, почему уравнение ax²+bx+c=0 имеет два различных корня при D > 0.',
+              answerData: {
+                'text':
+                    'При D > 0 дискриминант положительный, √D > 0, '
+                    'поэтому x₁ = (−b+√D)/(2a) и x₂ = (−b−√D)/(2a) '
+                    'дают два различных значения, так как числители отличаются.',
+              },
+              finalScore: 6.0,
+              finalSource: 'teacher',
+              finalFeedback:
+                  'Верно по сути, но стоит явно указать, что при D > 0 значение √D '
+                  'строго больше нуля, поэтому x₁ ≠ x₂.',
             ),
           ],
         ),
