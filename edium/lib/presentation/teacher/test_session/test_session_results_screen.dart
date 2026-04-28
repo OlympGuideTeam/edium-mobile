@@ -112,7 +112,7 @@ class _View extends StatelessWidget {
               AppDimens.screenPaddingH, 0, AppDimens.screenPaddingH, 32),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(state.title,
                 style: AppTextStyles.screenTitle.copyWith(fontSize: 22)),
             const SizedBox(height: 16),
@@ -121,7 +121,12 @@ class _View extends StatelessWidget {
               completedCount: state.completedCount,
               averageScorePct: state.averageScorePct,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+            _SectionHeader(
+              label: 'Участники',
+              count: state.totalCount,
+            ),
+            const SizedBox(height: 10),
             if (state.rows.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 32),
@@ -160,6 +165,8 @@ class _View extends StatelessWidget {
   }
 }
 
+// ─── Шапка ───────────────────────────────────────────────────────────────────
+
 class _TopBar extends StatelessWidget {
   final VoidCallback onBack;
   const _TopBar({required this.onBack});
@@ -180,6 +187,8 @@ class _TopBar extends StatelessWidget {
   }
 }
 
+// ─── Сводная полоска ─────────────────────────────────────────────────────────
+
 class _SummaryStrip extends StatelessWidget {
   final int totalCount;
   final int completedCount;
@@ -189,28 +198,31 @@ class _SummaryStrip extends StatelessWidget {
     required this.completedCount,
     required this.averageScorePct,
   });
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.mono50,
         borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-        border: Border.all(color: AppColors.mono150),
+        border: Border.all(color: AppColors.mono150, width: AppDimens.borderWidth),
       ),
-      child: Row(
-        children: [
-          _Stat(label: 'Всего', value: '$totalCount'),
-          _StatDivider(),
-          _Stat(label: 'Завершили', value: '$completedCount'),
-          _StatDivider(),
-          _Stat(
-            label: 'Средний балл',
-            value: averageScorePct != null
-                ? '${averageScorePct!.toStringAsFixed(0)}%'
-                : '—',
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Row(
+          children: [
+            _Stat(label: 'Всего', value: '$totalCount'),
+            _StatDivider(),
+            _Stat(label: 'Завершили', value: '$completedCount'),
+            _StatDivider(),
+            _Stat(
+              label: 'Средний балл',
+              value: averageScorePct != null
+                  ? '${averageScorePct!.toStringAsFixed(0)}%'
+                  : '—',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -227,14 +239,13 @@ class _Stat extends StatelessWidget {
         children: [
           Text(value,
               style: const TextStyle(
-                fontSize: 20,
+                fontSize: 22,
                 fontWeight: FontWeight.w700,
                 color: AppColors.mono900,
               )),
-          const SizedBox(height: 2),
+          const SizedBox(height: 3),
           Text(label,
-              style: AppTextStyles.caption
-                  .copyWith(color: AppColors.mono400)),
+              style: AppTextStyles.caption.copyWith(color: AppColors.mono400)),
         ],
       ),
     );
@@ -250,6 +261,49 @@ class _StatDivider extends StatelessWidget {
       );
 }
 
+// ─── Заголовок секции ────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  final String label;
+  final int count;
+  const _SectionHeader({required this.label, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: AppColors.mono400,
+            letterSpacing: 0.6,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+          decoration: BoxDecoration(
+            color: AppColors.mono100,
+            borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+          ),
+          child: Text(
+            '$count',
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppColors.mono400,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Строка студента ─────────────────────────────────────────────────────────
+
 class _StudentRowTile extends StatelessWidget {
   final StudentRow row;
   final VoidCallback? onTap;
@@ -258,10 +312,13 @@ class _StudentRowTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final attempt = row.attempt;
-    final chip = _statusChip(attempt?.status);
+    final status = attempt?.status;
     final scoreText = attempt?.score != null
         ? '${attempt!.score!.toStringAsFixed(0)}%'
         : null;
+    final tappable = onTap != null;
+    final needsAction = status == AttemptStatus.graded;
+    final isInactive = status == null;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -269,34 +326,50 @@ class _StudentRowTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppDimens.radiusMd),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           decoration: BoxDecoration(
+            color: needsAction ? AppColors.mono25 : Colors.white,
             borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-            border: Border.all(color: AppColors.mono150),
+            border: Border.all(
+              color: needsAction ? AppColors.mono300 : AppColors.mono150,
+              width: AppDimens.borderWidth,
+            ),
           ),
           child: Row(
             children: [
+              _Avatar(name: row.displayName, muted: isInactive),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   row.displayName,
-                  style: AppTextStyles.fieldText.copyWith(
+                  style: TextStyle(
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
+                    color: isInactive ? AppColors.mono400 : AppColors.mono900,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 8),
-              if (chip != null) chip,
+              _StatusBadge(status: status),
               if (scoreText != null) ...[
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Text(
                   scoreText,
                   style: const TextStyle(
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: AppColors.mono900,
                   ),
+                ),
+              ],
+              if (tappable) ...[
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.chevron_right,
+                  size: 18,
+                  color: needsAction ? AppColors.mono400 : AppColors.mono300,
                 ),
               ],
             ],
@@ -305,49 +378,135 @@ class _StudentRowTile extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget? _statusChip(AttemptStatus? status) {
-    if (status == null) {
-      return const _Chip(label: 'Не начал', color: AppColors.mono300);
+// ─── Аватар ──────────────────────────────────────────────────────────────────
+
+class _Avatar extends StatelessWidget {
+  final String name;
+  final bool muted;
+  const _Avatar({required this.name, this.muted = false});
+
+  String get _initials {
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
+    return name.isNotEmpty ? name[0].toUpperCase() : '?';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: muted ? AppColors.mono50 : AppColors.mono100,
+        borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        _initials,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: muted ? AppColors.mono300 : AppColors.mono600,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Бейдж статуса ───────────────────────────────────────────────────────────
+
+class _StatusBadge extends StatelessWidget {
+  final AttemptStatus? status;
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
     switch (status) {
+      case null:
+        return const _Chip(
+          label: 'Не начал',
+          textColor: AppColors.mono350,
+          bgColor: Colors.transparent,
+          borderColor: AppColors.mono150,
+        );
       case AttemptStatus.inProgress:
-        return const _Chip(label: 'Проходит…', color: AppColors.mono600);
+        return const _Chip(
+          label: 'Проходит',
+          textColor: AppColors.mono400,
+          bgColor: AppColors.mono50,
+          borderColor: AppColors.mono150,
+        );
       case AttemptStatus.grading:
-        return const _Chip(label: 'Проверка ИИ', color: AppColors.mono600);
+        return const _Chip(
+          label: 'Проверка ИИ',
+          textColor: AppColors.mono400,
+          bgColor: AppColors.mono50,
+          borderColor: AppColors.mono150,
+        );
       case AttemptStatus.graded:
         return const _Chip(
-            label: 'Готов к проверке', color: AppColors.mono900);
+          label: 'К проверке',
+          textColor: Colors.white,
+          bgColor: AppColors.mono900,
+          borderColor: AppColors.mono900,
+          icon: Icons.edit_outlined,
+        );
       case AttemptStatus.completed:
-        return null;
+        return const SizedBox.shrink();
     }
   }
 }
 
 class _Chip extends StatelessWidget {
   final String label;
-  final Color color;
-  const _Chip({required this.label, required this.color});
+  final Color textColor;
+  final Color bgColor;
+  final Color borderColor;
+  final IconData? icon;
+
+  const _Chip({
+    required this.label,
+    required this.textColor,
+    required this.bgColor,
+    required this.borderColor,
+    this.icon,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.mono50,
+        color: bgColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusXs),
-        border: Border.all(color: AppColors.mono150),
+        border: Border.all(color: borderColor, width: AppDimens.borderWidth),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: color,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 11, color: textColor),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: textColor,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
+
+// ─── Кнопка удаления ─────────────────────────────────────────────────────────
 
 class _DeleteButton extends StatelessWidget {
   final bool isDeleting;
