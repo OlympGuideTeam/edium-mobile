@@ -1,4 +1,5 @@
 import 'package:edium/core/theme/app_colors.dart';
+import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/presentation/shared/widgets/library_quiz_card.dart';
 import 'package:edium/presentation/shared/widgets/search_bar_widget.dart';
@@ -20,9 +21,24 @@ class StudentQuizLibraryScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(24, 16, 24, 0),
-              child: Text('Квизы', style: AppTextStyles.screenTitle),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.mono900,
+                      borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+                    ),
+                    child: const Text('УЧЕНИК', style: AppTextStyles.badgeText),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Квизы', style: AppTextStyles.screenTitle),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             Padding(

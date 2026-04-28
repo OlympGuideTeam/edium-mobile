@@ -241,70 +241,7 @@ class _CourseDetailBody extends StatelessWidget {
             ),
           ] else ...[
             const SizedBox(height: 20),
-            Expanded(
-              child: (course.modules.isEmpty && course.drafts.isEmpty)
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Модулей пока нет',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.mono400,
-                            ),
-                          ),
-                          if (course.isTeacher) ...[
-                            const SizedBox(height: 16),
-                            TextButton(
-                              onPressed: () => _showAddActionSheet(context),
-                              child: const Text(
-                                'Добавить первый элемент',
-                                style: TextStyle(color: AppColors.mono900),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppDimens.screenPaddingH,
-                        8,
-                        AppDimens.screenPaddingH,
-                        24,
-                      ),
-                      itemCount: course.modules.length +
-                          (course.drafts.isNotEmpty ? course.drafts.length + 1 : 0),
-                      itemBuilder: (context, i) {
-                        if (i < course.modules.length) {
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: _ModuleSection(
-                              module: course.modules[i],
-                              isTeacher: course.isTeacher,
-                              classId: classId,
-                            ),
-                          );
-                        }
-                        final draftIndex = i - course.modules.length;
-                        if (draftIndex == 0) {
-                          return const Padding(
-                            padding: EdgeInsets.only(top: 20, bottom: 4),
-                            child: _DraftsSectionHeader(),
-                          );
-                        }
-                        final draft = course.drafts[draftIndex - 1];
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: _DraftTile(
-                            draft: draft,
-                            onTap: () => _openCreateQuizFromDraft(context, draft),
-                          ),
-                        );
-                      },
-                    ),
-            ),
+            Expanded(child: _modulesContent(context)),
           ],
         ],
       ),

@@ -103,9 +103,21 @@ class _StudentDashboardPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 16),
-                      const Text('edium', style: AppTextStyles.screenTitle),
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 32),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.mono900,
+                          borderRadius:
+                              BorderRadius.circular(AppDimens.radiusXs),
+                        ),
+                        child: const Text('УЧЕНИК',
+                            style: AppTextStyles.badgeText),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text('Edium', style: AppTextStyles.screenTitle),
+                      const SizedBox(height: 24),
                       Text(
                         'Привет, $firstName',
                         style: AppTextStyles.screenTitle,
