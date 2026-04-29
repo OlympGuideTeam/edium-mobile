@@ -14,11 +14,12 @@ class QuizDatasourceHive implements IQuizDatasource {
 
   Future<void> _ensureSeeded() async {
     final box = HiveStorage.quizzesBox;
-    if (box.containsKey('__seeded')) return;
+    if (box.containsKey('__seeded_v2')) return;
+    await box.delete('__seeded');
     for (final q in _buildSeedQuizzes()) {
       await box.put(q.id, jsonEncode(q.toJson()));
     }
-    await box.put('__seeded', 'true');
+    await box.put('__seeded_v2', 'true');
   }
 
   List<QuizModel> _readAll() {
@@ -399,7 +400,7 @@ class QuizDatasourceHive implements IQuizDatasource {
         QuizModel(
           id: '1',
           title: 'Алгебра: Квадратные уравнения',
-          subject: 'Математика',
+          subject: '',
           authorId: 'mock-user-2',
           authorName: 'Алексей Иванов',
           status: 'active',
@@ -462,7 +463,7 @@ class QuizDatasourceHive implements IQuizDatasource {
         QuizModel(
           id: '2',
           title: 'История России: XIX век',
-          subject: 'История',
+          subject: '',
           authorId: 'mock-user-2',
           authorName: 'Мария Петрова',
           status: 'active',
@@ -499,7 +500,7 @@ class QuizDatasourceHive implements IQuizDatasource {
         QuizModel(
           id: '3',
           title: 'Алгоритмы и структуры данных',
-          subject: 'Информатика',
+          subject: '',
           authorId: 'mock-user-3',
           authorName: 'Дмитрий Козлов',
           status: 'active',
