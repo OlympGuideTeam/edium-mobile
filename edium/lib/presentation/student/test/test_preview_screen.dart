@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
@@ -161,6 +163,14 @@ class _LoadedBody extends StatelessWidget {
             const SizedBox(height: 6),
             Text(meta.description!, style: AppTextStyles.screenSubtitle),
           ],
+          if (state.status == TestPreviewStatus.locked &&
+              meta.startedAt != null) ...[
+            const SizedBox(height: 16),
+            _ScheduledBanner(
+              startTime: meta.startedAt!,
+              durationSec: meta.totalTimeLimitSec,
+            ),
+          ],
           const SizedBox(height: 24),
           if (meta.questionCount > 0)
             _InfoCard(
@@ -198,12 +208,6 @@ class _LoadedBody extends StatelessWidget {
             _WarningBlock(
               text:
                   'Таймер запустится сразу после нажатия «Начать». Он не остановится, если вы покинете экран.',
-            ),
-          if (state.status == TestPreviewStatus.locked &&
-              meta.startedAt != null)
-            _WarningBlock(
-              text:
-                  'Тест откроется ${_dateFmt.format(meta.startedAt!.toLocal())}',
             ),
           if (state.status == TestPreviewStatus.expired)
             _WarningBlock(text: 'Срок сдачи истёк', isError: true),
@@ -356,6 +360,159 @@ class _InfoCard extends StatelessWidget {
     );
   }
 }
+
+// ─── Баннер обратного отсчёта ────────────────────────────────────────────────
+
+class _ScheduledBanner extends StatefulWidget {
+  final DateTime startTime;
+  final int? durationSec;
+
+  const _ScheduledBanner({required this.startTime, this.durationSec});
+
+  @override
+  State<_ScheduledBanner> createState() => _ScheduledBannerState();
+}
+
+class _ScheduledBannerState extends State<_ScheduledBanner> {
+  late Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final diff = widget.startTime.toLocal().difference(now);
+    if (diff.isNegative) return const SizedBox.shrink();
+
+    final days = diff.inDays;
+    final hours = diff.inHours % 24;
+    final minutes = diff.inMinutes % 60;
+
+    final start = widget.startTime.toLocal();
+    const ruWeekdays = [
+      '', 'Понедельник', 'Вторник', 'Среда',
+      'Четверг', 'Пятница', 'Суббота', 'Воскресенье',
+    ];
+    const ruMonths = [
+      '', 'янв', 'фев', 'мар', 'апр', 'май', 'июн',
+      'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
+    ];
+
+    final weekday = ruWeekdays[start.weekday];
+    final dateStr = '${start.day} ${ruMonths[start.month]}';
+    final timeStr =
+        '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
+
+    final subParts = ['$weekday, $dateStr · $timeStr'];
+    if (widget.durationSec != null && widget.durationSec! > 0) {
+      final min = (widget.durationSec! / 60).round();
+      subParts.add('длительность ≈ $min мин');
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+      decoration: BoxDecoration(
+        color: AppColors.mono900,
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'СТАРТ ЧЕРЕЗ',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Color(0x80FFFFFF),
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              if (days > 0) ...[
+                _CountUnit(
+                  value: days.toString().padLeft(2, '0'),
+                  unit: 'дн',
+                ),
+                const SizedBox(width: 14),
+              ],
+              _CountUnit(
+                value: hours.toString().padLeft(2, '0'),
+                unit: 'ч',
+              ),
+              const SizedBox(width: 14),
+              _CountUnit(
+                value: minutes.toString().padLeft(2, '0'),
+                unit: 'мин',
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            subParts.join(' · '),
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0x80FFFFFF),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CountUnit extends StatelessWidget {
+  final String value;
+  final String unit;
+
+  const _CountUnit({required this.value, required this.unit});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 44,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+            height: 1.0,
+          ),
+        ),
+        const SizedBox(width: 3),
+        Text(
+          unit,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _WarningBlock extends StatelessWidget {
   final String text;

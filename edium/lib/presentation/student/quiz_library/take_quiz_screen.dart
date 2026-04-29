@@ -905,54 +905,71 @@ class _DragQuestionState extends State<_DragQuestion> {
           style: TextStyle(fontSize: 13, color: AppColors.mono400),
         ),
         const SizedBox(height: 12),
-        ReorderableListView(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          onReorder: (oldIndex, newIndex) {
-            setState(() {
-              if (newIndex > oldIndex) newIndex--;
-              final item = _items.removeAt(oldIndex);
-              _items.insert(newIndex, item);
-            });
-            widget.onReorder(List.from(_items));
-          },
-          children: _items.asMap().entries.map((entry) {
-            final i = entry.key;
-            final item = entry.value;
-            return Container(
-              key: ValueKey(item),
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
+        Theme(
+          data: Theme.of(context).copyWith(canvasColor: Colors.transparent),
+          child: ReorderableListView(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
+            proxyDecorator: (child, index, animation) {
+              return Material(
+                elevation: 6,
+                color: Colors.transparent,
+                shadowColor: Colors.black12,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.mono150, width: 1.5),
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    '${i + 1}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.mono350,
-                    ),
+                clipBehavior: Clip.antiAlias,
+                child: child,
+              );
+            },
+            onReorder: (oldIndex, newIndex) {
+              setState(() {
+                if (newIndex > oldIndex) newIndex--;
+                final item = _items.removeAt(oldIndex);
+                _items.insert(newIndex, item);
+              });
+              widget.onReorder(List.from(_items));
+            },
+            children: _items.asMap().entries.map((entry) {
+              final i = entry.key;
+              final item = entry.value;
+              return ReorderableDragStartListener(
+                key: ValueKey(item),
+                index: i,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.mono150, width: 1.5),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      item,
-                      style: const TextStyle(
-                          fontSize: 15, color: AppColors.mono900),
-                    ),
+                  child: Row(
+                    children: [
+                      Text(
+                        '${i + 1}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.mono350,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          item,
+                          style: const TextStyle(
+                              fontSize: 15, color: AppColors.mono900),
+                        ),
+                      ),
+                      const Icon(Icons.drag_handle,
+                          color: AppColors.mono250, size: 20),
+                    ],
                   ),
-                  const Icon(Icons.drag_handle,
-                      color: AppColors.mono250, size: 20),
-                ],
-              ),
-            );
-          }).toList(),
+                ),
+              );
+            }).toList(),
+          ),
         ),
       ],
     );
@@ -980,10 +997,24 @@ class _ConnectionQuestionState extends State<_ConnectionQuestion> {
   String? _selectedLeft;
   late Map<String, String> _pairs;
 
+  // GlobalKeys to measure each card's position on screen
+  late List<GlobalKey> _leftKeys;
+  late List<GlobalKey> _rightKeys;
+  // Key for the Stack — arrow positions are relative to it
+  final _stackKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     _pairs = Map.from(widget.currentPairs ?? {});
+    _initKeys();
+  }
+
+  void _initKeys() {
+    final left = _leftItems;
+    final right = _rightItems;
+    _leftKeys = List.generate(left.length, (_) => GlobalKey());
+    _rightKeys = List.generate(right.length, (_) => GlobalKey());
   }
 
   @override
@@ -992,6 +1023,7 @@ class _ConnectionQuestionState extends State<_ConnectionQuestion> {
     if (old.question.id != widget.question.id) {
       _selectedLeft = null;
       _pairs = Map.from(widget.currentPairs ?? {});
+      _initKeys();
     }
   }
 
@@ -1023,8 +1055,61 @@ class _ConnectionQuestionState extends State<_ConnectionQuestion> {
     widget.onPairsChanged(Map.from(_pairs));
   }
 
+  void _removePair(String left) {
+    setState(() => _pairs.remove(left));
+    widget.onPairsChanged(Map.from(_pairs));
+  }
+
+  // Returns Rect of a keyed widget in the coordinate space of [_stackKey].
+  Rect? _rectOf(GlobalKey key) {
+    final box = key.currentContext?.findRenderObject() as RenderBox?;
+    final stackBox =
+        _stackKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || stackBox == null) return null;
+    final topLeft = stackBox.globalToLocal(box.localToGlobal(Offset.zero));
+    return topLeft & box.size;
+  }
+
+  // Build list of (fromRect, toRect, leftItem) for all active pairs
+  List<({Rect fromRect, Rect toRect, String leftItem})> _arrowData() {
+    final leftItems = _leftItems;
+    final rightItems = _rightItems;
+    final result = <({Rect fromRect, Rect toRect, String leftItem})>[];
+    for (final entry in _pairs.entries) {
+      final li = leftItems.indexOf(entry.key);
+      final ri = rightItems.indexOf(entry.value);
+      if (li == -1 || ri == -1) continue;
+      final fromRect = _rectOf(_leftKeys[li]);
+      final toRect = _rectOf(_rightKeys[ri]);
+      if (fromRect != null && toRect != null) {
+        result.add((fromRect: fromRect, toRect: toRect, leftItem: entry.key));
+      }
+    }
+    return result;
+  }
+
+  // Detect tap on an arrow segment (within 20px of the line midpoint)
+  void _onTapStack(TapUpDetails details) {
+    final arrows = _arrowData();
+    for (final arrow in arrows) {
+      final from = Offset(arrow.fromRect.right, arrow.fromRect.center.dy);
+      final to = Offset(arrow.toRect.left, arrow.toRect.center.dy);
+      final mid = Offset((from.dx + to.dx) / 2, (from.dy + to.dy) / 2);
+      if ((details.localPosition - mid).distance < 20) {
+        _removePair(arrow.leftItem);
+        return;
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final leftItems = _leftItems;
+    final rightItems = _rightItems;
+    final rowCount = leftItems.length > rightItems.length
+        ? leftItems.length
+        : rightItems.length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1033,134 +1118,258 @@ class _ConnectionQuestionState extends State<_ConnectionQuestion> {
           style: TextStyle(fontSize: 13, color: AppColors.mono400),
         ),
         const SizedBox(height: 14),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                children: _leftItems.map((item) {
-                  final isSelected = _selectedLeft == item;
-                  final isPaired = _pairs.containsKey(item);
-                  return GestureDetector(
-                    onTap: () => _onTapLeft(item),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.mono900
-                            : isPaired
-                                ? AppColors.mono50
-                                : Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isSelected
-                              ? AppColors.mono900
-                              : isPaired
-                                  ? AppColors.mono350
-                                  : AppColors.mono150,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Text(
-                        item,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: isSelected
-                              ? Colors.white
-                              : AppColors.mono900,
-                        ),
-                        textAlign: TextAlign.center,
+        GestureDetector(
+          onTapUp: _onTapStack,
+          child: Stack(
+            key: _stackKey,
+            children: [
+              // ── Grid of cards ────────────────────────────────────────
+              Column(
+                children: List.generate(rowCount, (i) {
+                  final left = i < leftItems.length ? leftItems[i] : null;
+                  final right = i < rightItems.length ? rightItems[i] : null;
+
+                  final isLeftSelected =
+                      left != null && _selectedLeft == left;
+                  final isLeftPaired =
+                      left != null && _pairs.containsKey(left);
+                  final isRightPaired =
+                      right != null && _pairs.values.contains(right);
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Left card
+                          Expanded(
+                            child: left != null
+                                ? GestureDetector(
+                                    onTap: () => _onTapLeft(left),
+                                    child: Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        AnimatedContainer(
+                                          key: _leftKeys[i],
+                                          duration: const Duration(
+                                              milliseconds: 150),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 14),
+                                          decoration: BoxDecoration(
+                                            color: isLeftSelected
+                                                ? AppColors.mono900
+                                                : isLeftPaired
+                                                    ? AppColors.mono50
+                                                    : Colors.white,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: isLeftSelected
+                                                  ? AppColors.mono900
+                                                  : isLeftPaired
+                                                      ? AppColors.mono350
+                                                      : AppColors.mono150,
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              left,
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                                color: isLeftSelected
+                                                    ? Colors.white
+                                                    : AppColors.mono900,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ),
+                                        ),
+                                        // Dot on right edge
+                                        Positioned(
+                                          right: -5,
+                                          top: 0,
+                                          bottom: 0,
+                                          child: Center(
+                                            child: _EdgeDot(
+                                              active: isLeftPaired ||
+                                                  isLeftSelected,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+
+                          // Gap between columns
+                          const SizedBox(width: 32),
+
+                          // Right card
+                          Expanded(
+                            child: right != null
+                                ? GestureDetector(
+                                    onTap: () => _onTapRight(right),
+                                    child: Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        AnimatedContainer(
+                                          key: _rightKeys[i],
+                                          duration: const Duration(
+                                              milliseconds: 150),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 14),
+                                          decoration: BoxDecoration(
+                                            color: isRightPaired
+                                                ? AppColors.mono50
+                                                : Colors.white,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: isRightPaired
+                                                  ? AppColors.mono350
+                                                  : AppColors.mono150,
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              right,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                                color: AppColors.mono900,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ),
+                                        ),
+                                        // Dot on left edge
+                                        Positioned(
+                                          left: -5,
+                                          top: 0,
+                                          bottom: 0,
+                                          child: Center(
+                                            child: _EdgeDot(
+                                              active: isRightPaired,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                        ],
                       ),
                     ),
                   );
-                }).toList(),
+                }),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Column(
-                children: _leftItems.map((left) {
-                  final paired = _pairs[left];
-                  return Container(
-                    height: 48,
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: Center(
-                      child: Icon(
-                        paired != null
-                            ? Icons.arrow_forward
-                            : Icons.more_horiz,
-                        size: 16,
-                        color: paired != null
-                            ? AppColors.mono700
-                            : AppColors.mono200,
-                      ),
+
+              // ── Arrow overlay ────────────────────────────────────────
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: _ConnectionArrowPainter(
+                      arrows: _arrowData(),
                     ),
-                  );
-                }).toList(),
-              ),
-            ),
-            Expanded(
-              child: Column(
-                children: _rightItems.map((item) {
-                  final isPaired = _pairs.values.contains(item);
-                  return GestureDetector(
-                    onTap: () => _onTapRight(item),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isPaired
-                            ? AppColors.mono50
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isPaired
-                              ? AppColors.mono350
-                              : AppColors.mono150,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Text(
-                        item,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: isPaired
-                              ? AppColors.mono700
-                              : AppColors.mono900,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-        ),
-        if (_pairs.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          ...(_pairs.entries.map((e) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  children: [
-                    const Icon(Icons.check_circle,
-                        size: 14, color: AppColors.mono350),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${e.key} → ${e.value}',
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.mono400),
-                    ),
-                  ],
+                  ),
                 ),
-              ))),
-        ],
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
 }
+
+// ── Arrow painter ─────────────────────────────────────────────────────────────
+
+class _ConnectionArrowPainter extends CustomPainter {
+  final List<({Rect fromRect, Rect toRect, String leftItem})> arrows;
+
+  _ConnectionArrowPainter({required this.arrows});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (arrows.isEmpty) return;
+
+    const color = AppColors.mono700;
+    final linePaint = Paint()
+      ..color = color
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final arrowPaint = Paint()
+      ..color = color
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    for (final arrow in arrows) {
+      // Start: right-center of left card, End: left-center of right card
+      final from = Offset(arrow.fromRect.right, arrow.fromRect.center.dy);
+      final to = Offset(arrow.toRect.left, arrow.toRect.center.dy);
+
+      final dir = to - from;
+      final len = dir.distance;
+      if (len < 4) continue;
+      final unit = dir / len;
+
+      canvas.drawLine(from, to, linePaint);
+
+      // Arrowhead at the end point
+      const headLen = 8.0;
+      const headAngle = 0.42; // ~24°
+      final p1 = to - Offset(
+        unit.dx * headLen - unit.dy * headLen * headAngle,
+        unit.dy * headLen + unit.dx * headLen * headAngle,
+      );
+      final p2 = to - Offset(
+        unit.dx * headLen + unit.dy * headLen * headAngle,
+        unit.dy * headLen - unit.dx * headLen * headAngle,
+      );
+
+      final path = Path()
+        ..moveTo(p1.dx, p1.dy)
+        ..lineTo(to.dx, to.dy)
+        ..lineTo(p2.dx, p2.dy);
+      canvas.drawPath(path, arrowPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ConnectionArrowPainter old) => old.arrows != arrows;
+}
+
+// ── Edge dot ──────────────────────────────────────────────────────────────────
+
+class _EdgeDot extends StatelessWidget {
+  final bool active;
+  const _EdgeDot({required this.active});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: active ? AppColors.mono700 : Colors.white,
+        border: Border.all(
+          color: active ? AppColors.mono700 : AppColors.mono250,
+          width: 1.5,
+        ),
+      ),
+    );
+  }
+}
+
