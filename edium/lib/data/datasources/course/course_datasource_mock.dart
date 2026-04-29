@@ -2,11 +2,11 @@ import 'package:edium/core/storage/profile_storage.dart';
 import 'package:edium/data/datasources/course/course_datasource.dart';
 import 'package:edium/domain/entities/course_detail.dart';
 
-const _mockModules = <String, ModuleDetail>{
+final _mockModules = <String, ModuleDetail>{
   'module-1': ModuleDetail(
     id: 'module-1',
     title: 'Модуль 1: Многочлены',
-    elementCount: 3,
+    elementCount: 4,
     items: [
       CourseItem(
         id: 'item-1',
@@ -38,6 +38,20 @@ const _mockModules = <String, ModuleDetail>{
         title: 'Итоговый тест по многочленам',
         quizType: 'test',
         state: 'completed',
+      ),
+      CourseItem(
+        id: 'item-wait-1',
+        refId: 'mock-test-sess-wait',
+        type: 'quiz',
+        orderIndex: 3,
+        title: 'Базовый синтаксис dart',
+        quizType: 'test',
+        state: 'waiting',
+        startTime: DateTime.utc(2026, 5, 15, 14, 0),
+        payload: CourseItemPayload(
+          mode: 'test',
+          totalTimeLimitSec: 1080,
+        ),
       ),
     ],
   ),
@@ -186,7 +200,7 @@ class CourseDatasourceMock implements ICourseDatasource {
         ModuleDetail(
           id: 'module-1',
           title: 'Модуль 1: Многочлены',
-          elementCount: 3,
+          elementCount: 4,
           items: [
             CourseItem(
               id: 'item-1',
@@ -216,8 +230,20 @@ class CourseDatasourceMock implements ICourseDatasource {
               title: 'Функции — вводный',
               quizType: 'test',
               state: 'not_started',
-              startTime: DateTime.utc(2030, 1, 1, 9),
-              endTime: DateTime.utc(2030, 1, 10, 23, 59),
+            ),
+            CourseItem(
+              id: 'item-wait-1',
+              refId: 'mock-test-sess-wait',
+              type: 'quiz',
+              orderIndex: 3,
+              title: 'Базовый синтаксис dart',
+              quizType: 'test',
+              state: 'waiting',
+              startTime: DateTime.utc(2026, 5, 15, 14, 0),
+              payload: CourseItemPayload(
+                mode: 'test',
+                totalTimeLimitSec: 1080,
+              ),
             ),
           ],
         ),
