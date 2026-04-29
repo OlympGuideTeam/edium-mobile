@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
@@ -48,14 +50,15 @@ class TestSessionResultsScreen extends StatelessWidget {
         listAttempts: getIt(),
         repo: getIt(),
       )..add(LoadSessionResultsEvent(sessionId: sessionId, title: title)),
-      child: _View(sessionId: sessionId),
+      child: _View(sessionId: sessionId, courseItem: courseItem),
     );
   }
 }
 
 class _View extends StatelessWidget {
   final String sessionId;
-  const _View({required this.sessionId});
+  final CourseItem? courseItem;
+  const _View({required this.sessionId, this.courseItem});
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +75,7 @@ class _View extends StatelessWidget {
             child: Column(
               children: [
                 _TopBar(onBack: () => context.pop()),
-                Expanded(child: _body(context, state)),
+                Expanded(child: _body(context, state, courseItem)),
               ],
             ),
           ),
@@ -81,7 +84,7 @@ class _View extends StatelessWidget {
     );
   }
 
-  Widget _body(BuildContext context, TestSessionResultsState state) {
+  Widget _body(BuildContext context, TestSessionResultsState state, CourseItem? courseItem) {
     if (state is TestSessionResultsLoading ||
         state is TestSessionResultsInitial) {
       return const Center(
@@ -100,6 +103,11 @@ class _View extends StatelessWidget {
       );
     }
     if (state is TestSessionResultsLoaded) {
+      final startTime = courseItem?.startTime;
+      final isScheduled = courseItem?.state == 'waiting' &&
+          startTime != null &&
+          startTime.isAfter(DateTime.now());
+
       return RefreshIndicator(
         color: AppColors.mono700,
         onRefresh: () async {
@@ -115,6 +123,13 @@ class _View extends StatelessWidget {
             const SizedBox(height: 4),
             Text(state.title,
                 style: AppTextStyles.screenTitle.copyWith(fontSize: 22)),
+            if (isScheduled) ...[
+              const SizedBox(height: 16),
+              _ScheduledBanner(
+                startTime: startTime,
+                durationSec: courseItem?.payload?.totalTimeLimitSec,
+              ),
+            ],
             const SizedBox(height: 16),
             _SummaryStrip(
               totalCount: state.totalCount,
@@ -583,5 +598,155 @@ class _DeleteButton extends StatelessWidget {
       ),
     );
     return res ?? false;
+  }
+}
+
+// ─── Баннер обратного отсчёта ────────────────────────────────────────────────
+
+class _ScheduledBanner extends StatefulWidget {
+  final DateTime startTime;
+  final int? durationSec;
+
+  const _ScheduledBanner({required this.startTime, this.durationSec});
+
+  @override
+  State<_ScheduledBanner> createState() => _ScheduledBannerState();
+}
+
+class _ScheduledBannerState extends State<_ScheduledBanner> {
+  late Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final diff = widget.startTime.toLocal().difference(now);
+    if (diff.isNegative) return const SizedBox.shrink();
+
+    final days = diff.inDays;
+    final hours = diff.inHours % 24;
+    final minutes = diff.inMinutes % 60;
+
+    final start = widget.startTime.toLocal();
+    const ruWeekdays = [
+      '', 'Понедельник', 'Вторник', 'Среда',
+      'Четверг', 'Пятница', 'Суббота', 'Воскресенье',
+    ];
+    const ruMonths = [
+      '', 'янв', 'фев', 'мар', 'апр', 'май', 'июн',
+      'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
+    ];
+
+    final weekday = ruWeekdays[start.weekday];
+    final dateStr = '${start.day} ${ruMonths[start.month]}';
+    final timeStr =
+        '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
+
+    final subParts = ['$weekday, $dateStr · $timeStr'];
+    if (widget.durationSec != null && widget.durationSec! > 0) {
+      final min = (widget.durationSec! / 60).round();
+      subParts.add('длительность ≈ $min мин');
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+      decoration: BoxDecoration(
+        color: AppColors.mono900,
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'СТАРТ ЧЕРЕЗ',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Color(0x80FFFFFF),
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              if (days > 0) ...[
+                _CountUnit(
+                  value: days.toString().padLeft(2, '0'),
+                  unit: 'дн',
+                ),
+                const SizedBox(width: 14),
+              ],
+              _CountUnit(
+                value: hours.toString().padLeft(2, '0'),
+                unit: 'ч',
+              ),
+              const SizedBox(width: 14),
+              _CountUnit(
+                value: minutes.toString().padLeft(2, '0'),
+                unit: 'мин',
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            subParts.join(' · '),
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0x80FFFFFF),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CountUnit extends StatelessWidget {
+  final String value;
+  final String unit;
+
+  const _CountUnit({required this.value, required this.unit});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 44,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+            height: 1.0,
+          ),
+        ),
+        const SizedBox(width: 3),
+        Text(
+          unit,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
+          ),
+        ),
+      ],
+    );
   }
 }

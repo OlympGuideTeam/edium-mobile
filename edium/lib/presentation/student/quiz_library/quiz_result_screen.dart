@@ -6,6 +6,7 @@ import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/quiz_attempt.dart';
 import 'package:edium/domain/usecases/library_quiz/get_attempt_result_usecase.dart';
+import 'package:edium/presentation/shared/widgets/edium_button.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -647,7 +648,7 @@ class _StatusDot extends StatelessWidget {
       case _AnswerStatus.partial:
         bg = _ResultBody._amberBg;
         fg = _ResultBody._amber;
-        icon = Icons.trending_flat;
+        icon = Icons.remove;
         break;
       case _AnswerStatus.pending:
         bg = AppColors.mono50;
@@ -682,20 +683,9 @@ class _BottomCta extends StatelessWidget {
         AppDimens.screenPaddingH,
         MediaQuery.of(context).padding.bottom + 16,
       ),
-      child: SizedBox(
-        width: double.infinity,
-        height: AppDimens.buttonH,
-        child: ElevatedButton(
-          onPressed: onPressed,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.mono900,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            shape: const StadiumBorder(),
-            textStyle: AppTextStyles.primaryButton,
-          ),
-          child: const Text('К курсу'),
-        ),
+      child: EdiumButton(
+        label: 'К курсу',
+        onPressed: onPressed,
       ),
     );
   }
