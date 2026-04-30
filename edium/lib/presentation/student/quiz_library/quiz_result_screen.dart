@@ -7,6 +7,7 @@ import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/quiz_attempt.dart';
 import 'package:edium/domain/usecases/library_quiz/get_attempt_result_usecase.dart';
 import 'package:edium/presentation/shared/widgets/edium_button.dart';
+import 'package:edium/presentation/student/quiz_library/student_question_review_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -348,10 +349,12 @@ class _ResultBody extends StatelessWidget {
         const SizedBox(height: 10),
         // Answer tiles
         ..._breakdown.toList().asMap().entries.map((entry) {
+          final q = questions[entry.key];
           return _AnswerRow(
             index: entry.key + 1,
             breakdown: entry.value,
             total: _totalQuestions,
+            question: q,
           );
         }),
       ],
@@ -541,11 +544,13 @@ class _AnswerRow extends StatelessWidget {
   final int index;
   final _AnswerBreakdown breakdown;
   final int total;
+  final QuizQuestionForStudent question;
 
   const _AnswerRow({
     required this.index,
     required this.breakdown,
     required this.total,
+    required this.question,
   });
 
   @override
@@ -556,7 +561,17 @@ class _AnswerRow extends StatelessWidget {
         ? '—'
         : '${score.toStringAsFixed(score % 1 == 0 ? 0 : 1)}/$max';
 
-    return Container(
+    return GestureDetector(
+      onTap: () => showStudentQuestionReview(
+        context,
+        data: StudentQuestionReviewData(
+          index: index,
+          total: total,
+          question: question,
+          answer: breakdown.answer,
+        ),
+      ),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
@@ -608,6 +623,7 @@ class _AnswerRow extends StatelessWidget {
               size: 18, color: AppColors.mono300),
         ],
       ),
+    ),
     );
   }
 
