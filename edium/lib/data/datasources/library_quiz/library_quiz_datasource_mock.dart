@@ -95,6 +95,7 @@ class LibraryQuizDatasourceMock implements ILibraryQuizDatasource {
         finalScore: evalResult.score,
         finalSource: evalResult.source,
         finalFeedback: evalResult.feedback,
+        correctData: evalResult.correctData,
       );
     }).toList();
 
@@ -134,7 +135,11 @@ class LibraryQuizDatasourceMock implements ILibraryQuizDatasource {
         }
         return selected == correct
             ? _EvalResult(score: question.maxScore.toDouble(), source: 'auto')
-            : _EvalResult(score: 0, source: 'auto');
+            : _EvalResult(
+                score: 0,
+                source: 'auto',
+                correctData: {'correct_option_ids': [correct]},
+              );
 
       case 'multiple_choice':
         final selected =
@@ -149,6 +154,7 @@ class LibraryQuizDatasourceMock implements ILibraryQuizDatasource {
         return _EvalResult(
           score: (ratio.clamp(0.0, 1.0) * question.maxScore).roundToDouble(),
           source: 'auto',
+          correctData: {'correct_option_ids': correct.toList()},
         );
 
       case 'with_given_answer':
@@ -157,11 +163,18 @@ class LibraryQuizDatasourceMock implements ILibraryQuizDatasource {
         final correctAnswers =
             (full.correctAnswers ?? []).map((a) => a.trim().toLowerCase());
         return correctAnswers.contains(text)
-            ? _EvalResult(score: question.maxScore.toDouble(), source: 'auto')
-            : _EvalResult(score: 0, source: 'auto');
+            ? _EvalResult(
+                score: question.maxScore.toDouble(),
+                source: 'auto',
+                correctData: {'correct_answers': full.correctAnswers ?? []},
+              )
+            : _EvalResult(
+                score: 0,
+                source: 'auto',
+                correctData: {'correct_answers': full.correctAnswers ?? []},
+              );
 
       case 'with_free_answer':
-        // Not auto-graded — mock gives partial score for demo
         return _EvalResult(
           score: (question.maxScore * 0.7).roundToDouble(),
           source: 'llm',
@@ -175,7 +188,11 @@ class LibraryQuizDatasourceMock implements ILibraryQuizDatasource {
         final correctOrder = full.correctOrder ?? [];
         return order.join(',') == correctOrder.join(',')
             ? _EvalResult(score: question.maxScore.toDouble(), source: 'auto')
-            : _EvalResult(score: 0, source: 'auto');
+            : _EvalResult(
+                score: 0,
+                source: 'auto',
+                correctData: {'correct_order': correctOrder},
+              );
 
       case 'connection':
         final pairs = (answerData['pairs'] as Map<String, dynamic>? ?? {})
@@ -186,7 +203,11 @@ class LibraryQuizDatasourceMock implements ILibraryQuizDatasource {
         );
         return allCorrect
             ? _EvalResult(score: question.maxScore.toDouble(), source: 'auto')
-            : _EvalResult(score: 0, source: 'auto');
+            : _EvalResult(
+                score: 0,
+                source: 'auto',
+                correctData: {'correct_pairs': correctPairs},
+              );
 
       default:
         return _EvalResult(score: 0, source: 'auto');
@@ -408,7 +429,10 @@ class LibraryQuizDatasourceMock implements ILibraryQuizDatasource {
             type: 'drag',
             text: 'Расставьте этапы разработки в правильном порядке:',
             maxScore: 10,
-            metadata: const {'items': ['Тестирование', 'Дизайн', 'Требования', 'Разработка']},
+            metadata: const {
+              'items': ['Тестирование', 'Дизайн', 'Требования', 'Разработка'],
+              'correct_order': ['Требования', 'Дизайн', 'Разработка', 'Тестирование'],
+            },
           ),
           QuizQuestionForStudentModel(
             id: 'q004-2',
@@ -422,6 +446,11 @@ class LibraryQuizDatasourceMock implements ILibraryQuizDatasource {
                 'Скрытие данных',
                 'Расширение класса',
               ],
+              'correct_pairs': {
+                'Инкапсуляция': 'Скрытие данных',
+                'Наследование': 'Расширение класса',
+                'Полиморфизм': 'Переопределение методов',
+              },
             },
           ),
         ];
@@ -529,6 +558,12 @@ class _EvalResult {
   final double score;
   final String source;
   final String? feedback;
+  final Map<String, dynamic>? correctData;
 
-  _EvalResult({required this.score, required this.source, this.feedback});
+  _EvalResult({
+    required this.score,
+    required this.source,
+    this.feedback,
+    this.correctData,
+  });
 }

@@ -52,6 +52,9 @@ class AnswerSubmissionResult {
   final double? finalScore;
   final String? finalSource;
   final String? finalFeedback;
+  // Правильные ответы, возвращаемые сервером в результате попытки.
+  // Ключи: correct_option_ids, correct_answers, correct_order, correct_pairs.
+  final Map<String, dynamic>? correctData;
 
   const AnswerSubmissionResult({
     required this.questionId,
@@ -59,6 +62,7 @@ class AnswerSubmissionResult {
     this.finalScore,
     this.finalSource,
     this.finalFeedback,
+    this.correctData,
   });
 }
 
