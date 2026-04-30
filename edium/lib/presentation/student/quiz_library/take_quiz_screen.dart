@@ -1138,7 +1138,8 @@ class _ConnectionQuestionState extends State<_ConnectionQuestion> {
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child: IntrinsicHeight(
+                    child: SizedBox(
+                      height: 84,
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -1155,7 +1156,7 @@ class _ConnectionQuestionState extends State<_ConnectionQuestion> {
                                           duration: const Duration(
                                               milliseconds: 150),
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 14),
+                                              horizontal: 12, vertical: 10),
                                           decoration: BoxDecoration(
                                             color: isLeftSelected
                                                 ? AppColors.mono900
@@ -1184,6 +1185,8 @@ class _ConnectionQuestionState extends State<_ConnectionQuestion> {
                                                     : AppColors.mono900,
                                               ),
                                               textAlign: TextAlign.center,
+                                              maxLines: 3,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
                                         ),
@@ -1221,7 +1224,7 @@ class _ConnectionQuestionState extends State<_ConnectionQuestion> {
                                           duration: const Duration(
                                               milliseconds: 150),
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 14),
+                                              horizontal: 12, vertical: 10),
                                           decoration: BoxDecoration(
                                             color: isRightPaired
                                                 ? AppColors.mono50
@@ -1244,6 +1247,8 @@ class _ConnectionQuestionState extends State<_ConnectionQuestion> {
                                                 color: AppColors.mono900,
                                               ),
                                               textAlign: TextAlign.center,
+                                              maxLines: 3,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
                                         ),
@@ -1306,43 +1311,26 @@ class _ConnectionArrowPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
-    final arrowPaint = Paint()
-      ..color = color
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
     for (final arrow in arrows) {
-      // Start: right-center of left card, End: left-center of right card
       final from = Offset(arrow.fromRect.right, arrow.fromRect.center.dy);
       final to = Offset(arrow.toRect.left, arrow.toRect.center.dy);
 
-      final dir = to - from;
-      final len = dir.distance;
-      if (len < 4) continue;
-      final unit = dir / len;
+      if ((to - from).distance < 4) continue;
 
-      canvas.drawLine(from, to, linePaint);
-
-      // Arrowhead at the end point
-      const headLen = 8.0;
-      const headAngle = 0.42; // ~24°
-      final p1 = to - Offset(
-        unit.dx * headLen - unit.dy * headLen * headAngle,
-        unit.dy * headLen + unit.dx * headLen * headAngle,
-      );
-      final p2 = to - Offset(
-        unit.dx * headLen + unit.dy * headLen * headAngle,
-        unit.dy * headLen - unit.dx * headLen * headAngle,
-      );
-
-      final path = Path()
-        ..moveTo(p1.dx, p1.dy)
-        ..lineTo(to.dx, to.dy)
-        ..lineTo(p2.dx, p2.dy);
-      canvas.drawPath(path, arrowPaint);
+      canvas.drawPath(_buildSCurvePath(from, to), linePaint);
     }
+  }
+
+  // S-curve: exits horizontally from left card, enters horizontally into right card
+  Path _buildSCurvePath(Offset from, Offset to) {
+    final path = Path()..moveTo(from.dx, from.dy);
+    final dx = (to.dx - from.dx) * 0.5;
+    path.cubicTo(
+      from.dx + dx, from.dy,
+      to.dx - dx, to.dy,
+      to.dx, to.dy,
+    );
+    return path;
   }
 
   @override
