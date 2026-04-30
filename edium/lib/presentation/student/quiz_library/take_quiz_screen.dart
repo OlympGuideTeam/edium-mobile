@@ -170,6 +170,7 @@ class _TakeQuizScreenState extends State<TakeQuizScreen> {
         if (state is TakeQuizInProgress && _pageController.hasClients) {
           final currentPage = _pageController.page?.round() ?? 0;
           if (currentPage != state.currentIndex) {
+            FocusScope.of(context).unfocus();
             _skipPageCallback = true;
             _pageController
                 .animateToPage(
@@ -291,6 +292,7 @@ class _TakeQuizScreenState extends State<TakeQuizScreen> {
                 physics: const ClampingScrollPhysics(),
                 itemCount: state.attempt.questions.length,
                 onPageChanged: (index) {
+                  FocusScope.of(context).unfocus();
                   if (!_skipPageCallback) {
                     context
                         .read<TakeQuizBloc>()
