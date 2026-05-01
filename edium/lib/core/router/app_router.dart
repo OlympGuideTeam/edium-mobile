@@ -19,6 +19,7 @@ import 'package:edium/presentation/profile/edit_profile/edit_profile_screen.dart
 import 'package:edium/presentation/profile/notifications/notifications_screen.dart';
 import 'package:edium/presentation/shared/test/attempt_review_screen.dart';
 import 'package:edium/presentation/teacher/grade_attempt/teacher_grade_attempt_screen.dart';
+import 'package:edium/presentation/shared/invite/invite_screen.dart';
 import 'package:edium/presentation/student/home/student_home_screen.dart';
 import 'package:edium/presentation/student/test/test_preview_screen.dart';
 import 'package:edium/presentation/teacher/home/teacher_home_screen.dart';
@@ -91,6 +92,13 @@ GoRouter buildRouter() {
       GoRoute(
         path: '/role-selection',
         builder: (_, __) => const RoleSelectionScreen(),
+      ),
+      GoRoute(
+        path: '/invite/:invitationId',
+        builder: (_, state) {
+          final invitationId = state.pathParameters['invitationId']!;
+          return InviteScreen(invitationId: invitationId);
+        },
       ),
       GoRoute(
         path: '/teacher',

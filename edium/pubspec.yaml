@@ -37,6 +37,8 @@ dependencies:
   excel: ^4.0.6
   share_plus: ^13.1.0
   path_provider: ^2.1.5
+  # Deep links
+  app_links: ^6.4.0
   # Push notifications
   firebase_core: ^3.8.0
   firebase_messaging: ^15.1.5

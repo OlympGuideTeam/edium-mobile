@@ -1,4 +1,3 @@
-import 'package:edium/core/config/api_config.dart';
 import 'package:edium/data/datasources/class/class_datasource.dart';
 import 'package:edium/data/models/class_detail_model.dart';
 import 'package:edium/data/models/class_summary_model.dart';
@@ -94,7 +93,7 @@ class ClassDatasourceImpl extends BaseApiService implements IClassDatasource {
         if (invitationId == null || invitationId.isEmpty) {
           throw Exception('Сервер не вернул идентификатор приглашения');
         }
-        return '${ApiConfig.baseUrl}caesar/v1/invitations/$invitationId/accept';
+        return 'https://links.edium.online/invite/$invitationId';
       },
     );
   }

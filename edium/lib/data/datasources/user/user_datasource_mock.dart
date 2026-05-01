@@ -13,7 +13,7 @@ class UserDatasourceMock implements IUserDatasource {
     await Future.delayed(const Duration(milliseconds: 300));
     return UserModel(
       id: 'mock-user-1',
-      name: _profileStorage.getName() ?? '',
+      name: _profileStorage.getName() ?? 'Иван',
       surname: _profileStorage.getSurname() ?? 'Петров',
       phone: '+79991234567',
       role: _profileStorage.getRole(),
@@ -26,7 +26,7 @@ class UserDatasourceMock implements IUserDatasource {
     await _profileStorage.saveRole(role);
     return UserModel(
       id: 'mock-user-1',
-      name: _profileStorage.getName() ?? '',
+      name: _profileStorage.getName() ?? 'Иван',
       surname: 'Петров',
       phone: '+79991234567',
       role: role,

@@ -1,3 +1,4 @@
+import 'package:app_links/app_links.dart';
 import 'package:edium/core/config/api_config.dart';
 import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/router/app_router.dart' show buildRouter, pushRouteFromNotification;
@@ -11,7 +12,6 @@ import 'package:edium/services/notification_service/deep_link_service.dart';
 import 'package:edium/services/notification_service/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -25,7 +25,7 @@ Future<void> main() async {
   ApiConfig.environment = ProfileStorage.loadEnvironment();
 
   NotificationService? notificationService;
-  DeepLinkService deepLinkService = DeepLinkService();
+  final deepLinkService = DeepLinkService();
 
   try {
     await Firebase.initializeApp(
@@ -35,8 +35,7 @@ Future<void> main() async {
     notificationService = NotificationService();
     await notificationService.initialize();
 
-    final initialMessage =
-        await FirebaseMessaging.instance.getInitialMessage();
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
     final initialRoute = initialMessage?.data['route'] as String?;
     if (initialRoute != null && initialRoute.isNotEmpty) {
       deepLinkService.setPendingRoute(initialRoute);
@@ -45,6 +44,17 @@ Future<void> main() async {
     debugPrint('Firebase init failed: $e');
   }
 
+  // Universal links (iOS) / App Links (Android)
+  // https://links.edium.online/invite/<token> → /invite/<token>
+  final appLinks = AppLinks();
+  try {
+    final initialUri = await appLinks.getInitialLink();
+    if (initialUri != null) {
+      final route = _parseDeepLinkUri(initialUri);
+      if (route != null) deepLinkService.setPendingRoute(route);
+    }
+  } catch (_) {}
+
   await initializeDependencies(
     notificationService: notificationService ?? NotificationService(),
     deepLinkService: deepLinkService,
@@ -52,13 +62,17 @@ Future<void> main() async {
 
   getIt<AuthBloc>().add(const AppStarted());
 
+  // Listen for links while app is running in foreground/background
+  appLinks.uriLinkStream.listen((uri) {
+    final route = _parseDeepLinkUri(uri);
+    if (route != null) getIt<DeepLinkService>().setPendingRoute(route);
+  });
+
   if (notificationService != null) {
     // Use push (not go) so the user can navigate back from the opened screen
     notificationService.tapRoute.addListener(() {
       final route = notificationService!.tapRoute.value;
-      if (route != null) {
-        pushRouteFromNotification(route);
-      }
+      if (route != null) pushRouteFromNotification(route);
     });
   }
 
@@ -70,6 +84,15 @@ Future<void> main() async {
   );
 }
 
+// https://links.edium.online/invite/{token} → /invite/{token}
+String? _parseDeepLinkUri(Uri uri) {
+  if (uri.host != 'links.edium.online') return null;
+  final segments = uri.pathSegments;
+  if (segments.length == 2 && segments[0] == 'invite') {
+    return '/invite/${segments[1]}';
+  }
+  return null;
+}
 
 class EdiumApp extends StatelessWidget {
   const EdiumApp({super.key});
@@ -96,4 +119,3 @@ class EdiumApp extends StatelessWidget {
     );
   }
 }
-
