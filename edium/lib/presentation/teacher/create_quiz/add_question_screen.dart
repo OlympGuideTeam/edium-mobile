@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
@@ -243,12 +245,13 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
           return null;
         }
         setState(() => _error = null);
+        final shuffled = List<String>.from(items)..shuffle(Random());
         return {
           'type': _type.apiValue,
           'text': text,
           'max_score': 10,
           'answer_options': [],
-          'metadata': {'correct_order': items},
+          'metadata': {'items': shuffled, 'correct_order': items},
         };
 
       case _QType.connection:
