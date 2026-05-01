@@ -217,6 +217,74 @@ class _TakeQuizScreenState extends State<TakeQuizScreen> {
           );
         }
 
+        if (state is TakeQuizSubmitted) {
+          return Scaffold(
+            backgroundColor: Colors.white,
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: AppColors.mono100,
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: const Icon(Icons.check,
+                          color: AppColors.mono900, size: 36),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Спасибо за сдачу!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.mono900,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Работа успешно отправлена на оценку учителем.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: AppColors.mono600,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.mono900,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Вернуться к квизам',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
         if (state is TakeQuizError) {
           return Scaffold(
             backgroundColor: Colors.white,
@@ -939,7 +1007,7 @@ class _DragQuestionState extends State<_DragQuestion> {
               final i = entry.key;
               final item = entry.value;
               return ReorderableDragStartListener(
-                key: ValueKey(item),
+                key: ValueKey('$i:$item'),
                 index: i,
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 8),

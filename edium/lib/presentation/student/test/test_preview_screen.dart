@@ -172,14 +172,13 @@ class _LoadedBody extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 24),
-          if (meta.questionCount > 0)
-            _InfoCard(
-              icon: Icons.quiz_outlined,
-              title: 'Количество вопросов',
-              value: '${meta.questionCount}',
-            ),
+          _InfoCard(
+            icon: Icons.quiz_outlined,
+            title: 'Количество вопросов',
+            value: meta.questionCount > 0 ? '${meta.questionCount}' : '—',
+          ),
           if (meta.hasTimeLimit) ...[
-            if (meta.questionCount > 0) const SizedBox(height: 10),
+            const SizedBox(height: 10),
             _InfoCard(
               icon: Icons.timer_outlined,
               title: 'Ограничение по времени',
@@ -187,8 +186,7 @@ class _LoadedBody extends StatelessWidget {
             ),
           ],
           if (meta.finishedAt != null) ...[
-            if (meta.questionCount > 0 || meta.hasTimeLimit)
-              const SizedBox(height: 10),
+            const SizedBox(height: 10),
             _InfoCard(
               icon: Icons.event_outlined,
               title: 'Дедлайн',
@@ -374,19 +372,36 @@ class _ScheduledBanner extends StatefulWidget {
 }
 
 class _ScheduledBannerState extends State<_ScheduledBanner> {
-  late Timer _timer;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(minutes: 1), (_) {
-      if (mounted) setState(() {});
-    });
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    final remaining = widget.startTime.toLocal().difference(DateTime.now());
+    if (remaining.isNegative) return;
+
+    if (remaining.inSeconds < 60) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    } else {
+      _timer = Timer.periodic(const Duration(minutes: 1), (_) {
+        if (!mounted) return;
+        setState(() {});
+        final r = widget.startTime.toLocal().difference(DateTime.now());
+        if (r.inSeconds < 60) _startTimer();
+      });
+    }
   }
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -396,9 +411,11 @@ class _ScheduledBannerState extends State<_ScheduledBanner> {
     final diff = widget.startTime.toLocal().difference(now);
     if (diff.isNegative) return const SizedBox.shrink();
 
+    final isUnderMinute = diff.inSeconds < 60;
     final days = diff.inDays;
     final hours = diff.inHours % 24;
     final minutes = diff.inMinutes % 60;
+    final seconds = diff.inSeconds % 60;
 
     final start = widget.startTime.toLocal();
     const ruWeekdays = [
@@ -445,22 +462,29 @@ class _ScheduledBannerState extends State<_ScheduledBanner> {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              if (days > 0) ...[
+              if (isUnderMinute) ...[
                 _CountUnit(
-                  value: days.toString().padLeft(2, '0'),
-                  unit: 'дн',
+                  value: seconds.toString().padLeft(2, '0'),
+                  unit: 'сек',
+                ),
+              ] else ...[
+                if (days > 0) ...[
+                  _CountUnit(
+                    value: days.toString().padLeft(2, '0'),
+                    unit: 'дн',
+                  ),
+                  const SizedBox(width: 14),
+                ],
+                _CountUnit(
+                  value: hours.toString().padLeft(2, '0'),
+                  unit: 'ч',
                 ),
                 const SizedBox(width: 14),
+                _CountUnit(
+                  value: minutes.toString().padLeft(2, '0'),
+                  unit: 'мин',
+                ),
               ],
-              _CountUnit(
-                value: hours.toString().padLeft(2, '0'),
-                unit: 'ч',
-              ),
-              const SizedBox(width: 14),
-              _CountUnit(
-                value: minutes.toString().padLeft(2, '0'),
-                unit: 'мин',
-              ),
             ],
           ),
           const SizedBox(height: 10),

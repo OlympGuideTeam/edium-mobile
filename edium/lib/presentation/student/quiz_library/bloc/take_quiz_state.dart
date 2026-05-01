@@ -99,6 +99,10 @@ class TakeQuizCompleted extends TakeQuizState {
       [result, maxPossibleScore, quizTitle, questions];
 }
 
+class TakeQuizSubmitted extends TakeQuizState {
+  const TakeQuizSubmitted();
+}
+
 class TakeQuizError extends TakeQuizState {
   final String message;
   const TakeQuizError(this.message);
