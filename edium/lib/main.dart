@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:app_links/app_links.dart';
 import 'package:edium/core/config/api_config.dart';
@@ -18,6 +19,7 @@ import 'package:edium/services/notification_service/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -45,6 +47,7 @@ void _handleNotificationTap({
   required String? role,
   required String? messageId,
   required bool wasInForeground,
+  bool fromTerminatedLaunch = false,
 }) {
   if (messageId != null) {
     if (_processedMessageIds.contains(messageId)) return;
@@ -55,7 +58,7 @@ void _handleNotificationTap({
   }
 
   final state = getIt<AuthBloc>().state;
-  final isColdStart = state is! AuthAuthenticated;
+  final isColdStart = fromTerminatedLaunch || state is! AuthAuthenticated;
 
   // NavigationBlockService applies only to live taps — on cold start there's
   // no sensitive screen yet.
@@ -74,6 +77,14 @@ void _handleNotificationTap({
 
     final capturedRoute = route;
     final capturedRole = role;
+
+    if (state is AuthAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        debugPrint('[Notif] cold-start already authed, routing to $capturedRoute');
+        _routeOrSwitch(state, route: capturedRoute, role: capturedRole);
+      });
+      return;
+    }
 
     late StreamSubscription<AuthState> sub;
     sub = getIt<AuthBloc>().stream.listen((s) {
@@ -115,6 +126,84 @@ void _handleNotificationTap({
       'wasFG=$wasInForeground → $targetRoute');
 
   _routeOrSwitch(state, route: targetRoute, role: targetRole);
+}
+
+const _iosLaunchNotificationChannel =
+    MethodChannel('edium/launch_notification');
+
+/// Fallback при UIScene: тап по FCM лежит в `SceneDelegate.connectionOptions`, см. AppDelegate.swift.
+Future<Map<String, String>?> _consumeIosNativePendingLaunch({
+  int attempts = 1,
+  Duration delay = Duration.zero,
+}) async {
+  for (var i = 0; i < attempts; i++) {
+    try {
+      final raw = await _iosLaunchNotificationChannel
+          .invokeMethod<dynamic>('consumePendingLaunchNotification');
+      if (raw is Map) {
+        final map = <String, String>{};
+        for (final e in raw.entries) {
+          final v = e.value;
+          map[e.key.toString()] = v == null ? '' : v.toString();
+        }
+        final route = map['route'];
+        if (route != null && route.isNotEmpty) return map;
+      }
+    } catch (e) {
+      debugPrint('[Notif] iOS native launch channel not ready ($i): $e');
+    }
+    if (delay > Duration.zero) {
+      await Future<void>.delayed(delay);
+    }
+  }
+  return null;
+}
+
+void _handleRemoteMessageTap(
+  RemoteMessage message, {
+  bool fromTerminatedLaunch = false,
+}) {
+  final route = message.data['route']?.toString();
+  final role = message.data['role']?.toString();
+  if (route == null || route.isEmpty) return;
+  _handleNotificationTap(
+    route: route,
+    role: role,
+    messageId: message.messageId,
+    wasInForeground: false,
+    fromTerminatedLaunch: fromTerminatedLaunch,
+  );
+}
+
+Future<void> _resolveIosTerminatedTapFallback() async {
+  debugPrint('[Notif] iOS fallback resolver started');
+  for (var i = 0; i < 40; i++) {
+    final m = await FirebaseMessaging.instance.getInitialMessage();
+    if (m != null) {
+      debugPrint('[Notif] iOS delayed getInitialMessage resolved on try #$i');
+      _handleRemoteMessageTap(m, fromTerminatedLaunch: true);
+      return;
+    }
+
+    final native = await _consumeIosNativePendingLaunch();
+    final route = native?['route'];
+    if (native != null && route != null && route.isNotEmpty) {
+      final roleRaw = native['role'];
+      final midRaw = native['messageId'];
+      debugPrint('[Notif] cold start from native Scene tap route=$route try #$i');
+      _handleNotificationTap(
+        route: route,
+        role: (roleRaw == null || roleRaw.isEmpty) ? null : roleRaw,
+        messageId: (midRaw == null || midRaw.isEmpty) ? null : midRaw,
+        wasInForeground: false,
+        fromTerminatedLaunch: true,
+      );
+      return;
+    }
+
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+  }
+  debugPrint('[Notif] iOS fallback resolver finished without launch payload');
 }
 
 void _routeOrSwitch(
@@ -222,16 +311,11 @@ Future<void> main() async {
   // foreground → wasInForeground:false. Dedup by messageId protects us if
   // onMessageOpenedApp also fires for the same message.
   if (initialMessage != null) {
-    final route = initialMessage.data['route']?.toString();
-    final role = initialMessage.data['role']?.toString();
-    if (route != null && route.isNotEmpty) {
-      _handleNotificationTap(
-        route: route,
-        role: role,
-        messageId: initialMessage.messageId,
-        wasInForeground: false,
-      );
-    }
+    _handleRemoteMessageTap(initialMessage, fromTerminatedLaunch: true);
+  } else if (Platform.isIOS) {
+    // Важно: не блокируем runApp на iOS fallback, иначе cold start даёт
+    // несколько секунд белого экрана. Резолвим tap асинхронно.
+    unawaited(_resolveIosTerminatedTapFallback());
   }
 
   debugPrint('[Boot] calling runApp (AppStarted после первого кадра)');
