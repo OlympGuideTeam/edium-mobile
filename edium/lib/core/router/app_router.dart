@@ -32,11 +32,6 @@ import 'package:go_router/go_router.dart';
 
 GoRouter? _routerInstance;
 
-// Used by main.dart for live notification taps (push on top of current stack)
-void pushRouteFromNotification(String route) {
-  _routerInstance?.push(route);
-}
-
 class RouterNotifier extends ChangeNotifier {
   late final StreamSubscription _sub;
 
@@ -51,13 +46,30 @@ class RouterNotifier extends ChangeNotifier {
   }
 }
 
-final _routerNotifier = RouterNotifier();
+RouterNotifier? _routerNotifier;
 
+RouterNotifier _routerNotifierInstance() {
+  _routerNotifier ??= RouterNotifier();
+  return _routerNotifier!;
+}
+
+/// После [GetIt.reset] старый [RouterNotifier] слушает уничтоженный [AuthBloc].
+/// Вызывать перед повторной регистрацией DI (смена окружения).
+void resetAppRouterAfterGetItClear() {
+  _routerInstance?.dispose();
+  _routerInstance = null;
+  _routerNotifier?.dispose();
+  _routerNotifier = null;
+}
+
+/// Один экземпляр на процесс. Раньше [buildRouter] вызывался из [EdiumApp.build]
+/// и каждый раз создавал новый [GoRouter] — на iOS это давало пустой/белый
+/// первый кадр и рассинхрон с [MaterialApp.router].
 GoRouter buildRouter() {
-  _routerInstance = GoRouter(
+  _routerInstance ??= GoRouter(
     initialLocation: '/splash',
     refreshListenable: Listenable.merge([
-      _routerNotifier,
+      _routerNotifierInstance(),
       getIt<DeepLinkService>(),
     ]),
     redirect: _redirect,
@@ -256,15 +268,19 @@ String? _redirect(BuildContext context, GoRouterState state) {
     final deepLink = getIt<DeepLinkService>().consumePendingRoute();
     debugPrint('[Router] _redirect called, location=$location, deepLink=$deepLink');
     if (deepLink != null) {
-      // Navigate to home first, then push the deep link on top so the user
-      // has something to go back to.
+      // Navigate to the correct home first, then push the deep link on top
+      // so the user has something to go back to. Returning homeRoute makes
+      // GoRouter clear the stack — useful on terminated launch (current
+      // location may be /splash) and on role switch (back swipe goes to the
+      // new role's home, not the previous role's screen).
       final homeRoute = _homeRoute(authState);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Defer push until after GoRouter finishes its redirect-driven
+      // navigation. addPostFrameCallback alone fires before the redirect
+      // chain completes; a small delay is more reliable.
+      Future.delayed(const Duration(milliseconds: 200), () {
         _routerInstance?.push(deepLink);
       });
-      if (isAuthPath || location == homeRoute) return homeRoute;
-      // Already on a non-auth screen — push on top without redirecting
-      WidgetsBinding.instance.addPostFrameCallback((_) {});
+      if (isAuthPath || location != homeRoute) return homeRoute;
       return null;
     }
 

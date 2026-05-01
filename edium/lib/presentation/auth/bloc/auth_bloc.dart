@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:edium/core/storage/profile_storage.dart';
@@ -12,7 +13,9 @@ import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
 import 'package:edium/services/herald_api_service/herald_api_service_interface.dart';
 import 'package:edium/services/network/dio_handler.dart';
+import 'package:edium/services/notification_service/deep_link_service.dart';
 import 'package:edium/services/notification_service/notification_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
@@ -25,6 +28,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final DioHandler dioHandler;
   final NotificationService notificationService;
   final IHeraldApiService heraldApiService;
+  final DeepLinkService deepLinkService;
+
+  StreamSubscription<String>? _tokenRefreshSub;
 
   AuthBloc({
     required this.sendOtp,
@@ -36,6 +42,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.dioHandler,
     required this.notificationService,
     required this.heraldApiService,
+    required this.deepLinkService,
   }) : super(const AuthInitial()) {
     on<AppStarted>(_onAppStarted);
     on<SendOtpEvent>(_onSendOtp);
@@ -44,6 +51,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<NameSubmittedEvent>(_onNameSubmitted);
     on<RoleSelectedEvent>(_onRoleSelected);
     on<LogoutEvent>(_onLogout);
+    on<SwitchToRoleEvent>(_onSwitchToRole);
   }
 
   Future<void> _onAppStarted(
@@ -210,6 +218,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     dioHandler.stopProactiveRefresh();
+    await _tokenRefreshSub?.cancel();
+    _tokenRefreshSub = null;
     emit(const AuthLoading());
     try {
       // TODO: unregister FCM token from Herald once backend supports token in logout
@@ -219,6 +229,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await profileStorage.clear();
     } catch (_) {}
     emit(const AuthUnauthenticated());
+  }
+
+  Future<void> _onSwitchToRole(
+    SwitchToRoleEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    final current = state;
+    if (current is! AuthAuthenticated) {
+      debugPrint('[Auth] SwitchToRole ignored: state is ${current.runtimeType}');
+      return;
+    }
+    final role = event.role == 'teacher' ? UserRole.teacher : UserRole.student;
+    debugPrint('[Auth] SwitchToRole ${current.user.role} → $role');
+    await profileStorage.saveRole(event.role);
+    emit(AuthAuthenticated(current.user.copyWith(role: role)));
   }
 
   void _registerFcmToken() {
@@ -232,6 +257,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         if (token == null) return;
         final platform = Platform.isIOS ? 'ios' : 'android';
         await heraldApiService.registerDevice(token, platform);
+
+        _tokenRefreshSub?.cancel();
+        _tokenRefreshSub = notificationService.tokenRefreshStream.listen(
+          (newToken) async {
+            try {
+              await heraldApiService.registerDevice(newToken, platform);
+            } catch (_) {}
+          },
+        );
       } catch (_) {
         // Non-critical: app works without push notifications
       }
