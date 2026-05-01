@@ -25,8 +25,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 final ValueNotifier<int> appRestartKey = ValueNotifier(0);
 
-const _notificationsTabRoute = '/profile/notifications';
-
 // Dedup by messageId only — catches the same FCM message arriving via
 // multiple paths (e.g., onMessageOpenedApp + getInitialMessage on terminated
 // launch). LRU-capped at 32. Earlier we also deduped by route+role, but
@@ -110,22 +108,15 @@ void _handleNotificationTap({
     return;
   }
 
-  // Live tap (foreground / background, app was already running).
-  // Only foreground taps deep-link directly. Background taps open the
-  // notifications tab to avoid role-switch races.
-  final useNotificationsTab = !wasInForeground;
-  final targetRoute = useNotificationsTab ? _notificationsTabRoute : route;
-  final targetRole = useNotificationsTab ? null : role;
-
-  // Skip live foreground taps that arrived without a route — nothing to
-  // navigate to. (Background/terminated taps are routed to the
-  // notifications tab regardless, so an empty route is fine there.)
-  if (!useNotificationsTab && route.isEmpty) return;
+  // Live tap: приложение уже было запущено (foreground или background).
+  // Тап из шторки ведёт в тот же маршрут и роль, что и баннер в foreground /
+  // cold start — _routeOrSwitch синхронизирует роль перед setPendingRoute.
+  if (route.isEmpty) return;
 
   debugPrint('[Notif] live tap route=$route role=$role mid=$messageId '
-      'wasFG=$wasInForeground → $targetRoute');
+      'wasFG=$wasInForeground');
 
-  _routeOrSwitch(state, route: targetRoute, role: targetRole);
+  _routeOrSwitch(state, route: route, role: role);
 }
 
 const _iosLaunchNotificationChannel =
