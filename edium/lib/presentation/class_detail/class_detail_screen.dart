@@ -700,7 +700,7 @@ class _CourseCard extends StatelessWidget {
 
 // ─── Вкладки "Ученики" и "Учителя" ───────────────────────────────────────
 
-class _MembersTab extends StatelessWidget {
+class _MembersTab extends StatefulWidget {
   final List<MemberShort> members;
   final bool isOwner;
   final String role;
@@ -712,17 +712,38 @@ class _MembersTab extends StatelessWidget {
   });
 
   @override
+  State<_MembersTab> createState() => _MembersTabState();
+}
+
+class _MembersTabState extends State<_MembersTab> {
+  late List<MemberShort> _members;
+
+  @override
+  void initState() {
+    super.initState();
+    _members = List.of(widget.members);
+  }
+
+  @override
+  void didUpdateWidget(_MembersTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.members != widget.members) {
+      _members = List.of(widget.members);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final canDelete = isOwner && role == 'student';
-    final canInvite = isOwner;
+    final canDelete = widget.isOwner;
+    final canInvite = widget.isOwner;
 
     return Column(
       children: [
         Expanded(
-          child: members.isEmpty
+          child: _members.isEmpty
               ? Center(
                   child: Text(
-                    role == 'student' ? 'Учеников пока нет' : 'Учителей пока нет',
+                    widget.role == 'student' ? 'Учеников пока нет' : 'Учителей пока нет',
                     style: const TextStyle(
                       fontSize: 14,
                       color: AppColors.mono400,
@@ -736,10 +757,10 @@ class _MembersTab extends StatelessWidget {
                     AppDimens.screenPaddingH,
                     16,
                   ),
-                  itemCount: members.length,
+                  itemCount: _members.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (context, i) {
-                    final member = members[i];
+                    final member = _members[i];
                     final initial = member.name.isNotEmpty
                         ? member.name[0].toUpperCase()
                         : (member.surname.isNotEmpty ? member.surname[0].toUpperCase() : '?');
@@ -803,6 +824,7 @@ class _MembersTab extends StatelessWidget {
                         member.fullName,
                       ),
                       onDismissed: () {
+                        setState(() => _members.removeAt(i));
                         context
                             .read<ClassDetailBloc>()
                             .add(RemoveMemberEvent(member.id));
@@ -826,7 +848,7 @@ class _MembersTab extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () => context
                     .read<ClassDetailBloc>()
-                    .add(GetInviteLinkEvent(role)),
+                    .add(GetInviteLinkEvent(widget.role)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.mono900,
                   foregroundColor: Colors.white,
@@ -857,7 +879,7 @@ class _MembersTab extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppDimens.radiusLg),
           ),
           title: Text(
-            'Удалить ученика?',
+            widget.role == 'teacher' ? 'Удалить учителя?' : 'Удалить ученика?',
             style: AppTextStyles.heading3.copyWith(
               fontSize: 18,
               fontWeight: FontWeight.w700,
