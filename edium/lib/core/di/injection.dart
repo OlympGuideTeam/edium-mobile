@@ -83,6 +83,7 @@ import 'package:edium/data/datasources/invitation/invitation_datasource_mock.dar
 import 'package:edium/data/repositories/invitation_repository_impl.dart';
 import 'package:edium/domain/repositories/invitation_repository.dart';
 import 'package:edium/domain/usecases/class/accept_invitation_usecase.dart';
+import 'package:edium/domain/usecases/class/get_invitation_usecase.dart';
 import 'package:edium/domain/usecases/class/get_invite_link_usecase.dart';
 import 'package:edium/domain/usecases/class/get_my_classes_usecase.dart';
 import 'package:edium/domain/usecases/class/remove_member_usecase.dart';
@@ -244,6 +245,7 @@ Future<void> initializeDependencies({
   getIt.registerLazySingleton(() => GetCourseSheetUsecase(getIt()));
   getIt.registerLazySingleton(() => RemoveMemberUsecase(getIt()));
   getIt.registerLazySingleton(() => GetInviteLinkUsecase(getIt()));
+  getIt.registerLazySingleton(() => GetInvitationUsecase(getIt()));
   getIt.registerLazySingleton(() => AcceptInvitationUsecase(getIt()));
   getIt.registerLazySingleton(() => GetQuizzesUsecase(getIt()));
   getIt.registerLazySingleton(() => CreateQuizUsecase(getIt()));

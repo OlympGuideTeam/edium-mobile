@@ -5,6 +5,7 @@ import 'package:edium/core/storage/profile_storage.dart';
 import 'package:edium/domain/entities/course_detail.dart';
 import 'package:edium/domain/entities/user.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
+import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
 import 'package:edium/presentation/auth/screens/name_input_screen.dart';
 import 'package:edium/presentation/auth/screens/otp_screen.dart';
@@ -228,6 +229,8 @@ String? _redirect(BuildContext context, GoRouterState state) {
   }
 
   if (authState is AuthUnauthenticated || authState is AuthOtpSent) {
+    // /invite доступен без авторизации — показываем экран с предложением войти
+    if (location.startsWith('/invite')) return null;
     if (!isAuthPath || location == '/splash') return '/welcome';
     return null;
   }
@@ -239,12 +242,19 @@ String? _redirect(BuildContext context, GoRouterState state) {
   }
 
   if (authState is AuthRoleRequired) {
+    final pendingRole = getIt<DeepLinkService>().consumePendingRole();
+    if (pendingRole != null) {
+      getIt<ProfileStorage>().saveRole(pendingRole);
+      getIt<AuthBloc>().add(const RoleSelectedEvent());
+      return null;
+    }
     if (location != '/role-selection') return '/role-selection';
     return null;
   }
 
   if (authState is AuthAuthenticated) {
     final deepLink = getIt<DeepLinkService>().consumePendingRoute();
+    debugPrint('[Router] _redirect called, location=$location, deepLink=$deepLink');
     if (deepLink != null) {
       // Navigate to home first, then push the deep link on top so the user
       // has something to go back to.

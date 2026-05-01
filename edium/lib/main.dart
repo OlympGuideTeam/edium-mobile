@@ -64,7 +64,9 @@ Future<void> main() async {
 
   // Listen for links while app is running in foreground/background
   appLinks.uriLinkStream.listen((uri) {
+    debugPrint('[DeepLink] uriLinkStream received: $uri');
     final route = _parseDeepLinkUri(uri);
+    debugPrint('[DeepLink] parsed route: $route');
     if (route != null) getIt<DeepLinkService>().setPendingRoute(route);
   });
 

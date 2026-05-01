@@ -9,3 +9,7 @@ class InviteScreenOpened extends InviteEvent {
 class InviteAcceptRequested extends InviteEvent {
   const InviteAcceptRequested();
 }
+
+class InviteDeclineRequested extends InviteEvent {
+  const InviteDeclineRequested();
+}

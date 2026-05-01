@@ -97,83 +97,92 @@ class _EditProfileViewState extends State<_EditProfileView> {
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const SizedBox(height: 8),
-                          const Text('Редактирование', style: AppTextStyles.screenTitle),
-                          const SizedBox(height: 32),
-                          const Text('Имя', style: AppTextStyles.fieldLabel),
-                          const SizedBox(height: 8),
-                          _InputField(
-                            controller: _firstNameController,
-                            hint: 'Введите имя',
-                            enabled: !isLoading,
-                          ),
-                          const SizedBox(height: 16),
-                          const Text('Фамилия', style: AppTextStyles.fieldLabel),
-                          const SizedBox(height: 8),
-                          _InputField(
-                            controller: _lastNameController,
-                            hint: 'Введите фамилию',
-                            enabled: !isLoading,
-                          ),
-                          const Spacer(),
-                          SizedBox(
-                            height: 52,
-                            child: ElevatedButton(
-                              onPressed: isLoading ? null : _onSave,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.mono900,
-                                foregroundColor: Colors.white,
-                                disabledBackgroundColor: AppColors.mono200,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                elevation: 0,
-                                textStyle: AppTextStyles.primaryButton,
-                              ),
-                              child: isLoading
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) => SingleChildScrollView(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                            child: IntrinsicHeight(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  const SizedBox(height: 8),
+                                  const Text('Редактирование', style: AppTextStyles.screenTitle),
+                                  const SizedBox(height: 32),
+                                  const Text('Имя', style: AppTextStyles.fieldLabel),
+                                  const SizedBox(height: 8),
+                                  _InputField(
+                                    controller: _firstNameController,
+                                    hint: 'Введите имя',
+                                    enabled: !isLoading,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text('Фамилия', style: AppTextStyles.fieldLabel),
+                                  const SizedBox(height: 8),
+                                  _InputField(
+                                    controller: _lastNameController,
+                                    hint: 'Введите фамилию',
+                                    enabled: !isLoading,
+                                  ),
+                                  const Spacer(),
+                                  SizedBox(
+                                    height: 52,
+                                    child: ElevatedButton(
+                                      onPressed: isLoading ? null : _onSave,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.mono900,
+                                        foregroundColor: Colors.white,
+                                        disabledBackgroundColor: AppColors.mono200,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
+                                        elevation: 0,
+                                        textStyle: AppTextStyles.primaryButton,
                                       ),
-                                    )
-                                  : const Text('Сохранить'),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            height: 48,
-                            child: OutlinedButton(
-                              onPressed: isLoading ? null : () => _showLogoutDialog(context),
-                              style: OutlinedButton.styleFrom(
-                                backgroundColor: AppColors.mono50,
-                                foregroundColor: AppColors.mono600,
-                                side: const BorderSide(color: AppColors.mono150),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                elevation: 0,
-                                textStyle: AppTextStyles.secondaryButton,
+                                      child: isLoading
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : const Text('Сохранить'),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  SizedBox(
+                                    height: 48,
+                                    child: OutlinedButton(
+                                      onPressed: isLoading ? null : () => _showLogoutDialog(context),
+                                      style: OutlinedButton.styleFrom(
+                                        backgroundColor: AppColors.mono50,
+                                        foregroundColor: AppColors.mono600,
+                                        side: const BorderSide(color: AppColors.mono150),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
+                                        elevation: 0,
+                                        textStyle: AppTextStyles.secondaryButton,
+                                      ),
+                                      child: const Text('Выйти из аккаунта'),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  TextButton(
+                                    onPressed: isLoading ? null : () => _showDeleteDialog(context),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: AppColors.error,
+                                      textStyle: AppTextStyles.secondaryButton,
+                                    ),
+                                    child: const Text('Удалить аккаунт'),
+                                  ),
+                                  const SizedBox(height: 24),
+                                ],
                               ),
-                              child: const Text('Выйти из аккаунта'),
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          TextButton(
-                            onPressed: isLoading ? null : () => _showDeleteDialog(context),
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppColors.error,
-                              textStyle: AppTextStyles.secondaryButton,
-                            ),
-                            child: const Text('Удалить аккаунт'),
-                          ),
-                          const SizedBox(height: 24),
-                        ],
+                        ),
                       ),
                     ),
                   ),

@@ -2,12 +2,16 @@ import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
+import 'package:edium/domain/entities/invitation_detail.dart';
+import 'package:edium/domain/entities/user.dart';
 import 'package:edium/domain/usecases/class/accept_invitation_usecase.dart';
+import 'package:edium/domain/usecases/class/get_invitation_usecase.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
 import 'package:edium/presentation/shared/invite/bloc/invite_bloc.dart';
 import 'package:edium/presentation/shared/invite/bloc/invite_event.dart';
 import 'package:edium/presentation/shared/invite/bloc/invite_state.dart';
+import 'package:edium/services/notification_service/deep_link_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -21,6 +25,7 @@ class InviteScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => InviteBloc(
+        getInvitation: getIt<GetInvitationUsecase>(),
         acceptInvitation: getIt<AcceptInvitationUsecase>(),
         invitationId: invitationId,
       ),
@@ -38,22 +43,19 @@ class _InviteView extends StatefulWidget {
 }
 
 class _InviteViewState extends State<_InviteView> {
+  bool get _isAuthenticated => getIt<AuthBloc>().state is AuthAuthenticated;
+
   @override
   void initState() {
     super.initState();
-    final authState = getIt<AuthBloc>().state;
-    if (authState is AuthAuthenticated) {
-      context.read<InviteBloc>().add(const InviteAcceptRequested());
-    } else {
-      context.read<InviteBloc>().add(const InviteScreenOpened());
-    }
+    context.read<InviteBloc>().add(const InviteScreenOpened());
   }
 
   void _navigateHome() {
     final authState = getIt<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
       final role = authState.user.role;
-      if (role?.name == 'teacher') {
+      if (role == UserRole.teacher) {
         context.go('/teacher/home');
       } else {
         context.go('/student/home');
@@ -67,7 +69,15 @@ class _InviteViewState extends State<_InviteView> {
   Widget build(BuildContext context) {
     return BlocListener<InviteBloc, InviteState>(
       listener: (context, state) {
-        if (state is InviteAcceptSuccess || state is InviteAlreadyMember) {
+        if (state is InviteAcceptSuccess) {
+          final authState = getIt<AuthBloc>().state;
+          final homeRoute = authState is AuthAuthenticated && authState.user.role == UserRole.teacher
+              ? '/teacher/home'
+              : '/student/home';
+          context.go(homeRoute);
+          context.push('/class/${state.classId}');
+        }
+        if (state is InviteDeclined) {
           _navigateHome();
         }
       },
@@ -76,8 +86,34 @@ class _InviteViewState extends State<_InviteView> {
         body: SafeArea(
           child: BlocBuilder<InviteBloc, InviteState>(
             builder: (context, state) {
-              if (state is InviteAccepting) {
+              if (state is InviteLoading || state is InviteAccepting) {
                 return const _LoadingBody();
+              }
+              if (state is InviteAlreadyMember) {
+                return _AlreadyMemberBody(onGoHome: _navigateHome);
+              }
+              if (state is InviteUnauthenticated) {
+                return _UnauthInviteBody(
+                  invitationId: widget.invitationId,
+                  detail: null,
+                );
+              }
+              if (state is InviteLoaded) {
+                if (_isAuthenticated) {
+                  return _AuthInviteBody(detail: state.detail);
+                }
+                return _UnauthInviteBody(
+                  invitationId: widget.invitationId,
+                  detail: state.detail,
+                );
+              }
+              if (state is InviteLoadError) {
+                return _ErrorBody(
+                  message: state.message,
+                  onRetry: () => context
+                      .read<InviteBloc>()
+                      .add(const InviteScreenOpened()),
+                );
               }
               if (state is InviteAcceptError) {
                 return _ErrorBody(
@@ -87,7 +123,7 @@ class _InviteViewState extends State<_InviteView> {
                       .add(const InviteAcceptRequested()),
                 );
               }
-              return _InviteBody(invitationId: widget.invitationId);
+              return const _LoadingBody();
             },
           ),
         ),
@@ -96,9 +132,11 @@ class _InviteViewState extends State<_InviteView> {
   }
 }
 
-class _InviteBody extends StatelessWidget {
-  final String invitationId;
-  const _InviteBody({required this.invitationId});
+class _AuthInviteBody extends StatelessWidget {
+  final InvitationDetail detail;
+  const _AuthInviteBody({required this.detail});
+
+  String get _roleLabel => detail.role == 'teacher' ? 'учитель' : 'ученик';
 
   @override
   Widget build(BuildContext context) {
@@ -125,19 +163,135 @@ class _InviteBody extends StatelessWidget {
           Text('Вас пригласили\nв класс', style: AppTextStyles.heading1),
           const SizedBox(height: 12),
           Text(
-            'Войдите в Edium, чтобы принять\nприглашение и присоединиться.',
+            detail.classTitle,
+            style: AppTextStyles.body.copyWith(color: AppColors.mono900),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${detail.studentCount} учеников · $_roleLabel',
+            style: AppTextStyles.body.copyWith(color: AppColors.mono400),
+          ),
+          const Spacer(),
+          _PrimaryButton(
+            label: 'Принять',
+            onTap: () => context.read<InviteBloc>().add(const InviteAcceptRequested()),
+          ),
+          const SizedBox(height: 16),
+          _SecondaryButton(
+            label: 'Отклонить',
+            onTap: () => context.read<InviteBloc>().add(const InviteDeclineRequested()),
+          ),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+}
+
+class _UnauthInviteBody extends StatelessWidget {
+  final String invitationId;
+  final InvitationDetail? detail;
+  const _UnauthInviteBody({required this.invitationId, required this.detail});
+
+  String get _roleLabel => detail?.role == 'teacher' ? 'учитель' : 'ученик';
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppDimens.screenPaddingH),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 64),
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: AppColors.mono100,
+              borderRadius: BorderRadius.circular(AppDimens.radiusXl),
+            ),
+            child: const Icon(
+              Icons.group_outlined,
+              size: 32,
+              color: AppColors.mono700,
+            ),
+          ),
+          const SizedBox(height: 32),
+          Text('Вас пригласили\nв класс', style: AppTextStyles.heading1),
+          const SizedBox(height: 12),
+          if (detail != null) ...[
+            Text(
+              detail!.classTitle,
+              style: AppTextStyles.body.copyWith(color: AppColors.mono900),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${detail!.studentCount} учеников · $_roleLabel',
+              style: AppTextStyles.body.copyWith(color: AppColors.mono400),
+            ),
+            const SizedBox(height: 12),
+          ],
+          Text(
+            'Войдите в Edium, чтобы принять приглашение.',
             style: AppTextStyles.body.copyWith(color: AppColors.mono400),
           ),
           const Spacer(),
           _PrimaryButton(
             label: 'Войти и принять',
-            onTap: () => context.push('/phone'),
+            onTap: () {
+              getIt<DeepLinkService>().setPendingRoute(
+                '/invite/$invitationId',
+                role: detail?.role,
+              );
+              context.push('/phone');
+            },
           ),
           const SizedBox(height: 16),
           _SecondaryButton(
             label: 'Не сейчас',
             onTap: () => context.go('/welcome'),
           ),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+}
+
+class _AlreadyMemberBody extends StatelessWidget {
+  final VoidCallback onGoHome;
+  const _AlreadyMemberBody({required this.onGoHome});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppDimens.screenPaddingH),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 64),
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: AppColors.mono100,
+              borderRadius: BorderRadius.circular(AppDimens.radiusXl),
+            ),
+            child: const Icon(
+              Icons.check_circle_outline,
+              size: 32,
+              color: AppColors.mono700,
+            ),
+          ),
+          const SizedBox(height: 32),
+          Text('Вы уже в классе', style: AppTextStyles.heading1),
+          const SizedBox(height: 12),
+          Text(
+            'Вы уже являетесь участником этого класса.',
+            style: AppTextStyles.body.copyWith(color: AppColors.mono400),
+          ),
+          const Spacer(),
+          _PrimaryButton(label: 'На главную', onTap: onGoHome),
           const SizedBox(height: 40),
         ],
       ),
