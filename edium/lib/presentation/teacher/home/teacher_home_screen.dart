@@ -17,6 +17,7 @@ import 'package:edium/presentation/shared/widgets/edium_tab_bar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -127,6 +128,7 @@ class _TeacherDashboardPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       const Text('Edium', style: AppTextStyles.screenTitle),
+                      const SizedBox(height: 16),
                       const SizedBox(height: 24),
                       const Text('БЫСТРЫЕ ДЕЙСТВИЯ',
                           style: AppTextStyles.sectionTag),

@@ -127,6 +127,7 @@ class _StudentDashboardPage extends StatelessWidget {
                         'Готов проверить свои знания?',
                         style: AppTextStyles.screenSubtitle,
                       ),
+                      const SizedBox(height: 16),
                       const SizedBox(height: 32),
                       Material(
                         color: Colors.white,
