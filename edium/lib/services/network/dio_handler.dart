@@ -35,7 +35,8 @@ class DioHandler {
     };
 
     bool _isPublic(String path) =>
-        _publicPaths.any((e) => path.contains(e.path));
+        _publicPaths.any((e) => path.contains(e.path)) ||
+        RegExp(r'caesar/v1/invitations/[^/]+$').hasMatch(path);
 
     dio.interceptors.add(
       QueuedInterceptorsWrapper(

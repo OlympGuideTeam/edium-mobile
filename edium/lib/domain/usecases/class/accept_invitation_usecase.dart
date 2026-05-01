@@ -5,6 +5,6 @@ class AcceptInvitationUsecase {
 
   AcceptInvitationUsecase(this._repository);
 
-  Future<void> call({required String invitationId}) =>
+  Future<String> call({required String invitationId}) =>
       _repository.acceptInvitation(invitationId: invitationId);
 }
