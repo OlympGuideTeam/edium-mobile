@@ -184,7 +184,7 @@ class ClassDatasourceMock implements IClassDatasource {
     required String role,
   }) async {
     await Future.delayed(const Duration(milliseconds: 200));
-    return 'https://edium.ru/invite/mock-$role-$classId';
+    return 'https://links.edium.online/invite/mock-$role-$classId';
   }
 
   @override
