@@ -179,6 +179,7 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
     await _submitCurrentIfAnswered(s);
 
     emit(const TakeQuizFinishing());
+    bool finished = false;
     try {
       final sid = _sessionIdForCache;
       if (sid != null && _testRepo != null) {
@@ -189,6 +190,7 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
       } else {
         await _finishAttempt(s.attempt.attemptId);
       }
+      finished = true;
       final result = await _getResult(s.attempt.attemptId);
       emit(TakeQuizCompleted(
         result: result,
@@ -197,7 +199,11 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
         questions: s.attempt.questions,
       ));
     } catch (e) {
-      emit(TakeQuizError(_humanMessage(e)));
+      if (finished) {
+        emit(const TakeQuizSubmitted());
+      } else {
+        emit(TakeQuizError(_humanMessage(e)));
+      }
     }
   }
 
