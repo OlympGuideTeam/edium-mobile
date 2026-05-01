@@ -30,8 +30,10 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" />
-                <data android:host="links.edium.online" />
+                <data
+                    android:scheme="https"
+                    android:host="links.edium.online"
+                    android:pathPrefix="/invite" />
             </intent-filter>
             
         </activity>

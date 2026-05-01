@@ -77,6 +77,12 @@ import 'package:edium/domain/usecases/class/create_class_usecase.dart';
 import 'package:edium/domain/usecases/class/delete_class_usecase.dart';
 import 'package:edium/domain/usecases/class/delete_course_usecase.dart';
 import 'package:edium/domain/usecases/class/get_class_detail_usecase.dart';
+import 'package:edium/data/datasources/invitation/invitation_datasource.dart';
+import 'package:edium/data/datasources/invitation/invitation_datasource_impl.dart';
+import 'package:edium/data/datasources/invitation/invitation_datasource_mock.dart';
+import 'package:edium/data/repositories/invitation_repository_impl.dart';
+import 'package:edium/domain/repositories/invitation_repository.dart';
+import 'package:edium/domain/usecases/class/accept_invitation_usecase.dart';
 import 'package:edium/domain/usecases/class/get_invite_link_usecase.dart';
 import 'package:edium/domain/usecases/class/get_my_classes_usecase.dart';
 import 'package:edium/domain/usecases/class/remove_member_usecase.dart';
@@ -149,6 +155,8 @@ Future<void> initializeDependencies({
         () => LibraryQuizDatasourceMock());
     getIt.registerLazySingleton<IClassDatasource>(
         () => ClassDatasourceMock());
+    getIt.registerLazySingleton<IInvitationDatasource>(
+        () => InvitationDatasourceMock());
     getIt.registerLazySingleton<ICourseDatasource>(
         () => CourseDatasourceMock(getIt<ProfileStorage>()));
     getIt.registerLazySingleton<ITestSessionDatasource>(
@@ -164,6 +172,8 @@ Future<void> initializeDependencies({
         () => LibraryQuizDatasourceImpl(getIt<DioHandler>().dio));
     getIt.registerLazySingleton<IClassDatasource>(
         () => ClassDatasourceImpl(getIt<DioHandler>().dio));
+    getIt.registerLazySingleton<IInvitationDatasource>(
+        () => InvitationDatasourceImpl(getIt<DioHandler>().dio));
     getIt.registerLazySingleton<ICourseDatasource>(
         () => CourseDatasourceImpl(getIt<DioHandler>().dio));
     getIt.registerLazySingleton<ITestSessionDatasource>(
@@ -199,6 +209,9 @@ Future<void> initializeDependencies({
   getIt.registerLazySingleton<IClassRepository>(
     () => ClassRepositoryImpl(getIt()),
   );
+  getIt.registerLazySingleton<IInvitationRepository>(
+    () => InvitationRepositoryImpl(getIt()),
+  );
   getIt.registerLazySingleton<ICourseRepository>(
     () => CourseRepositoryImpl(getIt()),
   );
@@ -231,6 +244,7 @@ Future<void> initializeDependencies({
   getIt.registerLazySingleton(() => GetCourseSheetUsecase(getIt()));
   getIt.registerLazySingleton(() => RemoveMemberUsecase(getIt()));
   getIt.registerLazySingleton(() => GetInviteLinkUsecase(getIt()));
+  getIt.registerLazySingleton(() => AcceptInvitationUsecase(getIt()));
   getIt.registerLazySingleton(() => GetQuizzesUsecase(getIt()));
   getIt.registerLazySingleton(() => CreateQuizUsecase(getIt()));
   getIt.registerLazySingleton(() => CreateSessionUsecase(getIt()));
