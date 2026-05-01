@@ -1,4 +1,5 @@
 import 'package:edium/core/config/api_config.dart';
+import 'package:edium/core/router/app_router.dart' show resetAppRouterAfterGetItClear;
 import 'package:edium/core/storage/profile_storage.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/data/datasources/attempt_cache/attempt_cache_datasource.dart';
@@ -99,6 +100,7 @@ import 'package:edium/services/herald_api_service/herald_api_service.dart';
 import 'package:edium/services/herald_api_service/herald_api_service_interface.dart';
 import 'package:edium/services/herald_api_service/herald_api_service_mock.dart';
 import 'package:edium/services/network/dio_handler.dart';
+import 'package:edium/services/navigation_block_service/navigation_block_service.dart';
 import 'package:edium/services/notification_service/deep_link_service.dart';
 import 'package:edium/services/notification_service/notification_service.dart';
 import 'package:edium/services/token_storage/token_storage.dart';
@@ -113,6 +115,7 @@ Future<void> reinitializeDependencies(AppEnvironment env) async {
   final notificationService = getIt<NotificationService>();
   final deepLinkService = getIt<DeepLinkService>();
   await getIt.reset();
+  resetAppRouterAfterGetItClear();
   await initializeDependencies(
     notificationService: notificationService,
     deepLinkService: deepLinkService,
@@ -129,6 +132,7 @@ Future<void> initializeDependencies({
   getIt.registerSingleton<ProfileStorage>(ProfileStorage());
   getIt.registerSingleton<NotificationService>(notificationService ?? NotificationService());
   getIt.registerSingleton<DeepLinkService>(deepLinkService ?? DeepLinkService());
+  getIt.registerLazySingleton<NavigationBlockService>(() => NavigationBlockService());
 
 
   await DioHandler.setup();
@@ -281,6 +285,7 @@ Future<void> initializeDependencies({
       dioHandler: getIt(),
       notificationService: getIt(),
       heraldApiService: getIt(),
+      deepLinkService: getIt(),
     ),
   );
 }
