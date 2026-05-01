@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
+import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
+import 'package:edium/services/navigation_block_service/navigation_block_service.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/course_detail.dart';
@@ -38,6 +40,12 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
   var _excludeFocus = false;
 
   @override
+  void initState() {
+    super.initState();
+    getIt<NavigationBlockService>().block();
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_syncedControllersFromBloc) return;
@@ -49,6 +57,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
 
   @override
   void dispose() {
+    getIt<NavigationBlockService>().unblock();
     _titleCtrl.dispose();
     _descCtrl.dispose();
     _aiTextCtrl.dispose();

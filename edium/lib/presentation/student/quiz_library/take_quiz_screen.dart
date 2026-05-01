@@ -1,6 +1,8 @@
+import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
+import 'package:edium/services/navigation_block_service/navigation_block_service.dart';
 import 'package:edium/domain/entities/quiz_attempt.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/take_quiz_bloc.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/take_quiz_event.dart';
@@ -34,6 +36,7 @@ class _TakeQuizScreenState extends State<TakeQuizScreen> {
   @override
   void initState() {
     super.initState();
+    getIt<NavigationBlockService>().block();
     _pageController = PageController();
     context.read<TakeQuizBloc>().add(StartAttemptEvent(
           sessionId: widget.sessionId,
@@ -45,6 +48,7 @@ class _TakeQuizScreenState extends State<TakeQuizScreen> {
 
   @override
   void dispose() {
+    getIt<NavigationBlockService>().unblock();
     _pageController.dispose();
     super.dispose();
   }
