@@ -62,3 +62,12 @@ class RoleSelectedEvent extends AuthEvent {
 class LogoutEvent extends AuthEvent {
   const LogoutEvent();
 }
+
+class SwitchToRoleEvent extends AuthEvent {
+  final String role; // "student" | "teacher"
+
+  const SwitchToRoleEvent(this.role);
+
+  @override
+  List<Object?> get props => [role];
+}
