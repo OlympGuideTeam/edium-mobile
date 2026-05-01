@@ -101,6 +101,7 @@ class NotificationsBloc
           createdAt: item.createdAt,
           isRead: true,
           route: item.route,
+          role: item.role,
         );
       }
       return item;

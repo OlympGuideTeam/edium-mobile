@@ -1,7 +1,9 @@
+import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/presentation/shared/widgets/edium_button.dart';
+import 'package:edium/services/navigation_block_service/navigation_block_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -77,6 +79,7 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
   @override
   void initState() {
     super.initState();
+    getIt<NavigationBlockService>().block();
     final q = widget.initialQuestion;
     if (q == null) {
       _type = _QType.singleChoice;
@@ -131,6 +134,7 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
 
   @override
   void dispose() {
+    getIt<NavigationBlockService>().unblock();
     _textCtrl.dispose();
     for (final o in _options) { o.ctrl.dispose(); }
     for (final c in _correctAnswers) { c.dispose(); }

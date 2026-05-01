@@ -17,6 +17,7 @@ class NotificationItem {
   final DateTime createdAt;
   final bool isRead;
   final String? route;
+  final String? role;
 
   const NotificationItem({
     required this.id,
@@ -25,6 +26,7 @@ class NotificationItem {
     required this.createdAt,
     required this.isRead,
     this.route,
+    this.role,
   });
 
   factory NotificationItem.fromJson(Map<String, dynamic> json) {
@@ -36,6 +38,7 @@ class NotificationItem {
       createdAt: DateTime.parse(json['created_at'] as String),
       isRead: json['is_read'] as bool,
       route: data?['route'] as String?,
+      role: data?['role'] as String?,
     );
   }
 }

@@ -35,8 +35,10 @@ class AuthAuthenticated extends AuthState {
 
   const AuthAuthenticated(this.user);
 
+  // User.== uses id only, so we explicitly include role to make role switches
+  // visible to bloc emit (otherwise emit dedups them as identical states).
   @override
-  List<Object?> get props => [user];
+  List<Object?> get props => [user, user.role];
 }
 
 class AuthNameRequired extends AuthState {
