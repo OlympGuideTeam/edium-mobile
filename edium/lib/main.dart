@@ -36,6 +36,10 @@ final _processedMessageIds = <String>{};
 // getInitialMessage) with null or mismatched messageIds.
 bool _coldStartHandled = false;
 
+// Used to suppress the late Android onMessageOpenedApp duplicate that fires
+// after the cold-start tap has already been handled.
+final DateTime _appStartTime = DateTime.now();
+
 void _handleNotificationTap({
   required String route,
   required String? role,
@@ -57,8 +61,8 @@ void _handleNotificationTap({
   // no sensitive screen yet.
   if (!isColdStart && getIt<NavigationBlockService>().isBlocked) return;
 
-  // For cold start (terminated launch): always open the notifications tab,
-  // regardless of wasInForeground. The wasReceivedInForeground check is
+  // For cold start (terminated launch): navigate to the actual target route
+  // with a role switch if needed. The wasReceivedInForeground check is
   // unreliable here — on Android, FCM can replay the message through onMessage
   // during startup (adding the messageId to _foregroundMessageIds before
   // onMessageOpenedApp fires), making wasInForeground appear true even though
@@ -66,23 +70,32 @@ void _handleNotificationTap({
   if (isColdStart) {
     if (_coldStartHandled) return; // multiple FCM paths, deduplicate
     _coldStartHandled = true;
-    debugPrint('[Notif] cold-start tap → will push $_notificationsTabRoute after auth');
+    debugPrint('[Notif] cold-start tap → route=$route role=$role, waiting for auth');
+
+    final capturedRoute = route;
+    final capturedRole = role;
+
     late StreamSubscription<AuthState> sub;
     sub = getIt<AuthBloc>().stream.listen((s) {
       if (s is AuthAuthenticated) {
         sub.cancel();
-        // The auth redirect will navigate to homeRoute on the next frame.
-        // Wait for that frame to complete (addPostFrameCallback), then set the
-        // pending route so the redirect mechanism pushes notifications on top
-        // via its own Future.delayed. Calling appRouter.push() directly from
-        // a Future.delayed causes "GoError: There is nothing to pop" in
-        // go_router v14 because it fires outside the frame schedule.
+        // Wait for GoRouter's auth-redirect frame to settle before setting
+        // the pending route — avoids "nothing to pop" errors in go_router v14.
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          debugPrint('[Notif] cold-start setPendingRoute $_notificationsTabRoute');
-          getIt<DeepLinkService>().setPendingRoute(_notificationsTabRoute);
+          debugPrint('[Notif] cold-start auth ready, routing to $capturedRoute');
+          _routeOrSwitch(s, route: capturedRoute, role: capturedRole);
         });
       }
     });
+    return;
+  }
+
+  // Android: onMessageOpenedApp fires late during startup (after cold-start
+  // was already processed) because FCM replays onMessage first, making the
+  // tap appear as a foreground event. Suppress within the startup window.
+  if (_coldStartHandled &&
+      DateTime.now().difference(_appStartTime).inSeconds < 10) {
+    debugPrint('[Notif] startup-window dedup, skipping duplicate live tap');
     return;
   }
 
@@ -152,10 +165,14 @@ Future<void> main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
+    // Must be called BEFORE initialize() — on iOS, registering the
+    // onMessageOpenedApp listener inside initialize() can consume the
+    // terminated-launch notification event, leaving getInitialMessage()
+    // returning null.
+    initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+
     notificationService = NotificationService();
     await notificationService.initialize();
-
-    initialMessage = await FirebaseMessaging.instance.getInitialMessage();
   } catch (e) {
     debugPrint('Firebase init failed: $e');
   }
