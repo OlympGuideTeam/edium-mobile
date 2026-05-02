@@ -7,6 +7,9 @@ import 'package:edium/domain/entities/user.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
+import 'package:edium/presentation/live/live_join_screen.dart';
+import 'package:edium/presentation/live/student/live_student_screen.dart';
+import 'package:edium/presentation/live/teacher/live_teacher_screen.dart';
 import 'package:edium/presentation/auth/screens/name_input_screen.dart';
 import 'package:edium/presentation/auth/screens/otp_screen.dart';
 import 'package:edium/presentation/auth/screens/phone_input_screen.dart';
@@ -229,6 +232,41 @@ GoRouter buildRouter() {
           return TeacherGradeAttemptScreen(attemptId: aid);
         },
       ),
+      GoRoute(
+        path: '/live/join',
+        builder: (_, state) {
+          final code = state.uri.queryParameters['code'];
+          return LiveJoinScreen(prefillCode: code);
+        },
+      ),
+      GoRoute(
+        path: '/live/:sessionId/student',
+        builder: (_, state) {
+          final sid = state.pathParameters['sessionId']!;
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return LiveStudentScreen(
+            sessionId: sid,
+            attemptId: extra['attemptId'] as String? ?? '',
+            wsToken: extra['wsToken'] as String? ?? '',
+            quizTitle: extra['quizTitle'] as String? ?? '',
+            questionCount: extra['questionCount'] as int? ?? 0,
+            moduleId: extra['moduleId'] as String?,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/live/:sessionId/teacher',
+        builder: (_, state) {
+          final sid = state.pathParameters['sessionId']!;
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return LiveTeacherScreen(
+            sessionId: sid,
+            quizTitle: extra['quizTitle'] as String? ?? '',
+            questionCount: extra['questionCount'] as int? ?? 0,
+            moduleId: extra['moduleId'] as String?,
+          );
+        },
+      ),
     ],
   );
   return _routerInstance!;
@@ -258,8 +296,9 @@ String? _redirect(BuildContext context, GoRouterState state) {
   }
 
   if (authState is AuthUnauthenticated || authState is AuthOtpSent) {
-    // /invite доступен без авторизации — показываем экран с предложением войти
+    // /invite и /live/join доступны без авторизации
     if (location.startsWith('/invite')) return null;
+    if (location.startsWith('/live/join')) return null;
     if ((!isAuthFlowPath && !isLegalDocumentPath) || location == '/splash') {
       return '/welcome';
     }
