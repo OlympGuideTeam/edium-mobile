@@ -6,6 +6,7 @@ import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -81,9 +82,34 @@ class PhoneInputScreen extends StatefulWidget {
 class _PhoneInputScreenState extends State<PhoneInputScreen> {
   final _controller = TextEditingController();
   String? _error;
+  late final TapGestureRecognizer _privacyTap;
+  late final TapGestureRecognizer _termsTap;
+
+  @override
+  void initState() {
+    super.initState();
+    _privacyTap = TapGestureRecognizer()
+      ..onTap = () {
+        if (!mounted) return;
+        context.push(
+          '/legal-document?url=${Uri.encodeComponent(_privacyUrl)}'
+          '&title=${Uri.encodeComponent('Политика конфиденциальности')}',
+        );
+      };
+    _termsTap = TapGestureRecognizer()
+      ..onTap = () {
+        if (!mounted) return;
+        context.push(
+          '/legal-document?url=${Uri.encodeComponent(_termsUrl)}'
+          '&title=${Uri.encodeComponent('Условия использования')}',
+        );
+      };
+  }
 
   @override
   void dispose() {
+    _privacyTap.dispose();
+    _termsTap.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -116,6 +142,42 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
+  }
+
+  static const _privacyUrl = 'https://edium.online/privacy/';
+  static const _termsUrl = 'https://edium.online/terms/';
+
+  Widget _legalConsentRichText() {
+    final baseStyle = AppTextStyles.helperText.copyWith(
+      color: AppColors.mono250,
+    );
+    final linkStyle = baseStyle.copyWith(
+      color: AppColors.mono350,
+      decoration: TextDecoration.underline,
+      decorationColor: AppColors.mono350,
+    );
+    return Text.rich(
+      textAlign: TextAlign.center,
+      TextSpan(
+        style: baseStyle,
+        children: [
+          const TextSpan(
+            text: 'Нажимая кнопку, вы соглашаетесь с ',
+          ),
+          TextSpan(
+            text: 'Политикой конфиденциальности',
+            style: linkStyle,
+            recognizer: _privacyTap,
+          ),
+          const TextSpan(text: ' и '),
+          TextSpan(
+            text: 'Условиями использования',
+            style: linkStyle,
+            recognizer: _termsTap,
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -309,13 +371,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            const Center(
-                              child: Text(
-                                'Нажимая кнопку, вы соглашаетесь\nс условиями использования',
-                                textAlign: TextAlign.center,
-                                style: AppTextStyles.helperText,
-                              ),
-                            ),
+                            Center(child: _legalConsentRichText()),
                             const SizedBox(height: 24),
                           ],
                         ),
