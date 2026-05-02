@@ -187,9 +187,10 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
           attemptId: s.attempt.attemptId,
           sessionId: sid,
         );
-      } else {
-        await _finishAttempt(s.attempt.attemptId);
+        emit(const TakeQuizSubmitted());
+        return;
       }
+      await _finishAttempt(s.attempt.attemptId);
       finished = true;
       final result = await _getResult(s.attempt.attemptId);
       emit(TakeQuizCompleted(

@@ -277,10 +277,41 @@ class _FreeAnswerGradeCard extends StatelessWidget {
                   fontSize: 13, color: AppColors.mono700, height: 1.4),
             ),
           ),
+          if (answer.finalScore == null) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.5,
+                    color: AppColors.mono400,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text('ИИ проверяет...', style: AppTextStyles.helperText),
+              ],
+            ),
+          ],
           const SizedBox(height: 14),
           Text('Балл', style: AppTextStyles.fieldLabel),
           const SizedBox(height: 8),
           _ScorePicker(controller: scoreController),
+          if (answer.finalScore == null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Выставьте балл самостоятельно, чтобы не ждать ИИ',
+              style: AppTextStyles.caption.copyWith(color: AppColors.mono400),
+            ),
+          ],
+          if (answer.finalSource == 'llm' && answer.finalScore != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'ИИ предложил: ${answer.finalScore!.toStringAsFixed(0)} — можно изменить',
+              style: AppTextStyles.caption.copyWith(color: AppColors.mono400),
+            ),
+          ],
           const SizedBox(height: 10),
           Text('Комментарий', style: AppTextStyles.fieldLabel),
           const SizedBox(height: 6),
@@ -309,13 +340,6 @@ class _FreeAnswerGradeCard extends StatelessWidget {
               fillColor: Colors.white,
             ),
           ),
-          if (answer.finalSource == 'llm') ...[
-            const SizedBox(height: 8),
-            Text(
-              'ИИ выставил: ${answer.finalScore?.toStringAsFixed(0) ?? "—"}',
-              style: AppTextStyles.helperText,
-            ),
-          ],
         ],
       ),
     );
