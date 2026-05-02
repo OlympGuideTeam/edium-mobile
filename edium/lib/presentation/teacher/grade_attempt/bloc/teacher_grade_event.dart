@@ -37,3 +37,10 @@ class SubmitGradesEvent extends TeacherGradeEvent {
   @override
   List<Object?> get props => [attemptId, grades];
 }
+
+class CompleteGradingEvent extends TeacherGradeEvent {
+  final String attemptId;
+  const CompleteGradingEvent(this.attemptId);
+  @override
+  List<Object?> get props => [attemptId];
+}

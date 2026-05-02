@@ -20,6 +20,7 @@ class TeacherGradeBloc extends Bloc<TeacherGradeEvent, TeacherGradeState> {
         super(const TeacherGradeInitial()) {
     on<LoadTeacherGradeEvent>(_onLoad);
     on<SubmitGradesEvent>(_onSubmit);
+    on<CompleteGradingEvent>(_onComplete);
   }
 
   Future<void> _onLoad(
@@ -51,6 +52,21 @@ class TeacherGradeBloc extends Bloc<TeacherGradeEvent, TeacherGradeState> {
           feedback: grade.feedback,
         );
       }
+      await _completeAttempt(event.attemptId);
+      emit(const TeacherGradeCompleted());
+    } catch (e) {
+      emit(current.copyWith(isSaving: false, saveError: e.toString()));
+    }
+  }
+
+  Future<void> _onComplete(
+    CompleteGradingEvent event,
+    Emitter<TeacherGradeState> emit,
+  ) async {
+    final current = state;
+    if (current is! TeacherGradeLoaded) return;
+    emit(current.copyWith(isSaving: true));
+    try {
       await _completeAttempt(event.attemptId);
       emit(const TeacherGradeCompleted());
     } catch (e) {
