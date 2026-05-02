@@ -663,9 +663,6 @@ class _CourseCard extends StatelessWidget {
     ),
     );
 
-    if (!course.isTeacher) {
-      return Opacity(opacity: 0.45, child: card);
-    }
     return card;
   }
 

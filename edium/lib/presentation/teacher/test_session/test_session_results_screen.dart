@@ -12,6 +12,7 @@ import 'package:edium/presentation/teacher/test_session/bloc/test_session_result
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 class TestSessionResultsScreen extends StatelessWidget {
   final String sessionId;
@@ -91,7 +92,8 @@ class _View extends StatelessWidget {
     );
   }
 
-  Widget _body(BuildContext context, TestSessionResultsState state, CourseItem? courseItem) {
+  Widget _body(
+      BuildContext context, TestSessionResultsState state, CourseItem? courseItem) {
     if (state is TestSessionResultsLoading ||
         state is TestSessionResultsInitial) {
       return const Center(
@@ -128,21 +130,16 @@ class _View extends StatelessWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             const SizedBox(height: 4),
-            Text(state.title,
-                style: AppTextStyles.screenTitle.copyWith(fontSize: 22)),
-            if (isScheduled) ...[
-              const SizedBox(height: 16),
-              _ScheduledBanner(
-                startTime: startTime,
-                durationSec: courseItem?.payload?.totalTimeLimitSec,
-              ),
-            ],
-            const SizedBox(height: 16),
-            _SummaryStrip(
-              totalCount: state.totalCount,
-              completedCount: state.completedCount,
-              averageScorePct: state.averageScorePct,
+            Text(state.title, style: AppTextStyles.heading2),
+            const SizedBox(height: 20),
+            _StatusHero(
+              state: state,
+              isScheduled: isScheduled,
+              startTime: startTime,
+              durationSec: courseItem?.payload?.totalTimeLimitSec,
             ),
+            const SizedBox(height: 20),
+            _DetailsSection(courseItem: courseItem),
             const SizedBox(height: 24),
             _SectionHeader(
               label: 'Участники',
@@ -153,8 +150,12 @@ class _View extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 32),
                 child: Center(
-                  child: Text('Пока никто не начинал тест',
-                      style: AppTextStyles.screenSubtitle),
+                  child: Text(
+                    isScheduled
+                        ? 'Тест ещё не открыт для прохождения'
+                        : 'Пока никто не начинал тест',
+                    style: AppTextStyles.screenSubtitle,
+                  ),
                 ),
               )
             else
@@ -163,7 +164,8 @@ class _View extends StatelessWidget {
                     onTap: r.attempt != null
                         ? () {
                             final status = r.attempt!.status;
-                            if (status == AttemptStatus.graded) {
+                            if (status == AttemptStatus.graded ||
+                                status == AttemptStatus.grading) {
                               context.push(
                                 '/test/$sessionId/attempts/${r.attempt!.attemptId}/grade',
                               );
@@ -209,78 +211,236 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-// ─── Сводная полоска ─────────────────────────────────────────────────────────
+// ─── Статусный hero-блок ────────────────────────────────────────────────────
 
-class _SummaryStrip extends StatelessWidget {
-  final int totalCount;
-  final int completedCount;
-  final double? averageScorePct;
-  const _SummaryStrip({
-    required this.totalCount,
-    required this.completedCount,
-    required this.averageScorePct,
+class _StatusHero extends StatelessWidget {
+  final TestSessionResultsLoaded state;
+  final bool isScheduled;
+  final DateTime? startTime;
+  final int? durationSec;
+
+  const _StatusHero({
+    required this.state,
+    required this.isScheduled,
+    this.startTime,
+    this.durationSec,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (isScheduled && startTime != null) {
+      return _ScheduledBanner(startTime: startTime!, durationSec: durationSec);
+    }
+
+    final (:tag, :title, :subtitle) = _heroContent();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      decoration: BoxDecoration(
+        color: AppColors.mono900,
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tag,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Color(0x80FFFFFF),
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+              height: 1.1,
+            ),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0x80FFFFFF),
+                height: 1.4,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  ({String tag, String title, String? subtitle}) _heroContent() {
+    final total = state.totalCount;
+    final avg = state.averageScorePct;
+    final nobodyStarted = state.rows.every((r) => r.attempt == null);
+
+    final finishedCount = state.rows.where((r) {
+      final s = r.attempt?.status;
+      return s == AttemptStatus.grading ||
+          s == AttemptStatus.graded ||
+          s == AttemptStatus.completed;
+    }).length;
+
+    if (nobodyStarted) {
+      return (
+        tag: 'СТАТУС',
+        title: 'Тест\nдоступен',
+        subtitle: 'Ожидание участников',
+      );
+    }
+
+    if (finishedCount == total && total > 0 && avg != null) {
+      return (
+        tag: 'СРЕДНИЙ БАЛЛ',
+        title: avg.toStringAsFixed(0),
+        subtitle: 'из 100 · ${_pluralStudents(total)}',
+      );
+    }
+
+    if (finishedCount == total && total > 0) {
+      return (
+        tag: 'СТАТУС',
+        title: 'Идёт\nпроверка',
+        subtitle: 'Все участники завершили тест',
+      );
+    }
+
+    return (
+      tag: 'ПРОГРЕСС',
+      title: '$finishedCount / $total',
+      subtitle: 'завершили тест',
+    );
+  }
+
+  String _pluralStudents(int n) {
+    final mod10 = n % 10;
+    final mod100 = n % 100;
+    if (mod10 == 1 && mod100 != 11) return '$n участник';
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+      return '$n участника';
+    }
+    return '$n участников';
+  }
+}
+
+// ─── Секция деталей ─────────────────────────────────────────────────────────
+
+class _DetailsSection extends StatelessWidget {
+  final CourseItem? courseItem;
+  const _DetailsSection({required this.courseItem});
+
+  static final _dateFmt = DateFormat('d MMM, HH:mm', 'ru');
+
+  @override
+  Widget build(BuildContext context) {
+    final payload = courseItem?.payload;
+    final rows = <_DetailRow>[];
+
+    final hasTimeLimit =
+        payload?.totalTimeLimitSec != null && payload!.totalTimeLimitSec! > 0;
+    rows.add(_DetailRow(
+      icon: Icons.timer_outlined,
+      label: 'Время',
+      value: hasTimeLimit
+          ? '${(payload.totalTimeLimitSec! / 60).round()} мин'
+          : 'Без ограничений',
+    ));
+
+    if (courseItem?.endTime != null) {
+      rows.add(_DetailRow(
+        icon: Icons.event_outlined,
+        label: 'Дедлайн',
+        value: _dateFmt.format(courseItem!.endTime!.toLocal()),
+      ));
+    }
+
+    if (payload?.shuffleQuestions == true) {
+      rows.add(const _DetailRow(
+        icon: Icons.shuffle_rounded,
+        label: 'Порядок вопросов',
+        value: 'Случайный',
+      ));
+    }
+
+    if (rows.isEmpty) return const SizedBox.shrink();
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.mono50,
         borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-        border: Border.all(color: AppColors.mono150, width: AppDimens.borderWidth),
+        border:
+            Border.all(color: AppColors.mono150, width: AppDimens.borderWidth),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Row(
-          children: [
-            _Stat(label: 'Всего', value: '$totalCount'),
-            _StatDivider(),
-            _Stat(label: 'Завершили', value: '$completedCount'),
-            _StatDivider(),
-            _Stat(
-              label: 'Средний балл',
-              value: averageScorePct != null
-                  ? '${averageScorePct!.toStringAsFixed(0)}%'
-                  : '—',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Stat extends StatelessWidget {
-  final String label;
-  final String value;
-  const _Stat({required this.label, required this.value});
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
       child: Column(
         children: [
-          Text(value,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: AppColors.mono900,
-              )),
-          const SizedBox(height: 3),
-          Text(label,
-              style: AppTextStyles.caption.copyWith(color: AppColors.mono400)),
+          for (int i = 0; i < rows.length; i++) ...[
+            if (i > 0)
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color: AppColors.mono150,
+                indent: 14,
+                endIndent: 14,
+              ),
+            rows[i],
+          ],
         ],
       ),
     );
   }
 }
 
-class _StatDivider extends StatelessWidget {
+class _DetailRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
   @override
-  Widget build(BuildContext context) => Container(
-        width: 1,
-        height: 36,
-        color: AppColors.mono150,
-      );
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.mono400),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.mono400,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.mono700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ─── Заголовок секции ────────────────────────────────────────────────────────
@@ -359,8 +519,6 @@ class _StudentRowTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              _Avatar(name: row.displayName, muted: isInactive),
-              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   row.displayName,
@@ -396,43 +554,6 @@ class _StudentRowTile extends StatelessWidget {
               ],
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Аватар ──────────────────────────────────────────────────────────────────
-
-class _Avatar extends StatelessWidget {
-  final String name;
-  final bool muted;
-  const _Avatar({required this.name, this.muted = false});
-
-  String get _initials {
-    final parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
-    return name.isNotEmpty ? name[0].toUpperCase() : '?';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(
-        color: muted ? AppColors.mono50 : AppColors.mono100,
-        borderRadius: BorderRadius.circular(AppDimens.radiusSm),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        _initials,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: muted ? AppColors.mono300 : AppColors.mono600,
         ),
       ),
     );
@@ -621,19 +742,36 @@ class _ScheduledBanner extends StatefulWidget {
 }
 
 class _ScheduledBannerState extends State<_ScheduledBanner> {
-  late Timer _timer;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(minutes: 1), (_) {
-      if (mounted) setState(() {});
-    });
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    final remaining = widget.startTime.toLocal().difference(DateTime.now());
+    if (remaining.isNegative) return;
+
+    if (remaining.inSeconds < 60) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    } else {
+      _timer = Timer.periodic(const Duration(minutes: 1), (_) {
+        if (!mounted) return;
+        setState(() {});
+        final r = widget.startTime.toLocal().difference(DateTime.now());
+        if (r.inSeconds < 60) _startTimer();
+      });
+    }
   }
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -643,18 +781,37 @@ class _ScheduledBannerState extends State<_ScheduledBanner> {
     final diff = widget.startTime.toLocal().difference(now);
     if (diff.isNegative) return const SizedBox.shrink();
 
+    final isUnderMinute = diff.inSeconds < 60;
     final days = diff.inDays;
     final hours = diff.inHours % 24;
     final minutes = diff.inMinutes % 60;
+    final seconds = diff.inSeconds % 60;
 
     final start = widget.startTime.toLocal();
     const ruWeekdays = [
-      '', 'Понедельник', 'Вторник', 'Среда',
-      'Четверг', 'Пятница', 'Суббота', 'Воскресенье',
+      '',
+      'Понедельник',
+      'Вторник',
+      'Среда',
+      'Четверг',
+      'Пятница',
+      'Суббота',
+      'Воскресенье',
     ];
     const ruMonths = [
-      '', 'янв', 'фев', 'мар', 'апр', 'май', 'июн',
-      'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
+      '',
+      'янв',
+      'фев',
+      'мар',
+      'апр',
+      'май',
+      'июн',
+      'июл',
+      'авг',
+      'сен',
+      'окт',
+      'ноя',
+      'дек',
     ];
 
     final weekday = ruWeekdays[start.weekday];
@@ -669,7 +826,8 @@ class _ScheduledBannerState extends State<_ScheduledBanner> {
     }
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       decoration: BoxDecoration(
         color: AppColors.mono900,
         borderRadius: BorderRadius.circular(AppDimens.radiusLg),
@@ -691,22 +849,29 @@ class _ScheduledBannerState extends State<_ScheduledBanner> {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              if (days > 0) ...[
+              if (isUnderMinute) ...[
                 _CountUnit(
-                  value: days.toString().padLeft(2, '0'),
-                  unit: 'дн',
+                  value: seconds.toString().padLeft(2, '0'),
+                  unit: 'сек',
+                ),
+              ] else ...[
+                if (days > 0) ...[
+                  _CountUnit(
+                    value: days.toString().padLeft(2, '0'),
+                    unit: 'дн',
+                  ),
+                  const SizedBox(width: 14),
+                ],
+                _CountUnit(
+                  value: hours.toString().padLeft(2, '0'),
+                  unit: 'ч',
                 ),
                 const SizedBox(width: 14),
+                _CountUnit(
+                  value: minutes.toString().padLeft(2, '0'),
+                  unit: 'мин',
+                ),
               ],
-              _CountUnit(
-                value: hours.toString().padLeft(2, '0'),
-                unit: 'ч',
-              ),
-              const SizedBox(width: 14),
-              _CountUnit(
-                value: minutes.toString().padLeft(2, '0'),
-                unit: 'мин',
-              ),
             ],
           ),
           const SizedBox(height: 10),
