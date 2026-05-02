@@ -255,7 +255,7 @@ class _CourseDetailBody extends StatelessWidget {
   }
 
   Widget _modulesContent(BuildContext context) {
-    if (course.modules.isEmpty && course.drafts.isEmpty) {
+    if (course.modules.isEmpty && (!course.isTeacher || course.drafts.isEmpty)) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1144,7 +1144,7 @@ class _CourseContentList extends StatelessWidget {
                   ),
                 ),
         ),
-        if (drafts.isNotEmpty) ...[
+        if (drafts.isNotEmpty && course.isTeacher) ...[
           const SliverPadding(
             padding: EdgeInsets.fromLTRB(
               AppDimens.screenPaddingH,
