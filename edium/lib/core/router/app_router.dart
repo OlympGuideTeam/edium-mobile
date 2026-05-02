@@ -18,6 +18,7 @@ import 'package:edium/presentation/teacher/course_detail/course_detail_screen.da
 import 'package:edium/presentation/teacher/create_course/create_course_screen.dart';
 import 'package:edium/presentation/profile/edit_profile/edit_profile_screen.dart';
 import 'package:edium/presentation/profile/notifications/notifications_screen.dart';
+import 'package:edium/presentation/shared/widgets/legal_document_screen.dart';
 import 'package:edium/presentation/shared/test/attempt_review_screen.dart';
 import 'package:edium/presentation/teacher/grade_attempt/teacher_grade_attempt_screen.dart';
 import 'package:edium/presentation/shared/invite/invite_screen.dart';
@@ -27,6 +28,7 @@ import 'package:edium/presentation/teacher/home/teacher_home_screen.dart';
 import 'package:edium/presentation/teacher/test_monitoring/test_monitoring_screen.dart';
 import 'package:edium/presentation/teacher/test_session/test_session_results_screen.dart';
 import 'package:edium/services/notification_service/deep_link_service.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -85,6 +87,17 @@ GoRouter buildRouter() {
       GoRoute(
         path: '/phone',
         builder: (_, __) => const PhoneInputScreen(),
+      ),
+      GoRoute(
+        path: '/legal-document',
+        pageBuilder: (_, state) {
+          final url = state.uri.queryParameters['url'] ?? '';
+          final title = state.uri.queryParameters['title'] ?? 'Документ';
+          return CupertinoPage<void>(
+            key: state.pageKey,
+            child: LegalDocumentScreen(url: url, title: title),
+          );
+        },
       ),
       GoRoute(
         path: '/otp',
@@ -224,12 +237,14 @@ String? _redirect(BuildContext context, GoRouterState state) {
   final authState = authBloc.state;
   final location = state.uri.path;
 
-  final isAuthPath = location == '/splash' ||
+  final isAuthFlowPath = location == '/splash' ||
       location == '/welcome' ||
       location == '/phone' ||
       location.startsWith('/otp') ||
       location == '/name-input' ||
       location == '/role-selection';
+
+  final isLegalDocumentPath = location == '/legal-document';
 
   if (authState is AuthInitial) {
     if (location != '/splash') return '/splash';
@@ -243,7 +258,9 @@ String? _redirect(BuildContext context, GoRouterState state) {
   if (authState is AuthUnauthenticated || authState is AuthOtpSent) {
     // /invite доступен без авторизации — показываем экран с предложением войти
     if (location.startsWith('/invite')) return null;
-    if (!isAuthPath || location == '/splash') return '/welcome';
+    if ((!isAuthFlowPath && !isLegalDocumentPath) || location == '/splash') {
+      return '/welcome';
+    }
     return null;
   }
 
@@ -280,11 +297,11 @@ String? _redirect(BuildContext context, GoRouterState state) {
       Future.delayed(const Duration(milliseconds: 200), () {
         _routerInstance?.push(deepLink);
       });
-      if (isAuthPath || location != homeRoute) return homeRoute;
+      if (isAuthFlowPath || location != homeRoute) return homeRoute;
       return null;
     }
 
-    if (isAuthPath) {
+    if (isAuthFlowPath) {
       return _homeRoute(authState);
     }
     return null;
