@@ -72,7 +72,7 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
     int? questionTimeLimitSec,
   }) {
     return request<String>(
-      'riddler/v1/sessions/live',
+      'riddler/v1/sessions/live/course',
       method: HttpMethod.post,
       req: {
         'quiz_template_id': quizTemplateId,

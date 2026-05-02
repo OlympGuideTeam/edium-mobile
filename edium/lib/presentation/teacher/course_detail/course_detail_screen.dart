@@ -26,6 +26,7 @@ import 'package:edium/domain/usecases/quiz/create_quiz_usecase.dart';
 import 'package:edium/domain/usecases/quiz/create_session_usecase.dart';
 import 'package:edium/domain/usecases/quiz/get_quizzes_usecase.dart';
 import 'package:edium/presentation/teacher/quiz_library/quiz_detail_screen.dart';
+import 'package:edium/domain/repositories/live_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -646,6 +647,19 @@ class _CourseDetailBody extends StatelessWidget {
       ),
     );
     if (result != null && context.mounted) {
+      // Если создали лайв-сессию — сразу открываем экран учителя
+      if (result.quizType == QuizCreationMode.live &&
+          result.liveSessionId != null) {
+        context.push(
+          '/live/${result.liveSessionId}/teacher',
+          extra: {
+            'quizTitle': result.title,
+            'questionCount': result.questions.length,
+            if (result.submittedModuleId != null)
+              'moduleId': result.submittedModuleId,
+          },
+        );
+      }
       // Optimistically patch the UI so the user sees the result immediately,
       // without a loading spinner or waiting for the event bus (2–3 s delay).
       bloc.add(OptimisticQuizAddedEvent(
@@ -1496,7 +1510,13 @@ class _ModuleSectionState extends State<_ModuleSection>
                                               );
                                             }
                                           }
-                                        : null,
+                                        : item.quizType == 'live'
+                                            ? () => _onLiveItemTap(
+                                                  context,
+                                                  item,
+                                                  widget.module.id,
+                                                )
+                                            : null,
                                   ))
                               .toList(),
                         ),
@@ -1509,6 +1529,64 @@ class _ModuleSectionState extends State<_ModuleSection>
         ),
       ),
     );
+  }
+
+  void _onLiveItemTap(
+    BuildContext context,
+    CourseItem item,
+    String moduleId,
+  ) {
+    if (widget.isTeacher) {
+      context.push(
+        '/live/${item.refId}/teacher',
+        extra: {
+          'quizTitle': item.title ?? '',
+          'questionCount': 0,
+          'moduleId': moduleId,
+        },
+      );
+    } else {
+      // Caesar does not return a live-session state in CourseItemDetail —
+      // let the backend reject the join if the session isn't in lobby phase.
+      _joinLiveAsStudent(context, item, moduleId);
+    }
+  }
+
+  Future<void> _joinLiveAsStudent(
+    BuildContext ctx,
+    CourseItem item,
+    String moduleId,
+  ) async {
+    final repo = getIt<ILiveRepository>();
+    final nav = Navigator.of(ctx, rootNavigator: true);
+    final router = GoRouter.of(ctx);
+    final messenger = ScaffoldMessenger.of(ctx);
+    showDialog(
+      context: ctx,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final join = await repo.joinLiveSession(sessionId: item.refId);
+      if (!mounted) return;
+      nav.pop();
+      router.push(
+        '/live/${item.refId}/student',
+        extra: {
+          'attemptId': join.attemptId,
+          'wsToken': join.wsToken,
+          'quizTitle': item.title ?? '',
+          'questionCount': 0,
+          'moduleId': join.moduleId ?? moduleId,
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+      nav.pop();
+      messenger.showSnackBar(
+        SnackBar(content: Text('Ошибка входа: $e')),
+      );
+    }
   }
 
   String _elementsLabel(int count) {

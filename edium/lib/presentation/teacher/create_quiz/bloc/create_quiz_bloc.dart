@@ -155,11 +155,12 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
           payload.remove('_existingQuestionId');
           await _quizRepository.addQuestion(existingId, payload);
         }
+        String? liveSessionId;
         if (!event.saveOnly) {
           final sessionType = state.quizType == QuizCreationMode.live
               ? SessionType.live
               : SessionType.test;
-          await _createSession(
+          final sid = await _createSession(
             quizTemplateId: existingId,
             moduleId: event.moduleId!,
             sessionType: sessionType,
@@ -169,7 +170,15 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
             startedAt: state.startedAt,
             finishedAt: state.finishedAt,
           );
+          if (sessionType == SessionType.live) liveSessionId = sid;
         }
+        emit(state.copyWith(
+          isSubmitting: false,
+          success: true,
+          submittedModuleId: event.moduleId,
+          liveSessionId: liveSessionId,
+        ));
+        return;
       } else if (!state.isInCourseContext || event.saveOnly) {
         await _createQuiz(
           title: state.title,
@@ -185,6 +194,7 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
         );
       } else {
         // Course context, new quiz, "Начать".
+        String? liveSessionId;
         if (state.quizType == QuizCreationMode.test && event.courseId != null) {
           // Use the atomic inline endpoint for test sessions.
           await _quizRepository.createTestSessionInline(
@@ -214,7 +224,7 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
           final sessionType = state.quizType == QuizCreationMode.live
               ? SessionType.live
               : SessionType.test;
-          await _createSession(
+          final sid = await _createSession(
             quizTemplateId: templateId,
             moduleId: event.moduleId!,
             sessionType: sessionType,
@@ -224,7 +234,15 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
             startedAt: state.startedAt,
             finishedAt: state.finishedAt,
           );
+          if (sessionType == SessionType.live) liveSessionId = sid;
         }
+        emit(state.copyWith(
+          isSubmitting: false,
+          success: true,
+          submittedModuleId: event.moduleId,
+          liveSessionId: liveSessionId,
+        ));
+        return;
       }
 
       emit(state.copyWith(

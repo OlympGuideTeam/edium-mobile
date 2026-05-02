@@ -82,7 +82,7 @@ class DioHandler {
         shouldRefresh: (response) {
           if (response == null) return false;
           if (_isPublic(response.requestOptions.path)) return false;
-          return response.statusCode == 401 || response.statusCode == 403;
+          return response.statusCode == 401;
         },
 
         authHeader: (tokenStore) {
