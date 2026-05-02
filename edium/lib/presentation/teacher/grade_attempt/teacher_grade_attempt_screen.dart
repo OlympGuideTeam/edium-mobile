@@ -7,6 +7,7 @@ import 'package:edium/domain/entities/quiz_attempt.dart' show QuizQuestionType;
 import 'package:edium/presentation/teacher/grade_attempt/bloc/teacher_grade_bloc.dart';
 import 'package:edium/presentation/teacher/grade_attempt/bloc/teacher_grade_event.dart';
 import 'package:edium/presentation/teacher/grade_attempt/bloc/teacher_grade_state.dart';
+import 'package:edium/presentation/teacher/grade_attempt/teacher_grade_question_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -96,7 +97,7 @@ class _View extends StatelessWidget {
   }
 }
 
-class _GradeBody extends StatefulWidget {
+class _GradeBody extends StatelessWidget {
   final AttemptReview review;
   final bool isSaving;
   final String attemptId;
@@ -107,62 +108,13 @@ class _GradeBody extends StatefulWidget {
     required this.attemptId,
   });
 
-  @override
-  State<_GradeBody> createState() => _GradeBodyState();
-}
-
-class _GradeBodyState extends State<_GradeBody> {
-  // submissionId → (scoreController, feedbackController)
-  late final Map<String, (TextEditingController, TextEditingController)> _controllers;
-
-  @override
-  void initState() {
-    super.initState();
-    _controllers = {
-      for (final a in widget.review.answers
-          .where((a) => a.questionType == QuizQuestionType.withFreeAnswer))
-        a.submissionId: (
-          TextEditingController(
-            text: a.finalScore?.toStringAsFixed(0) ?? '',
-          ),
-          TextEditingController(text: a.finalFeedback ?? ''),
-        ),
-    };
-    for (final pair in _controllers.values) {
-      pair.$1.addListener(_onScoreChanged);
-    }
-  }
-
-  void _onScoreChanged() => setState(() {});
-
-  bool get _isReadyToSubmit => _controllers.values
-      .every((pair) => pair.$1.text.trim().isNotEmpty);
-
-  @override
-  void dispose() {
-    for (final pair in _controllers.values) {
-      pair.$1.removeListener(_onScoreChanged);
-      pair.$1.dispose();
-      pair.$2.dispose();
-    }
-    super.dispose();
-  }
-
-  List<SubmissionGrade> _collectGrades() {
-    return _controllers.entries.map((e) {
-      final score = double.tryParse(e.value.$1.text.trim()) ?? 0;
-      final feedback = e.value.$2.text.trim();
-      return SubmissionGrade(
-        submissionId: e.key,
-        score: score,
-        feedback: feedback.isEmpty ? null : feedback,
-      );
-    }).toList();
-  }
+  bool get _isReadyToSubmit => review.answers
+      .where((a) => a.questionType == QuizQuestionType.withFreeAnswer)
+      .every((a) => a.finalScore != null);
 
   @override
   Widget build(BuildContext context) {
-    final answers = widget.review.answers;
+    final answers = review.answers;
     return Column(
       children: [
         Expanded(
@@ -174,8 +126,8 @@ class _GradeBodyState extends State<_GradeBody> {
               const Text('Проверка работы', style: AppTextStyles.screenTitle),
               const SizedBox(height: 6),
               Text(
-                widget.review.score != null
-                    ? 'Текущий балл: ${widget.review.score!.toStringAsFixed(0)}'
+                review.score != null
+                    ? 'Текущий балл: ${review.score!.toStringAsFixed(0)}'
                     : 'Балл не выставлен',
                 style: AppTextStyles.screenSubtitle,
               ),
@@ -185,11 +137,10 @@ class _GradeBodyState extends State<_GradeBody> {
                 if (answer.questionType == QuizQuestionType.withFreeAnswer) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: _FreeAnswerGradeCard(
+                    child: _FreeAnswerSummaryCard(
                       index: e.key + 1,
                       answer: answer,
-                      scoreController: _controllers[answer.submissionId]!.$1,
-                      feedbackController: _controllers[answer.submissionId]!.$2,
+                      onTap: () => _openGrading(context, answer, e.key + 1),
                     ),
                   );
                 }
@@ -202,145 +153,166 @@ class _GradeBodyState extends State<_GradeBody> {
           ),
         ),
         _SubmitButton(
-          isSaving: widget.isSaving,
+          isSaving: isSaving,
           isReady: _isReadyToSubmit,
           onTap: () {
-            context.read<TeacherGradeBloc>().add(SubmitGradesEvent(
-                  attemptId: widget.attemptId,
-                  grades: _collectGrades(),
-                ));
+            context
+                .read<TeacherGradeBloc>()
+                .add(CompleteGradingEvent(attemptId));
           },
         ),
       ],
     );
   }
+
+  Future<void> _openGrading(
+      BuildContext context, AnswerReview answer, int index) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TeacherGradeQuestionScreen(
+          attemptId: attemptId,
+          answer: answer,
+          index: index,
+        ),
+      ),
+    );
+    if (result == true && context.mounted) {
+      context.read<TeacherGradeBloc>().add(LoadTeacherGradeEvent(attemptId));
+    }
+  }
 }
 
-// ── Карточка развёрнутого ответа (интерактивная) ──────────────────────────
+// ── Tappable summary-карточка free-answer ───────────────────────────────────
 
-class _FreeAnswerGradeCard extends StatelessWidget {
+class _FreeAnswerSummaryCard extends StatelessWidget {
   final int index;
   final AnswerReview answer;
-  final TextEditingController scoreController;
-  final TextEditingController feedbackController;
+  final VoidCallback onTap;
 
-  const _FreeAnswerGradeCard({
+  const _FreeAnswerSummaryCard({
     required this.index,
     required this.answer,
-    required this.scoreController,
-    required this.feedbackController,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final studentText = answer.answerData['text']?.toString() ?? '';
+    final hasScore = answer.finalScore != null;
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.mono25,
-        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-        border: Border.all(color: AppColors.mono150),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _IndexBadge(index: index),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  answer.questionText,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.mono900,
-                    height: 1.3,
-                  ),
-                ),
-              ),
-            ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.mono25,
+          borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+          border: Border.all(
+            color: hasScore ? AppColors.mono300 : AppColors.mono150,
           ),
-          const SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.mono100,
-              borderRadius: BorderRadius.circular(AppDimens.radiusSm),
-            ),
-            child: Text(
-              studentText.isEmpty ? '— нет ответа —' : studentText,
-              style: const TextStyle(
-                  fontSize: 13, color: AppColors.mono700, height: 1.4),
-            ),
-          ),
-          if (answer.finalScore == null) ...[
-            const SizedBox(height: 10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(
-                  width: 12,
-                  height: 12,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 1.5,
-                    color: AppColors.mono400,
+                _IndexBadge(index: index),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    answer.questionText,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.mono900,
+                      height: 1.3,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 6),
-                Text('ИИ проверяет...', style: AppTextStyles.helperText),
+                if (hasScore)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.mono900,
+                      borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+                    ),
+                    child: Text(
+                      answer.finalScore!.toStringAsFixed(0),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  )
+                else
+                  const Icon(Icons.chevron_right,
+                      size: 18, color: AppColors.mono300),
               ],
             ),
-          ],
-          const SizedBox(height: 14),
-          Text('Балл', style: AppTextStyles.fieldLabel),
-          const SizedBox(height: 8),
-          _ScorePicker(controller: scoreController),
-          if (answer.finalScore == null) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Выставьте балл самостоятельно, чтобы не ждать ИИ',
-              style: AppTextStyles.caption.copyWith(color: AppColors.mono400),
-            ),
-          ],
-          if (answer.finalSource == 'llm' && answer.finalScore != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              'ИИ предложил: ${answer.finalScore!.toStringAsFixed(0)} — можно изменить',
-              style: AppTextStyles.caption.copyWith(color: AppColors.mono400),
-            ),
-          ],
-          const SizedBox(height: 10),
-          Text('Комментарий', style: AppTextStyles.fieldLabel),
-          const SizedBox(height: 6),
-          TextField(
-            controller: feedbackController,
-            maxLines: 3,
-            style: AppTextStyles.fieldText,
-            decoration: InputDecoration(
-              hintText: 'Необязательно',
-              hintStyle: AppTextStyles.fieldHint,
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 12),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-                borderSide: const BorderSide(
-                    color: AppColors.mono150,
-                    width: AppDimens.borderWidth),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.mono100,
+                borderRadius: BorderRadius.circular(AppDimens.radiusSm),
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-                borderSide: const BorderSide(
-                    color: AppColors.mono600,
-                    width: AppDimens.borderWidth),
+              child: Text(
+                studentText.isEmpty ? '— нет ответа —' : studentText,
+                style: const TextStyle(
+                    fontSize: 13, color: AppColors.mono700, height: 1.4),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
               ),
-              filled: true,
-              fillColor: Colors.white,
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            if (!hasScore)
+              Row(
+                children: [
+                  const SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      color: AppColors.mono400,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'ИИ проверяет · Нажмите, чтобы оценить самостоятельно',
+                      style: AppTextStyles.caption
+                          .copyWith(color: AppColors.mono400),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  Icon(
+                    answer.finalSource == 'teacher'
+                        ? Icons.check_circle_outline
+                        : Icons.auto_awesome,
+                    size: 14,
+                    color: AppColors.mono400,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    answer.finalSource == 'teacher'
+                        ? 'Вы оценили · Нажмите, чтобы изменить'
+                        : 'Оценено ИИ · Нажмите, чтобы изменить',
+                    style:
+                        AppTextStyles.caption.copyWith(color: AppColors.mono400),
+                  ),
+                ],
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -481,91 +453,6 @@ class _ReadonlyAnswerCard extends StatelessWidget {
   }
 }
 
-// ── Пикер баллов (1–10) ───────────────────────────────────────────────────
-
-class _ScorePicker extends StatelessWidget {
-  final TextEditingController controller;
-
-  const _ScorePicker({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    final selected = int.tryParse(controller.text.trim());
-    return Column(
-      children: [
-        _ScoreRow(values: const [1, 2, 3, 4, 5], selected: selected, controller: controller),
-        const SizedBox(height: 6),
-        _ScoreRow(values: const [6, 7, 8, 9, 10], selected: selected, controller: controller),
-      ],
-    );
-  }
-}
-
-class _ScoreRow extends StatelessWidget {
-  final List<int> values;
-  final int? selected;
-  final TextEditingController controller;
-
-  const _ScoreRow({
-    required this.values,
-    required this.selected,
-    required this.controller,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (int i = 0; i < values.length; i++) ...[
-          if (i > 0) const SizedBox(width: 6),
-          Expanded(child: _ScoreChip(value: values[i], isSelected: selected == values[i], controller: controller)),
-        ],
-      ],
-    );
-  }
-}
-
-class _ScoreChip extends StatelessWidget {
-  final int value;
-  final bool isSelected;
-  final TextEditingController controller;
-
-  const _ScoreChip({
-    required this.value,
-    required this.isSelected,
-    required this.controller,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => controller.text = value.toString(),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        height: 44,
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.mono900 : Colors.white,
-          borderRadius: BorderRadius.circular(AppDimens.radiusSm),
-          border: Border.all(
-            color: isSelected ? AppColors.mono900 : AppColors.mono150,
-            width: AppDimens.borderWidth,
-          ),
-        ),
-        alignment: Alignment.center,
-        child: AnimatedDefaultTextStyle(
-          duration: const Duration(milliseconds: 150),
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: isSelected ? Colors.white : AppColors.mono600,
-          ),
-          child: Text('$value'),
-        ),
-      ),
-    );
-  }
-}
-
 // ── Shared widgets ────────────────────────────────────────────────────────
 
 class _IndexBadge extends StatelessWidget {
@@ -640,7 +527,7 @@ class _SubmitButton extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                'Выставите баллы для всех вопросов',
+                'Оцените все вопросы с развёрнутым ответом',
                 style: AppTextStyles.caption.copyWith(color: AppColors.mono400),
                 textAlign: TextAlign.center,
               ),
