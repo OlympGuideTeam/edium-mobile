@@ -28,8 +28,6 @@ class TestPreviewScreen extends StatelessWidget {
 
   TestSessionMeta _buildMeta() {
     final item = courseItem;
-    // quizTemplateId is the Riddler quiz template ID (≠ session ID).
-    // When present, GET /quizzes/{quizTemplateId} returns actual question count.
     final quizId = item?.quizTemplateId ?? item?.refId ?? sessionId;
     return TestSessionMeta(
       sessionId: sessionId,
@@ -148,204 +146,272 @@ class _LoadedBody extends StatelessWidget {
   final String sessionId;
   const _LoadedBody({required this.state, required this.sessionId});
 
-  static final _dateFmt = DateFormat('d MMM, HH:mm', 'ru');
-
   @override
   Widget build(BuildContext context) {
     final meta = state.meta;
-    return Padding(
-      padding:
-          const EdgeInsets.symmetric(horizontal: AppDimens.screenPaddingH),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 8),
-          Text(meta.title,
-              style: AppTextStyles.screenTitle.copyWith(fontSize: 22)),
-          if (meta.description != null && meta.description!.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(meta.description!, style: AppTextStyles.screenSubtitle),
-          ],
-          if (state.status == TestPreviewStatus.locked &&
-              meta.startedAt != null) ...[
-            const SizedBox(height: 16),
-            _ScheduledBanner(
-              startTime: meta.startedAt!,
-              durationSec: meta.totalTimeLimitSec,
+
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppDimens.screenPaddingH),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                Text(meta.title, style: AppTextStyles.heading2),
+                if (meta.description != null &&
+                    meta.description!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(meta.description!,
+                      style: AppTextStyles.screenSubtitle),
+                ],
+                const SizedBox(height: 24),
+                _StatusHero(state: state),
+                const SizedBox(height: 20),
+                _DetailsSection(meta: meta, status: state.status),
+                if (meta.hasTimeLimit &&
+                    state.status == TestPreviewStatus.start) ...[
+                  const SizedBox(height: 16),
+                  _WarningBlock(
+                    text:
+                        'Таймер запустится сразу после нажатия «Начать». Он не остановится, если вы покинете экран.',
+                  ),
+                ],
+                const SizedBox(height: 24),
+              ],
             ),
-          ],
-          const SizedBox(height: 24),
-          _InfoCard(
-            icon: Icons.quiz_outlined,
-            title: 'Количество вопросов',
-            value: meta.questionCount > 0 ? '${meta.questionCount}' : '—',
           ),
-          if (meta.hasTimeLimit) ...[
-            const SizedBox(height: 10),
-            _InfoCard(
-              icon: Icons.timer_outlined,
-              title: 'Ограничение по времени',
-              value: '${meta.timeLimitMinutes} мин',
-            ),
-          ],
-          if (meta.finishedAt != null) ...[
-            const SizedBox(height: 10),
-            _InfoCard(
-              icon: Icons.event_outlined,
-              title: 'Дедлайн',
-              value: _dateFmt.format(meta.finishedAt!.toLocal()),
-            ),
-          ],
-          if (meta.needEvaluation) ...[
-            const SizedBox(height: 10),
-            _InfoCard(
-              icon: Icons.auto_awesome_outlined,
-              title: 'Проверка ответов',
-              value: 'Автоматически + ИИ',
-            ),
-          ],
-          const SizedBox(height: 20),
-          if (meta.hasTimeLimit && state.status == TestPreviewStatus.start)
-            _WarningBlock(
-              text:
-                  'Таймер запустится сразу после нажатия «Начать». Он не остановится, если вы покинете экран.',
-            ),
-          if (state.status == TestPreviewStatus.expired)
-            _WarningBlock(text: 'Срок сдачи истёк', isError: true),
-          if (state.status == TestPreviewStatus.grading)
-            _WarningBlock(
-              text: 'Ответы проверяются. Вернитесь позже за результатом.',
-            ),
-          if (state.status == TestPreviewStatus.graded)
-            _WarningBlock(
-              text: 'Ответы проверены, но преподаватель пока не открыл результаты.',
-            ),
-          const Spacer(),
-          _BottomCta(state: state, sessionId: sessionId),
-          const SizedBox(height: 24),
-        ],
-      ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppDimens.screenPaddingH,
+            0,
+            AppDimens.screenPaddingH,
+            24,
+          ),
+          child: _BottomCta(state: state, sessionId: sessionId),
+        ),
+      ],
     );
   }
 }
 
-class _BottomCta extends StatelessWidget {
+// ─── Статусный hero-блок ────────────────────────────────────────────────────
+
+class _StatusHero extends StatelessWidget {
   final TestPreviewLoaded state;
-  final String sessionId;
-  const _BottomCta({required this.state, required this.sessionId});
+  const _StatusHero({required this.state});
 
   @override
   Widget build(BuildContext context) {
     final status = state.status;
     final meta = state.meta;
 
-    final label = switch (status) {
-      TestPreviewStatus.start => 'Начать тест',
-      TestPreviewStatus.resume => 'Продолжить',
-      TestPreviewStatus.locked => 'Откроется позже',
-      TestPreviewStatus.expired => 'Дедлайн истёк',
-      TestPreviewStatus.grading => 'Ответы проверяются',
-      TestPreviewStatus.graded => 'Результаты недоступны',
-      TestPreviewStatus.completed => 'Посмотреть результат',
-    };
+    if (status == TestPreviewStatus.locked && meta.startedAt != null) {
+      return _ScheduledBanner(
+        startTime: meta.startedAt!,
+        durationSec: meta.totalTimeLimitSec,
+      );
+    }
 
-    final enabled = status == TestPreviewStatus.start ||
-        status == TestPreviewStatus.resume ||
-        status == TestPreviewStatus.completed;
+    final (:tag, :title, :subtitle) = _heroContent(status, state);
 
-    return SizedBox(
+    return Container(
       width: double.infinity,
-      height: AppDimens.buttonH,
-      child: ElevatedButton(
-        onPressed: enabled ? () => _onTap(context, meta, status) : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.mono900,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.mono200,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      decoration: BoxDecoration(
+        color: AppColors.mono900,
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tag,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Color(0x80FFFFFF),
+              letterSpacing: 0.8,
+            ),
           ),
-          textStyle: AppTextStyles.primaryButton,
-        ),
-        child: Text(label),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+              height: 1.1,
+            ),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0x80FFFFFF),
+                height: 1.4,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
 
-  void _onTap(
-    BuildContext context,
-    TestSessionMeta meta,
+  ({String tag, String title, String? subtitle}) _heroContent(
     TestPreviewStatus status,
+    TestPreviewLoaded state,
   ) {
-    if (status == TestPreviewStatus.completed) {
-      // Если review подгрузился — откроем разбор; иначе просто вернёмся назад,
-      // чтобы не создавать второй attempt и не получать 409.
-      final review = state.review;
-      if (review != null) {
-        context.push('/test/$sessionId/attempts/${review.attemptId}');
-      }
-      return;
-    }
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => BlocProvider(
-          create: (_) => TakeQuizBloc(
-            createAttempt: getIt(),
-            submitAnswer: getIt(),
-            finishAttempt: getIt(),
-            getResult: getIt(),
-            testSessionRepo: getIt(),
-          ),
-          child: TakeQuizScreen(
-            sessionId: sessionId,
-            quizTitle: meta.title,
-            totalTimeLimitSec: meta.totalTimeLimitSec,
-            useCache: true,
-          ),
-        ),
+    return switch (status) {
+      TestPreviewStatus.start => (
+        tag: 'СТАТУС',
+        title: 'Тест\nдоступен',
+        subtitle: state.meta.hasTimeLimit
+            ? '${state.meta.timeLimitMinutes} мин на выполнение'
+            : null,
       ),
-    );
+      TestPreviewStatus.resume => (
+        tag: 'СТАТУС',
+        title: 'Тест начат',
+        subtitle: 'Продолжите выполнение',
+      ),
+      TestPreviewStatus.locked => (
+        tag: 'СТАТУС',
+        title: 'Откроется\nпозже',
+        subtitle: null,
+      ),
+      TestPreviewStatus.expired => (
+        tag: 'СТАТУС',
+        title: 'Срок сдачи\nистёк',
+        subtitle: null,
+      ),
+      TestPreviewStatus.grading => (
+        tag: 'СТАТУС',
+        title: 'Ответы\nпроверяются',
+        subtitle: 'Вернитесь позже',
+      ),
+      TestPreviewStatus.graded => (
+        tag: 'СТАТУС',
+        title: 'Результаты\nбудут позже',
+        subtitle: 'Преподаватель ещё не открыл доступ',
+      ),
+      TestPreviewStatus.completed => (
+        tag: 'РЕЗУЛЬТАТ',
+        title: _completedTitle(state),
+        subtitle: 'Посмотреть подробнее',
+      ),
+    };
+  }
+
+  String _completedTitle(TestPreviewLoaded state) {
+    final score = state.review?.score;
+    if (score != null) {
+      return '${score.round()}%';
+    }
+    return 'Завершён';
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String value;
+// ─── Секция деталей ─────────────────────────────────────────────────────────
 
-  const _InfoCard({
-    required this.icon,
-    required this.title,
-    required this.value,
-  });
+class _DetailsSection extends StatelessWidget {
+  final TestSessionMeta meta;
+  final TestPreviewStatus status;
+  const _DetailsSection({required this.meta, required this.status});
+
+  static final _dateFmt = DateFormat('d MMM, HH:mm', 'ru');
 
   @override
   Widget build(BuildContext context) {
+    final rows = <_DetailRow>[];
+
+    rows.add(_DetailRow(
+      icon: Icons.timer_outlined,
+      label: 'Время',
+      value: meta.hasTimeLimit
+          ? '${meta.timeLimitMinutes} мин'
+          : 'Без ограничений',
+    ));
+
+    if (meta.finishedAt != null) {
+      rows.add(_DetailRow(
+        icon: Icons.event_outlined,
+        label: 'Дедлайн',
+        value: _dateFmt.format(meta.finishedAt!.toLocal()),
+      ));
+    }
+
+    if (meta.shuffleQuestions == true) {
+      rows.add(_DetailRow(
+        icon: Icons.shuffle_rounded,
+        label: 'Порядок вопросов',
+        value: 'Случайный',
+      ));
+    }
+
+    final attemptUsed = status == TestPreviewStatus.resume ||
+        status == TestPreviewStatus.completed ||
+        status == TestPreviewStatus.grading ||
+        status == TestPreviewStatus.graded;
+
+    rows.add(_DetailRow(
+      icon: Icons.replay_outlined,
+      label: 'Попытки',
+      value: attemptUsed ? 'Закончились' : '1 доступна',
+    ));
+
     return Container(
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.mono50,
         borderRadius: BorderRadius.circular(AppDimens.radiusMd),
         border: Border.all(color: AppColors.mono150),
       ),
+      child: Column(
+        children: [
+          for (int i = 0; i < rows.length; i++) ...[
+            if (i > 0)
+              const Divider(
+                height: 1,
+                thickness: 1,
+                color: AppColors.mono150,
+                indent: 14,
+                endIndent: 14,
+              ),
+            rows[i],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       child: Row(
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.mono150),
-            ),
-            child: Icon(icon, size: 18, color: AppColors.mono700),
-          ),
-          const SizedBox(width: 12),
+          Icon(icon, size: 18, color: AppColors.mono400),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
-              title,
+              label,
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
@@ -357,8 +423,8 @@ class _InfoCard extends StatelessWidget {
             value,
             style: const TextStyle(
               fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppColors.mono900,
+              fontWeight: FontWeight.w600,
+              color: AppColors.mono700,
             ),
           ),
         ],
@@ -367,7 +433,7 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
-// ─── Баннер обратного отсчёта ────────────────────────────────────────────────
+// ─── Баннер обратного отсчёта ───────────────────────────────────────────────
 
 class _ScheduledBanner extends StatefulWidget {
   final DateTime startTime;
@@ -427,12 +493,29 @@ class _ScheduledBannerState extends State<_ScheduledBanner> {
 
     final start = widget.startTime.toLocal();
     const ruWeekdays = [
-      '', 'Понедельник', 'Вторник', 'Среда',
-      'Четверг', 'Пятница', 'Суббота', 'Воскресенье',
+      '',
+      'Понедельник',
+      'Вторник',
+      'Среда',
+      'Четверг',
+      'Пятница',
+      'Суббота',
+      'Воскресенье',
     ];
     const ruMonths = [
-      '', 'янв', 'фев', 'мар', 'апр', 'май', 'июн',
-      'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
+      '',
+      'янв',
+      'фев',
+      'мар',
+      'апр',
+      'май',
+      'июн',
+      'июл',
+      'авг',
+      'сен',
+      'окт',
+      'ноя',
+      'дек',
     ];
 
     final weekday = ruWeekdays[start.weekday];
@@ -447,8 +530,8 @@ class _ScheduledBannerState extends State<_ScheduledBanner> {
     }
 
     return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       decoration: BoxDecoration(
         color: AppColors.mono900,
         borderRadius: BorderRadius.circular(AppDimens.radiusLg),
@@ -544,45 +627,118 @@ class _CountUnit extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Warning ────────────────────────────────────────────────────────────────
 
 class _WarningBlock extends StatelessWidget {
   final String text;
-  final bool isError;
-  const _WarningBlock({required this.text, this.isError = false});
+  const _WarningBlock({required this.text});
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isError ? const Color(0xFFFEE2E2) : AppColors.mono50,
+        color: AppColors.mono50,
         borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-        border: Border.all(
-            color: isError ? const Color(0xFFEF4444) : AppColors.mono150),
+        border: Border.all(color: AppColors.mono150),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(isError ? Icons.error_outline : Icons.info_outline,
-              size: 16,
-              color: isError
-                  ? const Color(0xFFEF4444)
-                  : AppColors.mono400),
+          const Icon(Icons.info_outline,
+              size: 16, color: AppColors.mono400),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
                 height: 1.5,
-                color: isError
-                    ? const Color(0xFFEF4444)
-                    : AppColors.mono400,
+                color: AppColors.mono400,
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── CTA-кнопка ─────────────────────────────────────────────────────────────
+
+class _BottomCta extends StatelessWidget {
+  final TestPreviewLoaded state;
+  final String sessionId;
+  const _BottomCta({required this.state, required this.sessionId});
+
+  @override
+  Widget build(BuildContext context) {
+    final status = state.status;
+    final meta = state.meta;
+
+    final label = switch (status) {
+      TestPreviewStatus.start => 'Начать тест',
+      TestPreviewStatus.resume => 'Продолжить',
+      TestPreviewStatus.locked => 'Откроется позже',
+      TestPreviewStatus.expired => 'Дедлайн истёк',
+      TestPreviewStatus.grading => 'Ответы проверяются',
+      TestPreviewStatus.graded => 'Результаты недоступны',
+      TestPreviewStatus.completed => 'Посмотреть результат',
+    };
+
+    final enabled = status == TestPreviewStatus.start ||
+        status == TestPreviewStatus.resume ||
+        status == TestPreviewStatus.completed;
+
+    return SizedBox(
+      width: double.infinity,
+      height: AppDimens.buttonH,
+      child: ElevatedButton(
+        onPressed: enabled ? () => _onTap(context, meta, status) : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.mono900,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: AppColors.mono200,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+          ),
+          textStyle: AppTextStyles.primaryButton,
+        ),
+        child: Text(label),
+      ),
+    );
+  }
+
+  void _onTap(
+    BuildContext context,
+    TestSessionMeta meta,
+    TestPreviewStatus status,
+  ) {
+    if (status == TestPreviewStatus.completed) {
+      final review = state.review;
+      if (review != null) {
+        context.push('/test/$sessionId/attempts/${review.attemptId}');
+      }
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlocProvider(
+          create: (_) => TakeQuizBloc(
+            createAttempt: getIt(),
+            submitAnswer: getIt(),
+            finishAttempt: getIt(),
+            getResult: getIt(),
+            testSessionRepo: getIt(),
+          ),
+          child: TakeQuizScreen(
+            sessionId: sessionId,
+            quizTitle: meta.title,
+            totalTimeLimitSec: meta.totalTimeLimitSec,
+            useCache: true,
+          ),
+        ),
       ),
     );
   }
