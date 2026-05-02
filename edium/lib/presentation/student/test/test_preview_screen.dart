@@ -28,15 +28,18 @@ class TestPreviewScreen extends StatelessWidget {
 
   TestSessionMeta _buildMeta() {
     final item = courseItem;
+    // quizTemplateId is the Riddler quiz template ID (≠ session ID).
+    // When present, GET /quizzes/{quizTemplateId} returns actual question count.
+    final quizId = item?.quizTemplateId ?? item?.refId ?? sessionId;
     return TestSessionMeta(
       sessionId: sessionId,
-      quizId: item?.refId ?? sessionId,
+      quizId: quizId,
       title: item?.title ?? 'Тест',
       description: null,
-      questionCount: 0, // Caesar QuizShort не отдаёт — пока 0, показываем "—".
-      needEvaluation: false, // TODO: расширение Caesar / Riddler нужно
-      totalTimeLimitSec: null, // см. выше
-      shuffleQuestions: null,
+      questionCount: 0,
+      needEvaluation: item?.needEvaluation ?? false,
+      totalTimeLimitSec: item?.payload?.totalTimeLimitSec,
+      shuffleQuestions: item?.payload?.shuffleQuestions,
       startedAt: item?.startTime,
       finishedAt: item?.endTime,
     );
@@ -213,6 +216,10 @@ class _LoadedBody extends StatelessWidget {
             _WarningBlock(
               text: 'Ответы проверяются. Вернитесь позже за результатом.',
             ),
+          if (state.status == TestPreviewStatus.graded)
+            _WarningBlock(
+              text: 'Ответы проверены, но преподаватель пока не открыл результаты.',
+            ),
           const Spacer(),
           _BottomCta(state: state, sessionId: sessionId),
           const SizedBox(height: 24),
@@ -238,6 +245,7 @@ class _BottomCta extends StatelessWidget {
       TestPreviewStatus.locked => 'Откроется позже',
       TestPreviewStatus.expired => 'Дедлайн истёк',
       TestPreviewStatus.grading => 'Ответы проверяются',
+      TestPreviewStatus.graded => 'Результаты недоступны',
       TestPreviewStatus.completed => 'Посмотреть результат',
     };
 

@@ -29,11 +29,12 @@ class CourseItem {
 
   // Новые поля из Caesar `QuizShort`:
   final String? title;
-  final String? quizType;   // 'test' | 'live'
-  final String? state;      // для async: 'not_started' | 'in_progress' | 'completed'
+  final String? quizType;        // 'test' | 'live'
+  final String? state;           // для async: 'not_started' | 'in_progress' | 'completed'
   final DateTime? startTime;
   final DateTime? endTime;
   final bool needEvaluation;
+  final String? quizTemplateId;  // ID шаблона квиза в Riddler (≠ session ID)
 
   const CourseItem({
     required this.id,
@@ -49,6 +50,7 @@ class CourseItem {
     this.startTime,
     this.endTime,
     this.needEvaluation = false,
+    this.quizTemplateId,
   });
 
   bool get isPassed => score != null;
@@ -63,7 +65,8 @@ class CourseItem {
   int get hashCode => id.hashCode;
 
   @override
-  String toString() => 'CourseItem(id: $id, refId: $refId, score: $score)';
+  String toString() =>
+      'CourseItem(id: $id, refId: $refId, quizTemplateId: $quizTemplateId, score: $score)';
 }
 
 class ModuleDetail {
