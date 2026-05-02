@@ -88,6 +88,7 @@ class CourseItemModel {
   final String? startTime;
   final String? endTime;
   final bool needEvaluation;
+  final String? quizTemplateId;
 
   const CourseItemModel({
     required this.id,
@@ -102,6 +103,7 @@ class CourseItemModel {
     this.startTime,
     this.endTime,
     this.needEvaluation = false,
+    this.quizTemplateId,
   });
 
   factory CourseItemModel.fromJson(Map<String, dynamic> json,
@@ -120,6 +122,7 @@ class CourseItemModel {
       startTime: (json['start_time'] as String?) ?? payloadJson?['started_at'] as String?,
       endTime: (json['end_time'] as String?) ?? payloadJson?['finished_at'] as String?,
       needEvaluation: (json['need_evaluation'] as bool?) ?? false,
+      quizTemplateId: json['quiz_template_id'] as String?,
     );
   }
 
@@ -137,6 +140,7 @@ class CourseItemModel {
       startTime: startTime != null ? DateTime.tryParse(startTime!) : null,
       endTime: endTime != null ? DateTime.tryParse(endTime!) : null,
       needEvaluation: needEvaluation,
+      quizTemplateId: quizTemplateId,
     );
   }
 }

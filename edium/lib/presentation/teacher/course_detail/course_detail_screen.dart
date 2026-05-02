@@ -1463,8 +1463,12 @@ class _ModuleSectionState extends State<_ModuleSection>
                                     onTap: item.isTestQuiz
                                         ? () {
                                             if (widget.isTeacher) {
-                                              if (item.state == 'in_progress' &&
-                                                  widget.classId != null) {
+                                              final now = DateTime.now();
+                                              final p = item.payload;
+                                              final isActive = p != null &&
+                                                  !(p.finishedAt != null && now.isAfter(p.finishedAt!)) &&
+                                                  (p.startedAt == null || !now.isBefore(p.startedAt!));
+                                              if (isActive && widget.classId != null) {
                                                 context.push(
                                                   '/test/${item.refId}/monitor',
                                                   extra: {
@@ -1478,6 +1482,7 @@ class _ModuleSectionState extends State<_ModuleSection>
                                                   extra: {
                                                     'courseItem': item,
                                                     'isTeacher': true,
+                                                    'classId': widget.classId,
                                                   },
                                                 );
                                               }
@@ -1664,11 +1669,26 @@ class _TrailingBadge extends StatelessWidget {
       );
     }
 
-    final label = switch (item.state) {
-      'in_progress' => 'В процессе',
-      'not_started' => 'Не начат',
+    final now = DateTime.now();
+    final payload = item.payload;
+    final String sessionState;
+    if (payload == null) {
+      sessionState = 'not_started';
+    } else {
+      final end = payload.finishedAt;
+      final start = payload.startedAt;
+      if (end != null && now.isAfter(end)) {
+        sessionState = 'completed';
+      } else if (start == null || !now.isBefore(start)) {
+        sessionState = 'in_progress';
+      } else {
+        sessionState = 'waiting';
+      }
+    }
+
+    final label = switch (sessionState) {
+      'in_progress' => 'Идёт',
       'waiting'     => 'Ожидает',
-      'running'     => 'Идёт',
       'completed'   => 'Завершён',
       _ => 'Не начат',
     };
