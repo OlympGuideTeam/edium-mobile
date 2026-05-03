@@ -400,46 +400,80 @@ class _ClassDetailViewState extends State<_ClassDetailView>
     showDialog(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
+        return Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-          ),
-          title: Text(
-            'Удалить класс?',
-            style: AppTextStyles.heading3.copyWith(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.mono900,
-            ),
-          ),
-          content: Text(
-            'Это действие необратимо. Все данные класса будут удалены.',
-            style: AppTextStyles.screenSubtitle,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(
-                'Отмена',
-                style: AppTextStyles.secondaryButton.copyWith(
-                  color: AppColors.mono400,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Удалить класс?',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.mono900,
+                  ),
                 ),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                bloc.add(const DeleteClassEvent());
-              },
-              child: Text(
-                'Удалить',
-                style: AppTextStyles.secondaryButton.copyWith(
-                  color: AppColors.error,
+                const SizedBox(height: 12),
+                const Text(
+                  'Это действие необратимо. Все данные класса будут удалены.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.mono600,
+                    height: 1.5,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: AppDimens.buttonHSm,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                      bloc.add(const DeleteClassEvent());
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.mono900,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Удалить',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  height: AppDimens.buttonHSm,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.mono150),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                      ),
+                    ),
+                    child: const Text(
+                      'Отмена',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.mono700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );
@@ -475,43 +509,77 @@ class _CoursesTab extends StatelessWidget {
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
+        return Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-          ),
-          title: Text(
-            'Удалить курс?',
-            style: AppTextStyles.heading3.copyWith(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.mono900,
-            ),
-          ),
-          content: Text(
-            'Курс «$title» будет удалён. Это действие необратимо.',
-            style: AppTextStyles.screenSubtitle,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(
-                'Отмена',
-                style: AppTextStyles.secondaryButton.copyWith(
-                  color: AppColors.mono400,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Удалить курс?',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.mono900,
+                  ),
                 ),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(
-                'Удалить',
-                style: AppTextStyles.secondaryButton.copyWith(
-                  color: AppColors.error,
+                const SizedBox(height: 12),
+                Text(
+                  'Курс «$title» будет удалён. Это действие необратимо.',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.mono600,
+                    height: 1.5,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: AppDimens.buttonHSm,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.mono900,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Удалить',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  height: AppDimens.buttonHSm,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.mono150),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                      ),
+                    ),
+                    child: const Text(
+                      'Отмена',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.mono700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );
@@ -610,60 +678,112 @@ class _CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final card = SizedBox(
-      width: double.infinity,
-      child: GestureDetector(
+    return GestureDetector(
       onTap: () {
         final classId = context.read<ClassDetailBloc>().classId;
         context.push('/course/${course.id}', extra: {'classId': classId});
       },
       child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-        border: Border.all(
-          color: course.isTeacher ? AppColors.mono150 : AppColors.mono200,
-          width: AppDimens.borderWidth,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+          border: Border.all(
+            color: AppColors.mono150,
+            width: AppDimens.borderWidth,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: AppColors.mono50,
+                borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+              ),
+              child: const Icon(
+                Icons.menu_book_rounded,
+                size: 20,
+                color: AppColors.mono600,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          course.title,
+                          style: AppTextStyles.fieldText.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (course.isTeacher) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.mono900,
+                            borderRadius:
+                                BorderRadius.circular(AppDimens.radiusXs),
+                          ),
+                          child: const Text(
+                            'МОЙ',
+                            style: AppTextStyles.badgeText,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    course.teacherName,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.mono400,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      _Chip(
+                        label: _modulesLabel(course.moduleCount),
+                      ),
+                      const SizedBox(width: 6),
+                      _Chip(
+                        label: _elementsLabel(course.elementCount),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 4),
+            Padding(
+              padding: const EdgeInsets.only(top: 14),
+              child: const Icon(
+                Icons.arrow_forward_ios,
+                size: 14,
+                color: AppColors.mono300,
+              ),
+            ),
+          ],
         ),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  course.title,
-                  style: AppTextStyles.fieldText.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${course.teacherName}  ·  ${_modulesLabel(course.moduleCount)}  ·  ${_elementsLabel(course.elementCount)}',
-                  style: AppTextStyles.helperText,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(
-            Icons.arrow_forward_ios,
-            size: 14,
-            color: AppColors.mono400,
-          ),
-        ],
-      ),
-    ),
-    ),
     );
-
-    return card;
   }
 
   String _modulesLabel(int count) {
@@ -692,6 +812,31 @@ class _CourseCard extends StatelessWidget {
       default:
         return '$count элементов';
     }
+  }
+}
+
+class _Chip extends StatelessWidget {
+  final String label;
+
+  const _Chip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.mono50,
+        borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: AppColors.mono600,
+        ),
+      ),
+    );
   }
 }
 
@@ -870,43 +1015,77 @@ class _MembersTabState extends State<_MembersTab> {
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
+        return Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-          ),
-          title: Text(
-            widget.role == 'teacher' ? 'Удалить учителя?' : 'Удалить ученика?',
-            style: AppTextStyles.heading3.copyWith(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.mono900,
-            ),
-          ),
-          content: Text(
-            'Вы уверены, что хотите удалить $memberName из класса?',
-            style: AppTextStyles.screenSubtitle,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(
-                'Отмена',
-                style: AppTextStyles.secondaryButton.copyWith(
-                  color: AppColors.mono400,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.role == 'teacher' ? 'Удалить учителя?' : 'Удалить ученика?',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.mono900,
+                  ),
                 ),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(
-                'Удалить',
-                style: AppTextStyles.secondaryButton.copyWith(
-                  color: AppColors.error,
+                const SizedBox(height: 12),
+                Text(
+                  'Вы уверены, что хотите удалить $memberName из класса?',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.mono600,
+                    height: 1.5,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: AppDimens.buttonHSm,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.mono900,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Удалить',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  height: AppDimens.buttonHSm,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.mono150),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                      ),
+                    ),
+                    child: const Text(
+                      'Отмена',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.mono700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );

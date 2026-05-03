@@ -1,6 +1,7 @@
 import 'package:edium/core/di/injection.dart';
 import 'package:edium/presentation/shared/widgets/edium_notification.dart';
 import 'package:edium/core/theme/app_colors.dart';
+import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/user.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
@@ -205,35 +206,80 @@ class _EditProfileViewState extends State<_EditProfileView> {
   void _showLogoutDialog(BuildContext parentContext) {
     showDialog(
       context: parentContext,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => Dialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Выйти из аккаунта?',
-          style: AppTextStyles.screenTitle.copyWith(fontSize: 17),
-        ),
-        content: const Text(
-          'Вы будете перенаправлены на экран входа.',
-          style: AppTextStyles.screenSubtitle,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            style: TextButton.styleFrom(foregroundColor: AppColors.mono600),
-            child: const Text('Отмена'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Выйти из аккаунта?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mono900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Вы будете перенаправлены на экран входа.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.mono600,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: AppDimens.buttonHSm,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    getIt<AuthBloc>().add(const LogoutEvent());
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.mono900,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Выйти',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: AppDimens.buttonHSm,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.mono150),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                    ),
+                  ),
+                  child: const Text(
+                    'Отмена',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.mono700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              getIt<AuthBloc>().add(const LogoutEvent());
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.mono900,
-              textStyle: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            child: const Text('Выйти'),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -241,35 +287,80 @@ class _EditProfileViewState extends State<_EditProfileView> {
   void _showDeleteDialog(BuildContext parentContext) {
     showDialog(
       context: parentContext,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => Dialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Удалить аккаунт?',
-          style: AppTextStyles.screenTitle.copyWith(fontSize: 17),
-        ),
-        content: const Text(
-          'Это действие необратимо. Все данные будут удалены.',
-          style: AppTextStyles.screenSubtitle,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            style: TextButton.styleFrom(foregroundColor: AppColors.mono600),
-            child: const Text('Отмена'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Удалить аккаунт?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mono900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Это действие необратимо. Все данные будут удалены.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.mono600,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: AppDimens.buttonHSm,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    parentContext.read<EditProfileBloc>().add(const DeleteAccountEvent());
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.mono900,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Удалить',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: AppDimens.buttonHSm,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.mono150),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                    ),
+                  ),
+                  child: const Text(
+                    'Отмена',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.mono700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              parentContext.read<EditProfileBloc>().add(const DeleteAccountEvent());
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.error,
-              textStyle: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            child: const Text('Удалить'),
-          ),
-        ],
+        ),
       ),
     );
   }

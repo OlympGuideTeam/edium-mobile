@@ -10,12 +10,13 @@ import 'package:edium/domain/repositories/live_repository.dart';
 import 'package:edium/presentation/live/student/bloc/live_student_bloc.dart';
 import 'package:edium/presentation/live/student/bloc/live_student_event.dart';
 import 'package:edium/presentation/live/student/bloc/live_student_state.dart';
+import 'package:edium/presentation/shared/mixins/screen_protection_mixin.dart';
 import 'package:edium/services/live_ws/live_ws_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-class LiveStudentScreen extends StatelessWidget {
+class LiveStudentScreen extends StatefulWidget {
   final String sessionId;
   final String attemptId;
   final String wsToken;
@@ -34,22 +35,28 @@ class LiveStudentScreen extends StatelessWidget {
   });
 
   @override
+  State<LiveStudentScreen> createState() => _LiveStudentScreenState();
+}
+
+class _LiveStudentScreenState extends State<LiveStudentScreen>
+    with WidgetsBindingObserver, ScreenProtectionMixin {
+  @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => LiveStudentBloc(
         repo: getIt<ILiveRepository>(),
         ws: getIt<LiveWsService>(),
       )..add(LiveStudentStart(
-          sessionId: sessionId,
-          attemptId: attemptId,
-          wsToken: wsToken,
-          quizTitle: quizTitle,
-          questionCount: questionCount,
-          moduleId: moduleId,
+          sessionId: widget.sessionId,
+          attemptId: widget.attemptId,
+          wsToken: widget.wsToken,
+          quizTitle: widget.quizTitle,
+          questionCount: widget.questionCount,
+          moduleId: widget.moduleId,
         )),
       child: _LiveStudentBody(
-        quizTitle: quizTitle,
-        questionCount: questionCount,
+        quizTitle: widget.quizTitle,
+        questionCount: widget.questionCount,
       ),
     );
   }
@@ -594,6 +601,8 @@ class _AnswerOptionsState extends State<_AnswerOptions> {
             maxLines: multiline ? 4 : 1,
             style: const TextStyle(fontSize: 15, color: Colors.white),
             cursorColor: AppColors.liveAccent,
+            enableInteractiveSelection: false,
+            contextMenuBuilder: (context, editableTextState) => const SizedBox.shrink(),
             decoration: InputDecoration(
               hintText: multiline ? 'Введите развёрнутый ответ…' : 'Введите ответ…',
               hintStyle: const TextStyle(
