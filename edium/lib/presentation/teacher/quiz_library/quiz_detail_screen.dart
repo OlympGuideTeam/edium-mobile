@@ -91,30 +91,55 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
     if (_quiz?.isPublic == true) {
       await showDialog<void>(
         context: context,
-        builder: (ctx) => AlertDialog(
+        builder: (ctx) => Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text(
-            'Нельзя удалить',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              color: AppColors.mono900,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Нельзя удалить',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.mono900,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Публичный шаблон нельзя удалить — он доступен другим учителям.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.mono600,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: AppDimens.buttonHSm,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.mono900,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Понятно',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          content: const Text(
-            'Публичный шаблон нельзя удалить — он доступен другим учителям.',
-            style: TextStyle(fontSize: 14, color: AppColors.mono600),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text(
-                'Понятно',
-                style: TextStyle(color: AppColors.mono900, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ],
         ),
       );
       return;
@@ -122,37 +147,77 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => Dialog(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Удалить шаблон?',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: AppColors.mono900,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Удалить шаблон?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mono900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Это действие нельзя отменить. Шаблон будет удалён из библиотеки.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.mono600,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: AppDimens.buttonHSm,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.mono900,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Удалить',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: AppDimens.buttonHSm,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.mono150),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                    ),
+                  ),
+                  child: const Text(
+                    'Отмена',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.mono700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-        content: const Text(
-          'Это действие нельзя отменить. Шаблон будет удалён из библиотеки.',
-          style: TextStyle(fontSize: 14, color: AppColors.mono600),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
-              'Отмена',
-              style: TextStyle(color: AppColors.mono600),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              'Удалить',
-              style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
       ),
     );
     if (confirmed != true || !mounted) return;

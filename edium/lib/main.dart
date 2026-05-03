@@ -232,6 +232,7 @@ void _routeOrSwitch(
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await HiveStorage.init();
 
   ApiConfig.environment = ProfileStorage.loadEnvironment();

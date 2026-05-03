@@ -400,23 +400,80 @@ class _ParticipantTile extends StatelessWidget {
   void _confirmKick(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Исключить участника?'),
-        content: Text('${participant.name} будет удалён из квиза.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Исключить участника?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mono900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '${participant.name} будет удалён из квиза.',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.mono600,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: AppDimens.buttonHSm,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    onKick();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.mono900,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Исключить',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: AppDimens.buttonHSm,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.mono150),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                    ),
+                  ),
+                  child: const Text(
+                    'Отмена',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.mono700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              onKick();
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Исключить'),
-          ),
-        ],
+        ),
       ),
     );
   }

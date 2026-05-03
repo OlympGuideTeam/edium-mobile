@@ -17,11 +17,17 @@ class StudentQuizLoading extends StudentQuizState {
 
 class StudentQuizLoaded extends StudentQuizState {
   final List<LibraryQuiz> quizzes;
+  final List<LibraryQuiz> filtered;
+  final String searchQuery;
 
-  const StudentQuizLoaded(this.quizzes);
+  const StudentQuizLoaded({
+    required this.quizzes,
+    required this.filtered,
+    this.searchQuery = '',
+  });
 
   @override
-  List<Object?> get props => [quizzes];
+  List<Object?> get props => [quizzes, filtered, searchQuery];
 }
 
 class StudentQuizError extends StudentQuizState {

@@ -15,7 +15,9 @@ class StudentQuizLibraryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
@@ -106,7 +108,7 @@ class StudentQuizLibraryScreen extends StatelessWidget {
                     );
                   }
                   if (state is StudentQuizLoaded) {
-                    if (state.quizzes.isEmpty) {
+                    if (state.filtered.isEmpty) {
                       return Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -114,17 +116,21 @@ class StudentQuizLibraryScreen extends StatelessWidget {
                             const Icon(Icons.quiz_outlined,
                                 size: 48, color: AppColors.mono200),
                             const SizedBox(height: 12),
-                            const Text(
-                              'Квизы не найдены',
-                              style: TextStyle(
+                            Text(
+                              state.searchQuery.isNotEmpty
+                                  ? 'Ничего не найдено'
+                                  : 'Квизы не найдены',
+                              style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.mono900,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              'Попробуйте изменить поисковый запрос',
+                            Text(
+                              state.searchQuery.isNotEmpty
+                                  ? 'Попробуйте изменить поисковый запрос'
+                                  : 'Пока нет доступных квизов',
                               style: AppTextStyles.screenSubtitle,
                             ),
                           ],
@@ -138,11 +144,11 @@ class StudentQuizLibraryScreen extends StatelessWidget {
                           .add(const LoadStudentQuizzesEvent()),
                       child: ListView.separated(
                         padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-                        itemCount: state.quizzes.length,
+                        itemCount: state.filtered.length,
                         separatorBuilder: (_, __) =>
                             const SizedBox(height: 10),
                         itemBuilder: (context, i) {
-                          final quiz = state.quizzes[i];
+                          final quiz = state.filtered[i];
                           return LibraryQuizCard(
                             quiz: quiz,
                             onTap: () {
@@ -169,6 +175,7 @@ class StudentQuizLibraryScreen extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }

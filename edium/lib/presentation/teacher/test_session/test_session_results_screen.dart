@@ -692,37 +692,77 @@ class _DeleteButton extends StatelessWidget {
   Future<bool> _confirm(BuildContext context) async {
     final res = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => Dialog(
         backgroundColor: Colors.white,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Удалить тест?',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: AppColors.mono900,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Удалить тест?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mono900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Никто ещё не начал этот тест. Действие нельзя отменить.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.mono600,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: AppDimens.buttonHSm,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.mono900,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Удалить',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: AppDimens.buttonHSm,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.mono150),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                    ),
+                  ),
+                  child: const Text(
+                    'Отмена',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.mono700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-        content: const Text(
-          'Никто ещё не начал этот тест. Действие нельзя отменить.',
-          style: TextStyle(fontSize: 14, color: AppColors.mono600),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена',
-                style: TextStyle(color: AppColors.mono600)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              'Удалить',
-              style: TextStyle(
-                  color: AppColors.error, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
       ),
     );
     return res ?? false;
