@@ -2,6 +2,9 @@ import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
+import 'package:edium/domain/entities/live_session.dart';
+import 'package:edium/domain/repositories/live_repository.dart';
+import 'package:edium/domain/usecases/live/get_active_lobby_usecase.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
 import 'package:edium/presentation/profile/profile_screen.dart';
@@ -13,6 +16,7 @@ import 'package:edium/presentation/shared/widgets/edium_tab_bar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
@@ -127,8 +131,18 @@ class _StudentDashboardPage extends StatelessWidget {
                         'Готов проверить свои знания?',
                         style: AppTextStyles.screenSubtitle,
                       ),
-                      const SizedBox(height: 16),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
+                      FutureBuilder<LiveSessionMeta?>(
+                        future: getIt<GetActiveLobbyUsecase>()(),
+                        builder: (context, snapshot) {
+                          final meta = snapshot.data;
+                          if (meta == null) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 24),
+                            child: _ActiveLiveBanner(meta: meta),
+                          );
+                        },
+                      ),
                       Material(
                         color: Colors.white,
                         borderRadius:
@@ -199,5 +213,133 @@ class _StudentDashboardPage extends StatelessWidget {
         },
       ),
     );
+  }
+}
+
+class _ActiveLiveBanner extends StatelessWidget {
+  final LiveSessionMeta meta;
+
+  const _ActiveLiveBanner({required this.meta});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.mono900,
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0x1FFFFFFF),
+                  borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                ),
+                child: const Icon(
+                  CupertinoIcons.bolt_fill,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      meta.quizTitle,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _subtitle,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0x80FFFFFF),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+              child: InkWell(
+                onTap: () => _joinLive(context),
+                borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: const Text(
+                    'Войти',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.mono900,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String get _subtitle {
+    final parts = <String>['Идёт сейчас'];
+    if (meta.questionCount > 0) {
+      parts.add('${meta.questionCount} вопр.');
+    }
+    return parts.join(' · ');
+  }
+
+  Future<void> _joinLive(BuildContext context) async {
+    final repo = getIt<ILiveRepository>();
+    final nav = Navigator.of(context, rootNavigator: true);
+    final router = GoRouter.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final join = await repo.joinLiveSession(sessionId: meta.sessionId);
+      nav.pop();
+      router.push(
+        '/live/${meta.sessionId}/student',
+        extra: {
+          'attemptId': join.attemptId,
+          'wsToken': join.wsToken,
+          'quizTitle': meta.quizTitle,
+          'questionCount': meta.questionCount,
+          'moduleId': join.moduleId ?? meta.moduleId ?? '',
+        },
+      );
+    } catch (e) {
+      nav.pop();
+      messenger.showSnackBar(
+        SnackBar(content: Text('Ошибка входа: $e')),
+      );
+    }
   }
 }

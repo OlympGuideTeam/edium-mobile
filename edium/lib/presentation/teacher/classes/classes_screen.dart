@@ -136,43 +136,77 @@ class _ClassesView extends StatelessWidget {
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
+        return Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-          ),
-          title: Text(
-            'Удалить класс?',
-            style: AppTextStyles.heading3.copyWith(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.mono900,
-            ),
-          ),
-          content: Text(
-            'Класс «$title» будет удалён. Это действие необратимо.',
-            style: AppTextStyles.screenSubtitle,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(
-                'Отмена',
-                style: AppTextStyles.secondaryButton.copyWith(
-                  color: AppColors.mono400,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Удалить класс?',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.mono900,
+                  ),
                 ),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(
-                'Удалить',
-                style: AppTextStyles.secondaryButton.copyWith(
-                  color: AppColors.error,
+                const SizedBox(height: 12),
+                Text(
+                  'Класс «$title» будет удалён. Это действие необратимо.',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.mono600,
+                    height: 1.5,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: AppDimens.buttonHSm,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.mono900,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Удалить',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  height: AppDimens.buttonHSm,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.mono150),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                      ),
+                    ),
+                    child: const Text(
+                      'Отмена',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.mono700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );
@@ -194,7 +228,9 @@ class _ClassesView extends StatelessWidget {
           EdiumNotification.show(context, state.message, type: EdiumNotificationType.error);
         }
       },
-      child: Scaffold(
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
           child: Column(
@@ -334,6 +370,7 @@ class _ClassesView extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

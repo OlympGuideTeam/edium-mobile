@@ -46,6 +46,8 @@ dependencies:
   firebase_core: ^3.8.0
   firebase_messaging: ^15.1.5
   flutter_local_notifications: ^18.0.1
+  # Screen protection
+  no_screenshot: ^1.1.0
 
 dev_dependencies:
   flutter_test:

@@ -4,6 +4,8 @@ import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/services/navigation_block_service/navigation_block_service.dart';
 import 'package:edium/domain/entities/quiz_attempt.dart';
+import 'package:edium/presentation/shared/mixins/screen_protection_mixin.dart';
+import 'package:edium/presentation/shared/widgets/no_copy_text_field.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/take_quiz_bloc.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/take_quiz_event.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/take_quiz_state.dart';
@@ -29,7 +31,8 @@ class TakeQuizScreen extends StatefulWidget {
   State<TakeQuizScreen> createState() => _TakeQuizScreenState();
 }
 
-class _TakeQuizScreenState extends State<TakeQuizScreen> {
+class _TakeQuizScreenState extends State<TakeQuizScreen>
+    with WidgetsBindingObserver, ScreenProtectionMixin {
   late final PageController _pageController;
   bool _skipPageCallback = false;
 
@@ -103,6 +106,7 @@ class _TakeQuizScreenState extends State<TakeQuizScreen> {
                           .read<TakeQuizBloc>()
                           .add(const FinishAttemptEvent());
                     } else {
+                      FocusManager.instance.primaryFocus?.unfocus();
                       Navigator.pop(context);
                     }
                   },
@@ -708,7 +712,7 @@ class _QuestionPageState extends State<_QuestionPage>
                 width: AppDimens.borderWidth,
               ),
             ),
-            child: TextField(
+            child: NoCopyTextField(
               controller: _textController,
               maxLines: 1,
               style: const TextStyle(fontSize: 15, color: AppColors.mono700),
@@ -741,7 +745,7 @@ class _QuestionPageState extends State<_QuestionPage>
               width: AppDimens.borderWidth,
             ),
           ),
-          child: TextField(
+          child: NoCopyTextField(
             controller: _textController,
             maxLines: 5,
             style: const TextStyle(fontSize: 15, color: AppColors.mono700),

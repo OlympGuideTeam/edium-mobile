@@ -3,6 +3,7 @@ import 'package:edium/core/router/app_router.dart' show resetAppRouterAfterGetIt
 import 'package:edium/core/storage/profile_storage.dart';
 import 'package:edium/data/datasources/live/live_datasource.dart';
 import 'package:edium/data/datasources/live/live_datasource_impl.dart';
+import 'package:edium/data/datasources/live/live_datasource_mock.dart';
 import 'package:edium/data/repositories/live_repository_impl.dart';
 import 'package:edium/domain/repositories/live_repository.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
@@ -97,6 +98,7 @@ import 'package:edium/domain/usecases/class/update_class_usecase.dart';
 import 'package:edium/domain/usecases/user/delete_account_usecase.dart';
 import 'package:edium/domain/usecases/user/get_me_usecase.dart';
 import 'package:edium/domain/usecases/user/get_user_statistic_usecase.dart';
+import 'package:edium/domain/usecases/live/get_active_lobby_usecase.dart';
 import 'package:edium/domain/usecases/user/set_role_usecase.dart';
 import 'package:edium/domain/usecases/user/update_profile_usecase.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
@@ -109,6 +111,7 @@ import 'package:edium/services/network/dio_handler.dart';
 import 'package:edium/services/navigation_block_service/navigation_block_service.dart';
 import 'package:edium/services/notification_service/deep_link_service.dart';
 import 'package:edium/services/notification_service/notification_service.dart';
+import 'package:edium/services/screen_protection/screen_protection_service.dart';
 import 'package:edium/services/token_storage/token_storage.dart';
 import 'package:edium/services/token_storage/token_storage_interface.dart';
 import 'package:get_it/get_it.dart';
@@ -139,6 +142,7 @@ Future<void> initializeDependencies({
   getIt.registerSingleton<NotificationService>(notificationService ?? NotificationService());
   getIt.registerSingleton<DeepLinkService>(deepLinkService ?? DeepLinkService());
   getIt.registerLazySingleton<NavigationBlockService>(() => NavigationBlockService());
+  getIt.registerLazySingleton<ScreenProtectionService>(() => ScreenProtectionService());
 
 
   await DioHandler.setup();
@@ -282,13 +286,24 @@ Future<void> initializeDependencies({
   getIt.registerLazySingleton(() => CompleteAttemptUsecase(getIt()));
 
   // Live quiz
-  getIt.registerLazySingleton<ILiveDatasource>(
-    () => LiveDatasourceImpl(getIt<DioHandler>().dio),
-  );
+  if (ApiConfig.useMock) {
+    getIt.registerLazySingleton<ILiveDatasource>(
+      () => LiveDatasourceMock(),
+    );
+  } else {
+    getIt.registerLazySingleton<ILiveDatasource>(
+      () => LiveDatasourceImpl(getIt<DioHandler>().dio),
+    );
+  }
   getIt.registerLazySingleton<ILiveRepository>(
     () => LiveRepositoryImpl(getIt()),
   );
   getIt.registerFactory<LiveWsService>(() => LiveWsService());
+  getIt.registerLazySingleton(() => GetActiveLobbyUsecase(
+    classRepo: getIt(),
+    courseRepo: getIt(),
+    liveRepo: getIt(),
+  ));
 
   getIt.registerSingleton<AuthBloc>(
     AuthBloc(
