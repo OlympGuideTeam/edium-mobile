@@ -23,6 +23,8 @@ class CreateQuizState extends Equatable {
   /// Module id that was selected when the quiz was successfully submitted.
   /// null means saveOnly (becomes a draft), non-null means a session was created.
   final String? submittedModuleId;
+  /// Session id returned by the backend after creating a live session.
+  final String? liveSessionId;
 
   /// Запрос генерации вопросов по AI отправлен на сервер.
   final bool isAiGenerating;
@@ -46,6 +48,7 @@ class CreateQuizState extends Equatable {
     this.existingQuizTemplateId,
     this.originalQuestionIds = const [],
     this.submittedModuleId,
+    this.liveSessionId,
     this.isAiGenerating = false,
     this.aiGenerateAckVersion = 0,
   });
@@ -77,6 +80,7 @@ class CreateQuizState extends Equatable {
     List<String>? originalQuestionIds,
     String? submittedModuleId,
     bool clearSubmittedModuleId = false,
+    String? liveSessionId,
     bool? isAiGenerating,
     int? aiGenerateAckVersion,
   }) {
@@ -103,6 +107,7 @@ class CreateQuizState extends Equatable {
       submittedModuleId: clearSubmittedModuleId
           ? null
           : (submittedModuleId ?? this.submittedModuleId),
+      liveSessionId: liveSessionId ?? this.liveSessionId,
       isAiGenerating: isAiGenerating ?? this.isAiGenerating,
       aiGenerateAckVersion:
           aiGenerateAckVersion ?? this.aiGenerateAckVersion,
@@ -127,6 +132,7 @@ class CreateQuizState extends Equatable {
         existingQuizTemplateId,
         originalQuestionIds,
         submittedModuleId,
+        liveSessionId,
         isAiGenerating,
         aiGenerateAckVersion,
       ];

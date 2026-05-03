@@ -127,6 +127,11 @@ class AppTextStyles {
     color: AppColors.mono700,
   );
 
+  // Shorthand aliases
+  static const TextStyle h1 = heading1;
+  static const TextStyle h2 = heading2;
+  static const TextStyle h3 = heading3;
+
   static const TextStyle sectionTag = TextStyle(
     fontSize: 11,
     fontWeight: FontWeight.w700,
