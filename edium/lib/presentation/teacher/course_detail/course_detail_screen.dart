@@ -1634,44 +1634,51 @@ class _QuizItemTile extends StatelessWidget {
             ),
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 7, vertical: 3),
-                decoration: BoxDecoration(
-                  color: item.quizType == 'live'
-                      ? AppColors.mono900
-                      : AppColors.mono100,
-                  borderRadius: BorderRadius.circular(AppDimens.radiusXs),
-                ),
-                child: Text(
-                  item.quizType == 'live' ? 'ЛАЙВ' : 'ТЕСТ',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
                     color: item.quizType == 'live'
-                        ? Colors.white
-                        : AppColors.mono400,
-                    letterSpacing: 0.5,
+                        ? AppColors.mono900
+                        : AppColors.mono100,
+                    borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+                  ),
+                  child: Text(
+                    item.quizType == 'live' ? 'ЛАЙВ' : 'ТЕСТ',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: item.quizType == 'live'
+                          ? Colors.white
+                          : AppColors.mono400,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
               ),
               if (isTeacher && item.needEvaluation) ...[
                 const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 7, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.mono900,
-                    borderRadius: BorderRadius.circular(AppDimens.radiusXs),
-                  ),
-                  child: const Text(
-                    'ИИ',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: 0.5,
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.mono900,
+                      borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+                    ),
+                    child: const Text(
+                      'ИИ',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
                 ),
@@ -1683,12 +1690,13 @@ class _QuizItemTile extends StatelessWidget {
                   style: AppTextStyles.fieldText.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 8),
-              _TrailingBadge(item: item, isTeacher: isTeacher),
+              Padding(
+                padding: const EdgeInsets.only(top: 1),
+                child: _TrailingBadge(item: item, isTeacher: isTeacher),
+              ),
             ],
           ),
         ),
@@ -1894,24 +1902,28 @@ class _DraftTile extends StatelessWidget {
           ),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-              decoration: BoxDecoration(
-                color: payload == null
-                    ? AppColors.mono100
-                    : (isLive ? AppColors.mono900 : AppColors.mono100),
-                borderRadius: BorderRadius.circular(AppDimens.radiusXs),
-              ),
-              child: Text(
-                payload == null ? 'КВИЗ' : (isLive ? 'ЛАЙВ' : 'ТЕСТ'),
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: payload != null && isLive
-                      ? Colors.white
-                      : AppColors.mono400,
-                  letterSpacing: 0.5,
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: payload == null
+                      ? AppColors.mono100
+                      : (isLive ? AppColors.mono900 : AppColors.mono100),
+                  borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+                ),
+                child: Text(
+                  payload == null ? 'КВИЗ' : (isLive ? 'ЛАЙВ' : 'ТЕСТ'),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: payload != null && isLive
+                        ? Colors.white
+                        : AppColors.mono400,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ),
@@ -1927,8 +1939,6 @@ class _DraftTile extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                       color: AppColors.mono600,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
                   if (meta.isNotEmpty) ...[
                     const SizedBox(height: 2),
@@ -1946,10 +1956,13 @@ class _DraftTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(
-              Icons.chevron_right,
-              size: 16,
-              color: AppColors.mono250,
+            const Padding(
+              padding: EdgeInsets.only(top: 2),
+              child: Icon(
+                Icons.chevron_right,
+                size: 16,
+                color: AppColors.mono250,
+              ),
             ),
           ],
         ),
