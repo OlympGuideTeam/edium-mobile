@@ -249,6 +249,7 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
           questionCount: _questionCount,
           joinCode: _joinCode,
           participants: resolvedParticipants,
+          roster: Map.from(_roster),
         ));
 
       case LivePhase.questionActive:

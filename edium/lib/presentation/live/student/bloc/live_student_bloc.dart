@@ -24,6 +24,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
   LiveQuestion? _currentQuestion;
   int _questionIndex = 0;
   int _questionTotal = 0;
+  Map<String, dynamic>? _myLastAnswer;
 
   StreamSubscription<LiveWsEvent>? _wsSub;
 
@@ -159,6 +160,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
         ):
         _currentQuestion = question;
         _questionIndex = questionIndex;
+        _myLastAnswer = null;
         emit(LiveStudentQuestionActive(
           question: question,
           questionIndex: questionIndex,
@@ -171,6 +173,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
           :final correctAnswer,
           :final stats,
           :final myResult,
+          :final wordCloud,
         ):
         if (_currentQuestion != null) {
           emit(LiveStudentQuestionLocked(
@@ -180,6 +183,8 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
             correctAnswer: correctAnswer,
             stats: stats,
             myResult: myResult,
+            wordCloud: wordCloud,
+            myAnswer: _myLastAnswer,
           ));
         }
 
@@ -245,6 +250,8 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
             correctAnswer: locked.correctAnswer,
             stats: locked.stats,
             myResult: locked.myResult,
+            wordCloud: locked.wordCloud,
+            myAnswer: _myLastAnswer,
           ));
         }
 
@@ -257,6 +264,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
     LiveStudentSubmitAnswer event,
     Emitter<LiveStudentState> emit,
   ) async {
+    _myLastAnswer = event.answerData;
     _ws.send({
       'type': 'student.submit_answer',
       'data': {
