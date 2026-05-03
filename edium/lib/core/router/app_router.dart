@@ -15,6 +15,7 @@ import 'package:edium/presentation/auth/screens/otp_screen.dart';
 import 'package:edium/presentation/auth/screens/phone_input_screen.dart';
 import 'package:edium/presentation/auth/screens/role_selection_screen.dart';
 import 'package:edium/presentation/auth/screens/splash_screen.dart';
+import 'package:edium/presentation/auth/screens/onboarding_screen.dart';
 import 'package:edium/presentation/auth/screens/welcome_screen.dart';
 import 'package:edium/presentation/class_detail/class_detail_screen.dart';
 import 'package:edium/presentation/teacher/course_detail/course_detail_screen.dart';
@@ -82,6 +83,10 @@ GoRouter buildRouter() {
       GoRoute(
         path: '/splash',
         builder: (_, __) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        builder: (_, __) => const OnboardingScreen(),
       ),
       GoRoute(
         path: '/welcome',
@@ -278,6 +283,7 @@ String? _redirect(BuildContext context, GoRouterState state) {
   final location = state.uri.path;
 
   final isAuthFlowPath = location == '/splash' ||
+      location == '/onboarding' ||
       location == '/welcome' ||
       location == '/phone' ||
       location.startsWith('/otp') ||
@@ -300,6 +306,9 @@ String? _redirect(BuildContext context, GoRouterState state) {
     if (location.startsWith('/invite')) return null;
     if (location.startsWith('/live/join')) return null;
     if ((!isAuthFlowPath && !isLegalDocumentPath) || location == '/splash') {
+      if (!getIt<ProfileStorage>().isOnboardingCompleted) {
+        return '/onboarding';
+      }
       return '/welcome';
     }
     return null;
