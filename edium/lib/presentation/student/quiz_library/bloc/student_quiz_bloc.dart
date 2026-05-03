@@ -19,18 +19,36 @@ class StudentQuizBloc extends Bloc<StudentQuizEvent, StudentQuizState> {
   ) async {
     emit(const StudentQuizLoading());
     try {
-      final quizzes =
-          await _getPublicQuizzes(search: event.search);
-      emit(StudentQuizLoaded(quizzes));
+      final quizzes = await _getPublicQuizzes();
+      emit(StudentQuizLoaded(quizzes: quizzes, filtered: quizzes));
     } catch (e) {
       emit(StudentQuizError(e.toString()));
     }
   }
 
-  Future<void> _onSearch(
+  void _onSearch(
     StudentSearchChangedEvent event,
     Emitter<StudentQuizState> emit,
-  ) async {
-    add(LoadStudentQuizzesEvent(search: event.query));
+  ) {
+    final current = state;
+    if (current is! StudentQuizLoaded) return;
+
+    final query = event.query.toLowerCase().trim();
+    if (query.isEmpty) {
+      emit(StudentQuizLoaded(
+        quizzes: current.quizzes,
+        filtered: current.quizzes,
+      ));
+      return;
+    }
+
+    final filtered = current.quizzes
+        .where((q) => q.title.toLowerCase().contains(query))
+        .toList();
+    emit(StudentQuizLoaded(
+      quizzes: current.quizzes,
+      filtered: filtered,
+      searchQuery: event.query,
+    ));
   }
 }

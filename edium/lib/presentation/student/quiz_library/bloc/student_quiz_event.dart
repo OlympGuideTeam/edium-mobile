@@ -7,10 +7,7 @@ abstract class StudentQuizEvent extends Equatable {
 }
 
 class LoadStudentQuizzesEvent extends StudentQuizEvent {
-  final String? search;
-  const LoadStudentQuizzesEvent({this.search});
-  @override
-  List<Object?> get props => [search];
+  const LoadStudentQuizzesEvent();
 }
 
 class StudentSearchChangedEvent extends StudentQuizEvent {

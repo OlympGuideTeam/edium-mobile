@@ -75,7 +75,9 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
@@ -248,6 +250,7 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 }
