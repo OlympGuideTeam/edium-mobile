@@ -1,7 +1,12 @@
 import 'package:edium/core/config/api_config.dart';
 import 'package:edium/core/router/app_router.dart' show resetAppRouterAfterGetItClear;
 import 'package:edium/core/storage/profile_storage.dart';
+import 'package:edium/data/datasources/live/live_datasource.dart';
+import 'package:edium/data/datasources/live/live_datasource_impl.dart';
+import 'package:edium/data/repositories/live_repository_impl.dart';
+import 'package:edium/domain/repositories/live_repository.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
+import 'package:edium/services/live_ws/live_ws_service.dart';
 import 'package:edium/data/datasources/attempt_cache/attempt_cache_datasource.dart';
 import 'package:edium/data/datasources/attempt_cache/attempt_cache_datasource_hive.dart';
 import 'package:edium/data/datasources/class/class_datasource.dart';
@@ -275,6 +280,15 @@ Future<void> initializeDependencies({
   getIt.registerLazySingleton(() => GetAttemptReviewUsecase(getIt()));
   getIt.registerLazySingleton(() => GradeSubmissionUsecase(getIt()));
   getIt.registerLazySingleton(() => CompleteAttemptUsecase(getIt()));
+
+  // Live quiz
+  getIt.registerLazySingleton<ILiveDatasource>(
+    () => LiveDatasourceImpl(getIt<DioHandler>().dio),
+  );
+  getIt.registerLazySingleton<ILiveRepository>(
+    () => LiveRepositoryImpl(getIt()),
+  );
+  getIt.registerFactory<LiveWsService>(() => LiveWsService());
 
   getIt.registerSingleton<AuthBloc>(
     AuthBloc(
