@@ -63,7 +63,7 @@ class LiveDatasourceMock implements ILiveDatasource {
   }
 
   @override
-  Future<LiveResultsStudent> getLiveResultsStudent(String sessionId) async {
+  Future<LiveResultsStudent> getLiveResultsStudent(String sessionId, String attemptId) async {
     await Future.delayed(const Duration(milliseconds: 200));
     return const LiveResultsStudent(
       myPosition: 1,
@@ -80,5 +80,33 @@ class LiveDatasourceMock implements ILiveDatasource {
   Future<LiveResultsTeacher> getLiveResultsTeacher(String sessionId) async {
     await Future.delayed(const Duration(milliseconds: 200));
     return const LiveResultsTeacher(questions: [], leaderboard: []);
+  }
+
+  @override
+  Future<LiveAttemptReview> getAttemptReview(String attemptId) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return LiveAttemptReview(
+      attemptId: attemptId,
+      status: 'completed',
+      score: 80,
+      startedAt: DateTime.now().subtract(const Duration(minutes: 10)),
+      finishedAt: DateTime.now(),
+      answers: [],
+    );
+  }
+
+  @override
+  Future<List<LiveLibrarySession>> getMyLiveSessions() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return [];
+  }
+
+  @override
+  Future<String> createLiveLibrarySession(
+    String quizTemplateId, {
+    int? questionTimeLimitSec,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return 'mock-session-${DateTime.now().millisecondsSinceEpoch}';
   }
 }
