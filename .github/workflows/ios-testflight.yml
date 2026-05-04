@@ -91,7 +91,7 @@ jobs:
 
       - name: Flutter build iOS (no codesign)
         working-directory: edium
-        run: flutter build ios --release --no-codesign --build-number ${{ github.run_number }}
+        run: flutter build ios --release --no-codesign --build-number ${{ github.run_number }} --dart-define=ENVIRONMENT=prod
 
       # ── Подпись + загрузка через Fastlane ─────────────────────────────────
       - name: Sign & upload via Fastlane
