@@ -696,20 +696,6 @@ class _CourseCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: AppColors.mono50,
-                borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-              ),
-              child: const Icon(
-                Icons.menu_book_rounded,
-                size: 20,
-                color: AppColors.mono600,
-              ),
-            ),
-            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
