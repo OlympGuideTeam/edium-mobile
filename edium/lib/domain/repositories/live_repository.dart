@@ -21,8 +21,20 @@ abstract interface class ILiveRepository {
   Future<List<LiveRosterMember>> getModuleRoster(String moduleId);
 
   /// Final results for student.
-  Future<LiveResultsStudent> getLiveResultsStudent(String sessionId);
+  Future<LiveResultsStudent> getLiveResultsStudent(String sessionId, String attemptId);
 
   /// Final results for teacher.
   Future<LiveResultsTeacher> getLiveResultsTeacher(String sessionId);
+
+  /// Per-question review for student (answers + scores).
+  Future<LiveAttemptReview> getAttemptReview(String attemptId);
+
+  /// Список лайв-сессий текущего учителя из библиотеки.
+  Future<List<LiveLibrarySession>> getMyLiveSessions();
+
+  /// Создать library live-сессию по шаблону квиза (POST /sessions/live/library).
+  Future<String> createLiveLibrarySession(
+    String quizTemplateId, {
+    int? questionTimeLimitSec,
+  });
 }

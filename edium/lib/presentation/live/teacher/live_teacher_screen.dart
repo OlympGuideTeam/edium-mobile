@@ -750,7 +750,7 @@ class _MonitorHeader extends StatelessWidget {
               const SizedBox(width: 8),
               const Expanded(
                 child: Text(
-                  'Лайв · идёт',
+                  'Лайв',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -2205,52 +2205,148 @@ class _LeaderboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (leaderboard.isEmpty) {
+      return const Center(
+        child: Text('Нет данных', style: TextStyle(color: AppColors.mono400)),
+      );
+    }
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
       itemCount: leaderboard.length,
-      itemBuilder: (context, i) {
-        final row = leaderboard[i];
-        final pct = row.maxScore > 0 ? (row.score / row.maxScore * 100).round() : 0;
+      itemBuilder: (context, i) => _LeaderboardRow(row: leaderboard[i]),
+    );
+  }
+}
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.mono150),
+class _LeaderboardRow extends StatelessWidget {
+  final LiveResultsTeacherAttempt row;
+  const _LeaderboardRow({required this.row});
+
+  static const _podiumBg = [
+    Color(0xFFFEF9C3), // 1 — yellow-100
+    Color(0xFFF1F5F9), // 2 — slate-100
+    Color(0xFFFFF7ED), // 3 — orange-50
+  ];
+  static const _podiumBorder = [
+    Color(0xFFFACC15), // 1 — yellow-400
+    Color(0xFFCBD5E1), // 2 — slate-300
+    Color(0xFFFDBA74), // 3 — orange-300
+  ];
+  static const _podiumScore = [
+    Color(0xFFCA8A04), // 1 — yellow-600
+    Color(0xFF64748B), // 2 — slate-500
+    Color(0xFFEA580C), // 3 — orange-600
+  ];
+
+  bool get _isTop3 => row.position >= 1 && row.position <= 3;
+  int get _idx => row.position - 1;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = _isTop3 ? _podiumBg[_idx] : Colors.white;
+    final border = _isTop3 ? _podiumBorder[_idx] : AppColors.mono150;
+    final scoreColor = _isTop3 ? _podiumScore[_idx] : AppColors.mono900;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        children: [
+          _PositionMark(position: row.position),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  row.name.isNotEmpty ? row.name : '—',
+                  style: const TextStyle(
+                    color: AppColors.mono900,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  '${row.correctCount} верных ответов',
+                  style: const TextStyle(color: AppColors.mono400, fontSize: 12),
+                ),
+              ],
+            ),
           ),
-          child: Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
-                width: 28,
-                child: Text(
-                  '${row.position}',
-                  style: const TextStyle(
-                      color: AppColors.mono400, fontSize: 14, fontWeight: FontWeight.w700),
-                  textAlign: TextAlign.center,
+              Text(
+                '${row.score.toInt()}',
+                style: TextStyle(
+                  color: scoreColor,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(row.name,
-                        style: const TextStyle(
-                            color: AppColors.mono900, fontSize: 15, fontWeight: FontWeight.w600)),
-                    Text('${row.correctCount} верных ответов',
-                        style: const TextStyle(color: AppColors.mono400, fontSize: 12)),
-                  ],
-                ),
+              Text(
+                'баллов',
+                style: TextStyle(color: scoreColor.withValues(alpha: 0.7), fontSize: 10),
               ),
-              Text('$pct%',
-                  style: const TextStyle(
-                      color: AppColors.mono900, fontSize: 18, fontWeight: FontWeight.w800)),
             ],
           ),
-        );
-      },
+        ],
+      ),
+    );
+  }
+}
+
+class _PositionMark extends StatelessWidget {
+  final int position;
+  const _PositionMark({required this.position});
+
+  @override
+  Widget build(BuildContext context) {
+    if (position > 3) {
+      return SizedBox(
+        width: 28,
+        child: Text(
+          '$position',
+          style: const TextStyle(
+            color: AppColors.mono400,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    const medalColors = [
+      Color(0xFFFACC15), // gold
+      Color(0xFF94A3B8), // silver
+      Color(0xFFFB923C), // bronze
+    ];
+    const medalLabels = ['1', '2', '3'];
+
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: medalColors[position - 1],
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        medalLabels[position - 1],
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     );
   }
 }
@@ -2267,6 +2363,9 @@ class _QuestionsTab extends StatelessWidget {
       itemBuilder: (context, i) {
         final q = questions[i];
         final pct = (q.correctRate * 100).round();
+        final answered = q.stats.answeredCount;
+        final correct = q.stats.correctCount;
+        final barColor = pct >= 60 ? const Color(0xFF22C55E) : AppColors.liveAccent;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
@@ -2282,7 +2381,8 @@ class _QuestionsTab extends StatelessWidget {
               Container(
                 width: 28,
                 height: 28,
-                decoration: const BoxDecoration(color: AppColors.mono100, shape: BoxShape.circle),
+                decoration:
+                    const BoxDecoration(color: AppColors.mono100, shape: BoxShape.circle),
                 alignment: Alignment.center,
                 child: Text(
                   '${q.orderIndex}',
@@ -2295,11 +2395,15 @@ class _QuestionsTab extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(q.text,
-                        style: const TextStyle(
-                            color: AppColors.mono900, fontSize: 14, fontWeight: FontWeight.w500),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis),
+                    Text(
+                      q.text,
+                      style: const TextStyle(
+                          color: AppColors.mono900,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 8),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
@@ -2307,12 +2411,28 @@ class _QuestionsTab extends StatelessWidget {
                         value: q.correctRate.clamp(0.0, 1.0),
                         minHeight: 6,
                         backgroundColor: AppColors.mono100,
-                        color: pct >= 60 ? const Color(0xFF22C55E) : AppColors.liveAccent,
+                        color: barColor,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text('$pct% ответили верно',
-                        style: const TextStyle(color: AppColors.mono400, fontSize: 12)),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Text(
+                          '$correct / $answered верных',
+                          style: TextStyle(
+                            color: barColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '($pct%)',
+                          style: const TextStyle(color: AppColors.mono400, fontSize: 12),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),

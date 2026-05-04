@@ -61,9 +61,10 @@ class LiveDatasourceImpl extends BaseApiService implements ILiveDatasource {
       );
 
   @override
-  Future<LiveResultsStudent> getLiveResultsStudent(String sessionId) => request(
+  Future<LiveResultsStudent> getLiveResultsStudent(String sessionId, String attemptId) => request(
         'riddler/v1/sessions/$sessionId/live/results/student',
         method: HttpMethod.get,
+        query: {'attempt_id': attemptId},
         parser: (data) =>
             LiveResultsStudent.fromJson(data as Map<String, dynamic>),
       );
@@ -74,5 +75,43 @@ class LiveDatasourceImpl extends BaseApiService implements ILiveDatasource {
         method: HttpMethod.get,
         parser: (data) =>
             LiveResultsTeacher.fromJson(data as Map<String, dynamic>),
+      );
+
+  @override
+  Future<LiveAttemptReview> getAttemptReview(String attemptId) => request(
+        'riddler/v1/attempts/$attemptId/review',
+        method: HttpMethod.get,
+        parser: (data) =>
+            LiveAttemptReview.fromJson(data as Map<String, dynamic>),
+      );
+
+  @override
+  Future<List<LiveLibrarySession>> getMyLiveSessions() => request(
+        'riddler/v1/sessions/live',
+        method: HttpMethod.get,
+        parser: (data) {
+          final sessions =
+              (data as Map<String, dynamic>)['sessions'] as List<dynamic>? ?? [];
+          return sessions
+              .map((e) => LiveLibrarySession.fromJson(e as Map<String, dynamic>))
+              .toList();
+        },
+      );
+
+  @override
+  Future<String> createLiveLibrarySession(
+    String quizTemplateId, {
+    int? questionTimeLimitSec,
+  }) =>
+      request(
+        'riddler/v1/sessions/live/library',
+        method: HttpMethod.post,
+        req: {
+          'quiz_template_id': quizTemplateId,
+          if (questionTimeLimitSec != null)
+            'question_time_limit_sec': questionTimeLimitSec,
+        },
+        parser: (data) =>
+            (data as Map<String, dynamic>)['session_id'] as String,
       );
 }

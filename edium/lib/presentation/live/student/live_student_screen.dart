@@ -2687,184 +2687,316 @@ class _ResultsPhase extends StatelessWidget {
   final LiveStudentResultsLoaded state;
   const _ResultsPhase({required this.state});
 
+  static const _green = Color(0xFF22C55E);
+
+  String _fmt(double v) =>
+      v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(1);
+
   @override
   Widget build(BuildContext context) {
     final r = state.results;
     final pct = r.maxScore > 0 ? (r.myScore / r.maxScore * 100).round() : 0;
+    final progress =
+        r.maxScore > 0 ? (r.myScore / r.maxScore).clamp(0.0, 1.0) : 0.0;
+    final wrongCount = r.questionsCount - r.correctCount;
+    final hasReview =
+        state.review != null && state.review!.answers.isNotEmpty;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Score header
-            Container(
-              width: double.infinity,
-              color: AppColors.liveDarkSurface,
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
-              child: Column(
-                children: [
-                  // Rank circle
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.liveAccent, width: 3),
-                      color: AppColors.liveAccent.withValues(alpha: 0.1),
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '#${r.myPosition}',
-                            style: const TextStyle(
-                              color: AppColors.liveAccent,
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800,
-                            ),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Score header ──────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        _ResultPositionCircle(position: r.myPosition),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Квиз завершён',
+                                style: TextStyle(
+                                  color: AppColors.liveDarkMuted,
+                                  fontSize: 12,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${r.myPosition} место из ${r.totalParticipants}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            'из ${r.totalParticipants}',
-                            style: const TextStyle(
-                              color: AppColors.liveDarkMuted,
-                              fontSize: 11,
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _fmt(r.myScore),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 40,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1.0,
+                                    letterSpacing: -1.5,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 5),
+                                  child: Text(
+                                    '/${_fmt(r.maxScore)}',
+                                    style: const TextStyle(
+                                      color: AppColors.liveDarkMuted,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w700,
+                                      height: 1.0,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
+                            Text(
+                              '$pct%',
+                              style: const TextStyle(
+                                color: AppColors.liveDarkMuted,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: Container(
+                        height: 6,
+                        color: AppColors.liveDarkCard,
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: progress,
+                          child: Container(color: AppColors.liveAccent),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _DarkStatCard(
+                            label: 'ПРАВИЛЬНО',
+                            value: '${r.correctCount}',
+                            valueColor: _green,
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _DarkStatCard(
+                            label: 'НЕВЕРНО',
+                            value: '$wrongCount',
+                            valueColor: Colors.redAccent,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _DarkStatCard(
+                            label: 'ВОПРОСОВ',
+                            value: '${r.questionsCount}',
+                            valueColor: Colors.white,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    '$pct%',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 48,
-                      fontWeight: FontWeight.w800,
-                      height: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${r.myScore.toStringAsFixed(0)} / ${r.maxScore.toStringAsFixed(0)} очков',
-                    style: const TextStyle(
-                      color: AppColors.liveDarkMuted,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _StatBadge(
-                        icon: Icons.check_rounded,
-                        color: const Color(0xFF22C55E),
-                        label: '${r.correctCount}',
-                        sublabel: 'верно',
-                      ),
-                      const SizedBox(width: 16),
-                      _StatBadge(
-                        icon: Icons.close_rounded,
-                        color: Colors.redAccent,
-                        label: '${r.questionsCount - r.correctCount}',
-                        sublabel: 'неверно',
-                      ),
-                    ],
-                  ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+              // ── Tabs ─────────────────────────────────────────────────
+              const TabBar(
+                labelColor: Colors.white,
+                unselectedLabelColor: AppColors.liveDarkMuted,
+                indicatorColor: AppColors.liveAccent,
+                dividerColor: AppColors.liveDarkBorder,
+                tabs: [
+                  Tab(text: 'Лидерборд'),
+                  Tab(text: 'Разбор вопросов'),
                 ],
               ),
-            ),
-            // Leaderboard
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-              child: Row(
-                children: [
-                  const Text(
-                    'Таблица лидеров',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _LeaderboardTabContent(top: r.top),
+                    hasReview
+                        ? _ReviewTabContent(review: state.review!)
+                        : const _ReviewEmptyContent(),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                itemCount: r.top.length,
-                itemBuilder: (context, i) {
-                  final row = r.top[i];
-                  return _LeaderboardRow(row: row, isLast: i == r.top.length - 1);
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: () => context.pop(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.liveAccent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+              // ── Done button ───────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                child: SizedBox(
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: () => context.pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.liveAccent,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 0,
                     ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Готово',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
+                    child: const Text(
+                      'Готово',
+                      style:
+                          TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _StatBadge extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String label;
-  final String sublabel;
+// ── Position circle ───────────────────────────────────────────────────────────
 
-  const _StatBadge({
-    required this.icon,
-    required this.color,
+class _ResultPositionCircle extends StatelessWidget {
+  final int position;
+  const _ResultPositionCircle({required this.position});
+
+  static const _gold = Color(0xFFFACC15);
+  static const _silver = Color(0xFF94A3B8);
+  static const _bronze = Color(0xFFFB923C);
+
+  @override
+  Widget build(BuildContext context) {
+    final isTop3 = position >= 1 && position <= 3;
+    final medalColor = [_gold, _silver, _bronze];
+
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isTop3
+            ? medalColor[position - 1]
+            : AppColors.liveDarkSurface,
+        border: isTop3
+            ? null
+            : Border.all(color: AppColors.liveDarkBorder, width: 1.5),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '$position',
+        style: TextStyle(
+          color: isTop3 ? Colors.white : Colors.white70,
+          fontSize: isTop3 ? 20 : 18,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Dark stat card ────────────────────────────────────────────────────────────
+
+class _DarkStatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color valueColor;
+
+  const _DarkStatCard({
     required this.label,
-    required this.sublabel,
+    required this.value,
+    required this.valueColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: AppColors.liveDarkCard,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.liveDarkBorder),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 16),
-          const SizedBox(width: 6),
           Text(
-            '$label $sublabel',
-            style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600),
+            label,
+            style: const TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              color: AppColors.liveDarkMuted,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: valueColor,
+              letterSpacing: -0.3,
+              height: 1.0,
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Leaderboard tab ───────────────────────────────────────────────────────────
+
+class _LeaderboardTabContent extends StatelessWidget {
+  final List<LiveLeaderboardRow> top;
+  const _LeaderboardTabContent({required this.top});
+
+  @override
+  Widget build(BuildContext context) {
+    if (top.isEmpty) {
+      return const Center(
+        child: Text(
+          'Нет данных',
+          style: TextStyle(color: AppColors.liveDarkMuted, fontSize: 14),
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      itemCount: top.length,
+      itemBuilder: (_, i) =>
+          _LeaderboardRow(row: top[i], isLast: i == top.length - 1),
     );
   }
 }
@@ -2875,63 +3007,814 @@ class _LeaderboardRow extends StatelessWidget {
 
   const _LeaderboardRow({required this.row, required this.isLast});
 
+  static const _gold = Color(0xFFFACC15);
+  static const _silver = Color(0xFF94A3B8);
+  static const _bronze = Color(0xFFFB923C);
+
   @override
   Widget build(BuildContext context) {
     final isMe = row.isMe;
-    final isTop3 = row.position <= 3;
-
-    final medalColors = {1: const Color(0xFFFFD700), 2: const Color(0xFFC0C0C0), 3: const Color(0xFFCD7F32)};
+    final isTop3 = row.position >= 1 && row.position <= 3;
+    final medalColors = [_gold, _silver, _bronze];
 
     return Container(
       margin: EdgeInsets.only(bottom: isLast ? 0 : 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: isMe
-            ? AppColors.liveAccent.withValues(alpha: 0.15)
+            ? AppColors.liveAccent.withValues(alpha: 0.12)
             : AppColors.liveDarkCard,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isMe ? AppColors.liveAccent.withValues(alpha: 0.5) : AppColors.liveDarkBorder,
+          color: isMe
+              ? AppColors.liveAccent.withValues(alpha: 0.5)
+              : AppColors.liveDarkBorder,
           width: isMe ? 1.5 : 1,
         ),
       ),
       child: Row(
         children: [
-          SizedBox(
-            width: 28,
-            child: isTop3
-                ? Icon(Icons.emoji_events_rounded,
-                    color: medalColors[row.position]!, size: 20)
-                : Text(
+          isTop3
+              ? Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: medalColors[row.position - 1],
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
                     '${row.position}',
                     style: const TextStyle(
-                        color: AppColors.liveDarkMuted,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600),
-                    textAlign: TextAlign.center,
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-          ),
-          const SizedBox(width: 10),
+                )
+              : SizedBox(
+                  width: 28,
+                  child: Text(
+                    '${row.position}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppColors.liveDarkMuted,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
-              row.name,
+              row.name.isNotEmpty ? row.name : '—',
               style: TextStyle(
                 color: isMe ? Colors.white : Colors.white70,
                 fontSize: 15,
                 fontWeight: isMe ? FontWeight.w700 : FontWeight.w400,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+          if (isMe) ...[
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.liveAccent.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'Я',
+                style: TextStyle(
+                  color: AppColors.liveAccent,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
           Text(
-            row.score.toStringAsFixed(0),
+            row.score.toStringAsFixed(row.score % 1 == 0 ? 0 : 1),
             style: TextStyle(
-              color: isMe ? AppColors.liveAccent : AppColors.liveDarkMuted,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
+              color: isMe ? AppColors.liveAccent : Colors.white70,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Review tab ────────────────────────────────────────────────────────────────
+
+class _ReviewTabContent extends StatelessWidget {
+  final LiveAttemptReview review;
+  const _ReviewTabContent({required this.review});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      itemCount: review.answers.length,
+      itemBuilder: (_, i) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: _LiveQuestionCard(index: i + 1, answer: review.answers[i]),
+      ),
+    );
+  }
+}
+
+class _ReviewEmptyContent extends StatelessWidget {
+  const _ReviewEmptyContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text(
+        'Разбор недоступен',
+        style: TextStyle(color: AppColors.liveDarkMuted, fontSize: 14),
+      ),
+    );
+  }
+}
+
+class _LiveQuestionCard extends StatelessWidget {
+  final int index;
+  final LiveAnswerReview answer;
+
+  const _LiveQuestionCard({required this.index, required this.answer});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.liveDarkCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.liveDarkBorder),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            color: AppColors.liveDarkSurface,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Row(
+              children: [
+                Text(
+                  'Вопрос $index',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const Spacer(),
+                _ReviewScoreBadge(answer: answer),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  answer.questionText,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildAnswerBlock(),
+                if (answer.finalFeedback != null &&
+                    answer.finalFeedback!.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.liveDarkSurface,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.chat_bubble_outline_rounded,
+                            size: 14, color: AppColors.liveDarkMuted),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            answer.finalFeedback!,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.white70,
+                              fontStyle: FontStyle.italic,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (answer.finalSource != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    _sourceLabel(answer.finalSource!),
+                    style: const TextStyle(
+                        fontSize: 11, color: AppColors.liveDarkMuted),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnswerBlock() {
+    switch (answer.questionType) {
+      case 'single_choice':
+        return _ReviewSingleChoiceBlock(answer: answer);
+      case 'multiple_choice':
+        return _ReviewMultiChoiceBlock(answer: answer);
+      case 'with_given_answer':
+        return _ReviewGivenAnswerBlock(answer: answer);
+      case 'with_free_answer':
+        return _ReviewFreeAnswerBlock(answer: answer);
+      case 'drag':
+        return _ReviewDragBlock(answer: answer);
+      case 'connection':
+        return _ReviewConnectionBlock(answer: answer);
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  String _sourceLabel(String s) {
+    switch (s) {
+      case 'auto':
+        return 'Проверено автоматически';
+      case 'llm':
+        return 'Проверено ИИ';
+      case 'teacher':
+        return 'Проверено учителем';
+      default:
+        return s;
+    }
+  }
+}
+
+class _ReviewScoreBadge extends StatelessWidget {
+  final LiveAnswerReview answer;
+  const _ReviewScoreBadge({required this.answer});
+
+  static const _green = Color(0xFF22C55E);
+
+  @override
+  Widget build(BuildContext context) {
+    final score = answer.finalScore;
+    if (score == null) {
+      return _chip(Icons.remove_rounded, 'Нет ответа',
+          AppColors.liveDarkMuted, AppColors.liveDarkSurface, AppColors.liveDarkBorder);
+    }
+    if (score > 0) {
+      return _chip(Icons.check_rounded, 'Верно', _green,
+          _green.withValues(alpha: 0.12), _green.withValues(alpha: 0.4));
+    }
+    return _chip(Icons.close_rounded, 'Неверно', Colors.redAccent,
+        Colors.redAccent.withValues(alpha: 0.12),
+        Colors.redAccent.withValues(alpha: 0.4));
+  }
+
+  Widget _chip(
+      IconData icon, String label, Color color, Color bg, Color border) {
+    return Container(
+      height: 26,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: color)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewSingleChoiceBlock extends StatelessWidget {
+  final LiveAnswerReview answer;
+  const _ReviewSingleChoiceBlock({required this.answer});
+
+  @override
+  Widget build(BuildContext context) {
+    final picked = answer.answerData['selected_option_id'] as String? ??
+        answer.answerData['option_id'] as String?;
+    final options = answer.options ?? [];
+    if (options.isEmpty) {
+      return const Text('Нет вариантов',
+          style: TextStyle(color: AppColors.liveDarkMuted, fontSize: 14));
+    }
+    return Column(
+      children: options
+          .map((o) => _ReviewChoiceOption(
+                text: o.text,
+                isPicked: o.id == picked,
+                isCorrect: o.isCorrect,
+                isMulti: false,
+              ))
+          .toList(),
+    );
+  }
+}
+
+class _ReviewMultiChoiceBlock extends StatelessWidget {
+  final LiveAnswerReview answer;
+  const _ReviewMultiChoiceBlock({required this.answer});
+
+  @override
+  Widget build(BuildContext context) {
+    final picked = (answer.answerData['selected_option_ids'] as List<dynamic>? ??
+            answer.answerData['option_ids'] as List<dynamic>? ??
+            [])
+        .map((e) => e.toString())
+        .toSet();
+    final options = answer.options ?? [];
+    if (options.isEmpty) {
+      return Text('Выбрано: ${picked.length}',
+          style:
+              const TextStyle(color: AppColors.liveDarkMuted, fontSize: 14));
+    }
+    return Column(
+      children: options
+          .map((o) => _ReviewChoiceOption(
+                text: o.text,
+                isPicked: picked.contains(o.id),
+                isCorrect: o.isCorrect,
+                isMulti: true,
+              ))
+          .toList(),
+    );
+  }
+}
+
+class _ReviewChoiceOption extends StatelessWidget {
+  final String text;
+  final bool isPicked;
+  final bool isCorrect;
+  final bool isMulti;
+
+  const _ReviewChoiceOption({
+    required this.text,
+    required this.isPicked,
+    required this.isCorrect,
+    required this.isMulti,
+  });
+
+  static const _green = Color(0xFF22C55E);
+
+  @override
+  Widget build(BuildContext context) {
+    final Color borderColor;
+    final Color bgColor;
+    if (isCorrect) {
+      borderColor = _green;
+      bgColor = AppColors.liveDarkSurface;
+    } else if (isPicked) {
+      borderColor = Colors.redAccent;
+      bgColor = AppColors.liveDarkSurface;
+    } else {
+      borderColor = AppColors.liveDarkBorder;
+      bgColor = AppColors.liveDarkCard;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          _LockedChoiceIndicator(
+              isCorrect: isCorrect, isMulti: isMulti, isSelected: isPicked),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 15,
+                color: isCorrect ? Colors.white : Colors.white70,
+                fontWeight:
+                    isCorrect ? FontWeight.w600 : FontWeight.w400,
+                height: 1.4,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewGivenAnswerBlock extends StatelessWidget {
+  final LiveAnswerReview answer;
+  const _ReviewGivenAnswerBlock({required this.answer});
+
+  static const _green = Color(0xFF22C55E);
+
+  @override
+  Widget build(BuildContext context) {
+    final myText = answer.answerData['text']?.toString() ?? '';
+    final correctAnswers =
+        (answer.metadata?['correct_answers'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        [];
+    final isCorrect = answer.finalScore != null && answer.finalScore! > 0;
+    final hasText = myText.isNotEmpty;
+    final borderColor = !hasText
+        ? AppColors.liveDarkBorder
+        : isCorrect
+            ? _green
+            : Colors.redAccent;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.liveDarkSurface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: borderColor, width: 1.5),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                !hasText
+                    ? Icons.remove_circle_outline
+                    : isCorrect
+                        ? Icons.check_circle_rounded
+                        : Icons.cancel_rounded,
+                color: !hasText
+                    ? AppColors.liveDarkMuted
+                    : isCorrect
+                        ? _green
+                        : Colors.redAccent,
+                size: 18,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  hasText ? myText : 'Нет ответа',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: hasText ? Colors.white : AppColors.liveDarkMuted,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (!isCorrect && correctAnswers.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: _green.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _green.withValues(alpha: 0.35)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.lightbulb_outline,
+                    color: _green, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Правильный ответ: ${correctAnswers.join(', ')}',
+                    style: const TextStyle(
+                      color: _green,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ReviewFreeAnswerBlock extends StatelessWidget {
+  final LiveAnswerReview answer;
+  const _ReviewFreeAnswerBlock({required this.answer});
+
+  @override
+  Widget build(BuildContext context) {
+    final text = answer.answerData['text']?.toString() ?? '';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.liveDarkSurface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.liveDarkBorder),
+      ),
+      child: Text(
+        text.isEmpty ? 'Нет ответа' : text,
+        style: TextStyle(
+          fontSize: 15,
+          color: text.isEmpty ? AppColors.liveDarkMuted : Colors.white70,
+          height: 1.4,
+        ),
+      ),
+    );
+  }
+}
+
+class _ReviewDragBlock extends StatelessWidget {
+  final LiveAnswerReview answer;
+  const _ReviewDragBlock({required this.answer});
+
+  static const _green = Color(0xFF22C55E);
+
+  @override
+  Widget build(BuildContext context) {
+    final myOrder = (answer.answerData['order'] as List<dynamic>? ?? [])
+        .map((e) => e.toString())
+        .toList();
+    final correctOrder =
+        (answer.metadata?['correct_order'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList();
+
+    if (myOrder.isEmpty) {
+      return const Text('Нет ответа',
+          style: TextStyle(color: AppColors.liveDarkMuted, fontSize: 14));
+    }
+
+    final isFullyCorrect =
+        answer.finalScore != null && answer.finalScore! > 0;
+    final showCorrect = !isFullyCorrect &&
+        correctOrder != null &&
+        correctOrder.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.liveDarkCard,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.liveDarkBorder),
+          ),
+          child: Column(
+            children: myOrder.asMap().entries.map((e) {
+              final i = e.key;
+              final item = e.value;
+              final isLast = i == myOrder.length - 1;
+              final isItemCorrect = correctOrder != null
+                  ? (i < correctOrder.length && correctOrder[i] == item)
+                  : null;
+              final numBg = isItemCorrect == null
+                  ? AppColors.liveDarkSurface
+                  : isItemCorrect
+                      ? _green.withValues(alpha: 0.15)
+                      : Colors.redAccent.withValues(alpha: 0.15);
+              final numColor = isItemCorrect == null
+                  ? AppColors.liveDarkMuted
+                  : isItemCorrect
+                      ? _green
+                      : Colors.redAccent;
+
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  border: isLast
+                      ? null
+                      : const Border(
+                          bottom: BorderSide(
+                              color: AppColors.liveDarkBorder, width: 1)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: numBg,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '${i + 1}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: numColor,
+                          fontFeatures: const [
+                            FontFeature.tabularFigures()
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(item,
+                          style: const TextStyle(
+                              fontSize: 15, color: Colors.white)),
+                    ),
+                    if (isItemCorrect != null) ...[
+                      const SizedBox(width: 8),
+                      Icon(
+                        isItemCorrect
+                            ? Icons.check_rounded
+                            : Icons.close_rounded,
+                        size: 16,
+                        color: isItemCorrect ? _green : Colors.redAccent,
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        if (showCorrect) ...[
+          const SizedBox(height: 10),
+          const Text(
+            'Правильный порядок:',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.liveDarkMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _LockedDragResult(
+            correctAnswer:
+                LiveCorrectAnswer({'correct_order': correctOrder}),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ReviewConnectionBlock extends StatelessWidget {
+  final LiveAnswerReview answer;
+  const _ReviewConnectionBlock({required this.answer});
+
+  static const _green = Color(0xFF22C55E);
+
+  @override
+  Widget build(BuildContext context) {
+    final rawPairs =
+        answer.answerData['pairs'] as Map<String, dynamic>? ?? const {};
+    final myPairs = rawPairs.map((k, v) => MapEntry(k, v.toString()));
+    final rawCorrect =
+        answer.metadata?['correct_pairs'] as Map<String, dynamic>? ??
+            const {};
+    final correctPairs =
+        rawCorrect.map((k, v) => MapEntry(k, v.toString()));
+
+    if (myPairs.isEmpty) {
+      return const Text('Нет ответа',
+          style: TextStyle(color: AppColors.liveDarkMuted, fontSize: 14));
+    }
+
+    final allCorrect = correctPairs.isEmpty ||
+        myPairs.entries.every((e) => correctPairs[e.key] == e.value);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.liveDarkCard,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.liveDarkBorder),
+          ),
+          child: Column(
+            children: myPairs.entries.toList().asMap().entries.map((e) {
+              final i = e.key;
+              final entry = e.value;
+              final isLast = i == myPairs.length - 1;
+              final isPairCorrect = correctPairs.isEmpty ||
+                  correctPairs[entry.key] == entry.value;
+
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  border: isLast
+                      ? null
+                      : const Border(
+                          bottom: BorderSide(
+                              color: AppColors.liveDarkBorder, width: 1)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        entry.key,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isPairCorrect
+                              ? Colors.white
+                              : Colors.white70,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 10),
+                      child: Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 16,
+                        color: isPairCorrect ? _green : Colors.redAccent,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        entry.value,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isPairCorrect
+                              ? Colors.white
+                              : Colors.white70,
+                          fontWeight: isPairCorrect
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      isPairCorrect
+                          ? Icons.check_rounded
+                          : Icons.close_rounded,
+                      size: 16,
+                      color: isPairCorrect ? _green : Colors.redAccent,
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        if (!allCorrect && correctPairs.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          const Text(
+            'Правильные пары:',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.liveDarkMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _LockedConnectionResult(
+            correctAnswer:
+                LiveCorrectAnswer({'correct_pairs': correctPairs}),
+          ),
+        ],
+      ],
     );
   }
 }

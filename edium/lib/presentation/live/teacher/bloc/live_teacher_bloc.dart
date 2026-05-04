@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:edium/domain/entities/live_question.dart';
+import 'package:edium/domain/entities/live_results.dart';
 import 'package:edium/domain/entities/live_session.dart';
 import 'package:edium/domain/entities/live_ws_event.dart';
 import 'package:edium/domain/repositories/live_repository.dart';
@@ -197,7 +198,9 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
             _lobbyParticipants.where((p) => p.attemptId != attemptId).toList();
 
       case LiveWsDisconnected():
-        if (state is! LiveTeacherCompleted) {
+        if (state is! LiveTeacherCompleted &&
+            state is! LiveTeacherResultsLoading &&
+            state is! LiveTeacherResultsLoaded) {
           emit(LiveTeacherError('Соединение прервано'));
         }
 
@@ -324,7 +327,26 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
     emit(LiveTeacherResultsLoading());
     try {
       final results = await _repo.getLiveResultsTeacher(sid);
-      emit(LiveTeacherResultsLoaded(results));
+      final leaderboard = results.leaderboard.map((row) {
+        final resolved = row.userId != null ? _roster[row.userId!] : null;
+        if (resolved != null && resolved.isNotEmpty) {
+          return LiveResultsTeacherAttempt(
+            position: row.position,
+            attemptId: row.attemptId,
+            userId: row.userId,
+            name: resolved,
+            score: row.score,
+            maxScore: row.maxScore,
+            correctCount: row.correctCount,
+            answers: row.answers,
+          );
+        }
+        return row;
+      }).toList();
+      emit(LiveTeacherResultsLoaded(LiveResultsTeacher(
+        questions: results.questions,
+        leaderboard: leaderboard,
+      )));
     } catch (e) {
       emit(LiveTeacherError(e.toString()));
     }

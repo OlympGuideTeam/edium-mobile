@@ -92,7 +92,8 @@ class LiveStudentResultsLoading extends LiveStudentState {}
 
 class LiveStudentResultsLoaded extends LiveStudentState {
   final LiveResultsStudent results;
-  LiveStudentResultsLoaded(this.results);
+  final LiveAttemptReview? review;
+  LiveStudentResultsLoaded(this.results, {this.review});
 }
 
 class LiveStudentKicked extends LiveStudentState {}
