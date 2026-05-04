@@ -32,63 +32,76 @@ class QuizCard extends StatelessWidget {
             border: Border.all(color: AppColors.mono100),
           ),
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                children: [
-                  if (quiz.subject.trim().isNotEmpty) ...[
-                    _SubjectChip(subject: quiz.subject),
-                    const SizedBox(width: 6),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        if (quiz.subject.trim().isNotEmpty) ...[
+                          _SubjectChip(subject: quiz.subject),
+                          const SizedBox(width: 6),
+                        ],
+                        if (showPublicBadge && quiz.isPublic)
+                          _PublicBadge(),
+                      ],
+                    ),
+                    if (quiz.subject.trim().isNotEmpty ||
+                        (showPublicBadge && quiz.isPublic))
+                      const SizedBox(height: 8),
+                    Text(
+                      quiz.title,
+                      style: AppTextStyles.subtitle.copyWith(
+                        color: AppColors.mono900,
+                        height: 1.25,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        _InfoChip(
+                          icon: Icons.quiz_outlined,
+                          label: '${quiz.questionsCount}',
+                        ),
+                        if (quiz.settings.totalTimeLimitSec != null &&
+                            quiz.settings.totalTimeLimitSec! > 0)
+                          _InfoChip(
+                            icon: Icons.timer_outlined,
+                            label: _formatQuizDurationSec(
+                              quiz.settings.totalTimeLimitSec!,
+                            ),
+                          )
+                        else if (quiz.settings.timeLimitMinutes != null)
+                          _InfoChip(
+                            icon: Icons.timer_outlined,
+                            label: '${quiz.settings.timeLimitMinutes} мин',
+                          ),
+                        if (quiz.settings.questionTimeLimitSec != null &&
+                            quiz.settings.questionTimeLimitSec! > 0)
+                          _InfoChip(
+                            icon: Icons.timer_outlined,
+                            label:
+                                '${_formatQuizDurationSec(quiz.settings.questionTimeLimitSec!)}/впр',
+                          ),
+                        _InfoChip(
+                          icon: Icons.calendar_today_outlined,
+                          label: _formatDate(quiz.createdAt),
+                        ),
+                      ],
+                    ),
                   ],
-                  if (showPublicBadge && quiz.isPublic)
-                    _PublicBadge(),
-                ],
-              ),
-              if (quiz.subject.trim().isNotEmpty ||
-                  (showPublicBadge && quiz.isPublic))
-                const SizedBox(height: 8),
-              Text(
-                quiz.title,
-                style: AppTextStyles.subtitle.copyWith(
-                  color: AppColors.mono900,
-                  height: 1.25,
                 ),
               ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  _InfoChip(
-                    icon: Icons.quiz_outlined,
-                    label: '${quiz.questionsCount}',
-                  ),
-                  if (quiz.settings.totalTimeLimitSec != null &&
-                      quiz.settings.totalTimeLimitSec! > 0)
-                    _InfoChip(
-                      icon: Icons.timer_outlined,
-                      label: _formatQuizDurationSec(
-                        quiz.settings.totalTimeLimitSec!,
-                      ),
-                    )
-                  else if (quiz.settings.timeLimitMinutes != null)
-                    _InfoChip(
-                      icon: Icons.timer_outlined,
-                      label: '${quiz.settings.timeLimitMinutes} мин',
-                    ),
-                  if (quiz.settings.questionTimeLimitSec != null &&
-                      quiz.settings.questionTimeLimitSec! > 0)
-                    _InfoChip(
-                      icon: Icons.timer_outlined,
-                      label:
-                          '${_formatQuizDurationSec(quiz.settings.questionTimeLimitSec!)}/впр',
-                    ),
-                  _InfoChip(
-                    icon: Icons.calendar_today_outlined,
-                    label: _formatDate(quiz.createdAt),
-                  ),
-                ],
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.arrow_forward_ios,
+                size: 14,
+                color: AppColors.mono250,
               ),
             ],
           ),
