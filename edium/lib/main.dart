@@ -235,7 +235,9 @@ Future<void> main() async {
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await HiveStorage.init();
 
-  ApiConfig.environment = ProfileStorage.loadEnvironment();
+  if (!ApiConfig.isStoreBuild) {
+    ApiConfig.environment = ProfileStorage.loadEnvironment();
+  }
 
   NotificationService? notificationService;
   final deepLinkService = DeepLinkService();
