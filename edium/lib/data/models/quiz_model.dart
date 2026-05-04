@@ -121,6 +121,9 @@ class QuizModel {
   /// Riddler `is_public` — опубликован ли шаблон для всех.
   final bool isPublic;
 
+  /// Riddler `need_evaluation` — требует ручной проверки (свободные ответы).
+  final bool needEvaluation;
+
   const QuizModel({
     required this.id,
     required this.title,
@@ -136,6 +139,7 @@ class QuizModel {
     required this.createdAt,
     this.summaryQuestionCount,
     this.isPublic = false,
+    this.needEvaluation = false,
   });
 
   static QuizSettingsModel _settingsFromJson(Map<String, dynamic> json) {
@@ -179,6 +183,7 @@ class QuizModel {
           : DateTime.now().toUtc().toIso8601String(),
       summaryQuestionCount: json['question_count'] as int?,
       isPublic: json['is_public'] as bool? ?? false,
+      needEvaluation: json['need_evaluation'] as bool? ?? false,
     );
   }
 
@@ -198,6 +203,7 @@ class QuizModel {
         if (summaryQuestionCount != null)
           'question_count': summaryQuestionCount,
         'is_public': isPublic,
+        'need_evaluation': needEvaluation,
       };
 
   Quiz toEntity() {
@@ -230,6 +236,7 @@ class QuizModel {
       createdAt: DateTime.parse(createdAt),
       listedQuestionCount: summaryQuestionCount,
       isPublic: isPublic,
+      needEvaluation: needEvaluation,
     );
   }
 }

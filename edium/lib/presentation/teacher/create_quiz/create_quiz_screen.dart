@@ -182,6 +182,19 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
   }
 
   Future<void> _onStartPressed() async {
+    final state = context.read<CreateQuizBloc>().state;
+    if (state.isInCourseContext && state.quizType == QuizCreationMode.live) {
+      final hasFreeAnswer = state.questions
+          .any((q) => q['type'] == 'with_free_answer');
+      if (hasFreeAnswer) {
+        EdiumNotification.show(
+          context,
+          'Лайв недоступен: есть вопросы со свободным ответом',
+          type: EdiumNotificationType.error,
+        );
+        return;
+      }
+    }
     final moduleId = await _pickModule();
     if (!mounted) return;
     context.read<CreateQuizBloc>().add(

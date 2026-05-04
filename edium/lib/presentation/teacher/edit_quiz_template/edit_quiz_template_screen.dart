@@ -85,11 +85,10 @@ class _EditQuizTemplateScreenState extends State<EditQuizTemplateScreen> {
   Future<void> _save() async {
     if (!_canSave) return;
     setState(() => _submitting = true);
+    final repo = getIt<IQuizRepository>();
+    final title = _titleCtrl.text.trim();
+    final desc = _descCtrl.text.trim();
     try {
-      final repo = getIt<IQuizRepository>();
-      final title = _titleCtrl.text.trim();
-      final desc = _descCtrl.text.trim();
-
       await repo.updateQuiz(
         widget.quizId,
         title: title,
@@ -101,22 +100,18 @@ class _EditQuizTemplateScreenState extends State<EditQuizTemplateScreen> {
             'question_time_limit_sec': _questionTimeLimitSec,
         },
       );
-
       for (final id in _removedIds) {
         await repo.removeQuestion(widget.quizId, id);
       }
-
       for (final entry in _modifiedQuestions.entries) {
         if (!_removedIds.contains(entry.key)) {
           await repo.removeQuestion(widget.quizId, entry.key);
           await repo.addQuestion(widget.quizId, entry.value);
         }
       }
-
       for (final q in _newQuestions) {
         await repo.addQuestion(widget.quizId, q);
       }
-
       if (mounted) {
         EdiumNotification.show(context, 'Шаблон обновлён');
         Navigator.pop(context, true);
@@ -464,7 +459,11 @@ class _EditQuizTemplateScreenState extends State<EditQuizTemplateScreen> {
                 ),
               ),
             ),
-            _BottomBar(canSave: _canSave, submitting: _submitting, onSave: _save),
+            _BottomBar(
+              canSave: _canSave,
+              submitting: _submitting,
+              onSave: _save,
+            ),
           ],
         ),
       ),
@@ -1044,8 +1043,8 @@ class _BottomBar extends StatelessWidget {
         border: Border(top: BorderSide(color: AppColors.mono100)),
       ),
       child: SizedBox(
-        width: double.infinity,
         height: AppDimens.buttonH,
+        width: double.infinity,
         child: ElevatedButton(
           onPressed: canSave ? onSave : null,
           style: ElevatedButton.styleFrom(
@@ -1063,7 +1062,10 @@ class _BottomBar extends StatelessWidget {
               ? const SizedBox(
                   height: 20,
                   width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : const Text('Сохранить'),
         ),

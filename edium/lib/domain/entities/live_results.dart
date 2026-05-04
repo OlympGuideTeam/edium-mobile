@@ -1,4 +1,85 @@
+import 'package:edium/domain/entities/attempt_review.dart' show TeacherAnswerOption;
 import 'package:edium/domain/entities/live_question.dart';
+
+class LiveAnswerReview {
+  final String submissionId;
+  final String questionId;
+  final String questionType;
+  final String questionText;
+  final Map<String, dynamic> answerData;
+  final double? finalScore;
+  final String? finalSource;
+  final String? finalFeedback;
+  final List<TeacherAnswerOption>? options;
+  final Map<String, dynamic>? metadata;
+
+  const LiveAnswerReview({
+    required this.submissionId,
+    required this.questionId,
+    required this.questionType,
+    required this.questionText,
+    required this.answerData,
+    this.finalScore,
+    this.finalSource,
+    this.finalFeedback,
+    this.options,
+    this.metadata,
+  });
+
+  factory LiveAnswerReview.fromJson(Map<String, dynamic> json) =>
+      LiveAnswerReview(
+        submissionId: json['submission_id'] as String? ?? '',
+        questionId: json['question_id'] as String? ?? '',
+        questionType: json['question_type'] as String? ?? '',
+        questionText: json['question_text'] as String? ?? '',
+        answerData: (json['answer_data'] as Map<String, dynamic>?) ?? {},
+        finalScore: (json['final_score'] as num?)?.toDouble(),
+        finalSource: json['final_source'] as String?,
+        finalFeedback: json['final_feedback'] as String?,
+        options: (json['options'] as List<dynamic>?)
+            ?.map((e) => TeacherAnswerOption(
+                  id: e['id'] as String? ?? '',
+                  text: e['text'] as String? ?? '',
+                  isCorrect: e['is_correct'] as bool? ?? false,
+                ))
+            .toList(),
+        metadata: json['metadata'] as Map<String, dynamic>?,
+      );
+}
+
+class LiveAttemptReview {
+  final String attemptId;
+  final String status;
+  final double? score;
+  final DateTime startedAt;
+  final DateTime? finishedAt;
+  final List<LiveAnswerReview> answers;
+
+  const LiveAttemptReview({
+    required this.attemptId,
+    required this.status,
+    this.score,
+    required this.startedAt,
+    this.finishedAt,
+    required this.answers,
+  });
+
+  factory LiveAttemptReview.fromJson(Map<String, dynamic> json) =>
+      LiveAttemptReview(
+        attemptId: json['attempt_id'] as String? ?? '',
+        status: json['status'] as String? ?? '',
+        score: (json['score'] as num?)?.toDouble(),
+        startedAt: json['started_at'] != null
+            ? DateTime.parse(json['started_at'] as String)
+            : DateTime.now(),
+        finishedAt: json['finished_at'] != null
+            ? DateTime.parse(json['finished_at'] as String)
+            : null,
+        answers: (json['answers'] as List<dynamic>? ?? [])
+            .map((e) => LiveAnswerReview.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+}
 
 class LiveLeaderboardRow {
   final int position;
@@ -78,16 +159,42 @@ class LiveResultsTeacherQuestion {
     required this.stats,
   });
 
-  factory LiveResultsTeacherQuestion.fromJson(Map<String, dynamic> json) =>
-      LiveResultsTeacherQuestion(
-        questionId: json['question_id'] as String? ?? '',
-        orderIndex: (json['order_index'] as num?)?.toInt() ?? 0,
-        text: json['text'] as String? ?? '',
-        type: json['type'] as String? ?? '',
-        correctRate: (json['correct_rate'] as num?)?.toDouble() ?? 0,
-        stats: LiveQuestionStats.fromJson(
-            json['stats'] as Map<String, dynamic>? ?? {}),
+  factory LiveResultsTeacherQuestion.fromJson(Map<String, dynamic> json) {
+    final type = json['type'] as String? ?? '';
+    final answeredCount = (json['answered_count'] as num?)?.toInt() ?? 0;
+    final correctCount = (json['correct_count'] as num?)?.toInt() ?? 0;
+    final avgTimeMs = (json['avg_time_ms'] as num?)?.toInt();
+    final isChoice = type == 'single_choice' || type == 'multiple_choice';
+
+    final LiveQuestionStats stats;
+    if (isChoice) {
+      stats = LiveChoiceStats(
+        answeredCount: answeredCount,
+        correctCount: correctCount,
+        avgTimeMs: avgTimeMs,
+        distribution: (json['distribution'] as List<dynamic>? ?? [])
+            .map((e) =>
+                LiveOptionDistribution.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
+    } else {
+      stats = LiveBinaryStats(
+        answeredCount: answeredCount,
+        correctCount: correctCount,
+        avgTimeMs: avgTimeMs,
+        incorrectCount: answeredCount - correctCount,
+      );
+    }
+
+    return LiveResultsTeacherQuestion(
+      questionId: json['question_id'] as String? ?? '',
+      orderIndex: (json['order_index'] as num?)?.toInt() ?? 0,
+      text: json['text'] as String? ?? '',
+      type: type,
+      correctRate: (json['correct_rate'] as num?)?.toDouble() ?? 0,
+      stats: stats,
+    );
+  }
 }
 
 class LiveResultsTeacherAttemptAnswer {
