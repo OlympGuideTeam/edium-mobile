@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/storage/profile_storage.dart';
 import 'package:edium/domain/entities/course_detail.dart';
+import 'package:edium/domain/entities/live_session.dart';
 import 'package:edium/domain/entities/user.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
+import 'package:edium/presentation/live/live_join_name_screen.dart';
 import 'package:edium/presentation/live/live_join_screen.dart';
 import 'package:edium/presentation/live/student/live_student_screen.dart';
 import 'package:edium/presentation/live/teacher/live_teacher_screen.dart';
@@ -245,6 +247,13 @@ GoRouter buildRouter() {
         },
       ),
       GoRoute(
+        path: '/live/join/name',
+        builder: (_, state) {
+          final meta = state.extra as LiveSessionMeta;
+          return LiveJoinNameScreen(meta: meta);
+        },
+      ),
+      GoRoute(
         path: '/live/:sessionId/student',
         builder: (_, state) {
           final sid = state.pathParameters['sessionId']!;
@@ -302,9 +311,10 @@ String? _redirect(BuildContext context, GoRouterState state) {
   }
 
   if (authState is AuthUnauthenticated || authState is AuthOtpSent) {
-    // /invite и /live/join доступны без авторизации
+    // /invite, /live/join* и /live/:id/student доступны без авторизации
     if (location.startsWith('/invite')) return null;
-    if (location.startsWith('/live/join')) return null;
+    if (location.startsWith('/live/join')) return null;  // /live/join, /live/join/name
+    if (location.endsWith('/student')) return null;      // /live/:sessionId/student
     if ((!isAuthFlowPath && !isLegalDocumentPath) || location == '/splash') {
       if (!getIt<ProfileStorage>().isOnboardingCompleted) {
         return '/onboarding';

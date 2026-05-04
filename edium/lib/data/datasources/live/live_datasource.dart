@@ -10,6 +10,13 @@ abstract interface class ILiveDatasource {
     String? name,
   });
   Future<List<LiveRosterMember>> getModuleRoster(String moduleId);
-  Future<LiveResultsStudent> getLiveResultsStudent(String sessionId);
+  Future<LiveResultsStudent> getLiveResultsStudent(String sessionId, String attemptId);
   Future<LiveResultsTeacher> getLiveResultsTeacher(String sessionId);
+  Future<LiveAttemptReview> getAttemptReview(String attemptId);
+  Future<List<LiveLibrarySession>> getMyLiveSessions();
+
+  Future<String> createLiveLibrarySession(
+    String quizTemplateId, {
+    int? questionTimeLimitSec,
+  });
 }
