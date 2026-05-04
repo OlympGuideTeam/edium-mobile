@@ -32,10 +32,28 @@ class LiveRepositoryImpl implements ILiveRepository {
       _datasource.getModuleRoster(moduleId);
 
   @override
-  Future<LiveResultsStudent> getLiveResultsStudent(String sessionId) =>
-      _datasource.getLiveResultsStudent(sessionId);
+  Future<LiveResultsStudent> getLiveResultsStudent(String sessionId, String attemptId) =>
+      _datasource.getLiveResultsStudent(sessionId, attemptId);
 
   @override
   Future<LiveResultsTeacher> getLiveResultsTeacher(String sessionId) =>
       _datasource.getLiveResultsTeacher(sessionId);
+
+  @override
+  Future<LiveAttemptReview> getAttemptReview(String attemptId) =>
+      _datasource.getAttemptReview(attemptId);
+
+  @override
+  Future<List<LiveLibrarySession>> getMyLiveSessions() =>
+      _datasource.getMyLiveSessions();
+
+  @override
+  Future<String> createLiveLibrarySession(
+    String quizTemplateId, {
+    int? questionTimeLimitSec,
+  }) =>
+      _datasource.createLiveLibrarySession(
+        quizTemplateId,
+        questionTimeLimitSec: questionTimeLimitSec,
+      );
 }

@@ -75,12 +75,14 @@ class LiveLockedData {
   final LiveCorrectAnswer correctAnswer;
   final LiveQuestionStats stats;
   final LiveStudentResult? myResult;
+  final List<String>? wordCloud;
 
   const LiveLockedData({
     required this.questionId,
     required this.correctAnswer,
     required this.stats,
     this.myResult,
+    this.wordCloud,
   });
 
   factory LiveLockedData.fromJson(Map<String, dynamic> json) => LiveLockedData(
@@ -93,6 +95,7 @@ class LiveLockedData {
             ? LiveStudentResult.fromJson(
                 json['my_result'] as Map<String, dynamic>)
             : null,
+        wordCloud: (json['word_cloud'] as List<dynamic>?)?.cast<String>(),
       );
 }
 
@@ -207,12 +210,14 @@ class LiveQuestionLocked extends LiveWsEvent {
   final LiveCorrectAnswer correctAnswer;
   final LiveQuestionStats stats;
   final LiveStudentResult? myResult; // null for teacher / student who didn't answer
+  final List<String>? wordCloud; // only for with_given_answer
 
   LiveQuestionLocked({
     required this.questionId,
     required this.correctAnswer,
     required this.stats,
     this.myResult,
+    this.wordCloud,
   });
 
   factory LiveQuestionLocked.fromJson(Map<String, dynamic> data) {
@@ -232,6 +237,7 @@ class LiveQuestionLocked extends LiveWsEvent {
           ? LiveStudentResult.fromJson(
               data['my_result'] as Map<String, dynamic>)
           : null,
+      wordCloud: (data['word_cloud'] as List<dynamic>?)?.cast<String>(),
     );
   }
 }

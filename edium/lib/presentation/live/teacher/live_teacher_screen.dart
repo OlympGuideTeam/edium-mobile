@@ -14,6 +14,7 @@ import 'package:edium/presentation/live/teacher/bloc/live_teacher_bloc.dart';
 import 'package:edium/presentation/live/teacher/bloc/live_teacher_event.dart';
 import 'package:edium/presentation/live/teacher/bloc/live_teacher_state.dart';
 import 'package:edium/presentation/shared/widgets/edium_button.dart';
+import 'package:edium/presentation/shared/widgets/edium_confirm_dialog.dart';
 import 'package:edium/services/live_ws/live_ws_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -229,6 +230,17 @@ class _TeacherLobbyPhase extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final joinedUserIds = state.participants
+        .where((p) => p.userId != null)
+        .map((p) => p.userId!)
+        .toSet();
+
+    final notJoined = state.roster.entries
+        .where((e) => !joinedUserIds.contains(e.key))
+        .map((e) => (userId: e.key, name: e.value))
+        .toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+
     return Scaffold(
       backgroundColor: AppColors.mono50,
       appBar: AppBar(
@@ -236,18 +248,6 @@ class _TeacherLobbyPhase extends StatelessWidget {
         elevation: 0,
         automaticallyImplyLeading: false,
         title: Text(state.quizTitle, style: AppTextStyles.heading3),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(
-              child: Text(
-                '${state.participants.length}',
-                style: const TextStyle(
-                    color: AppColors.mono900, fontSize: 16, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -266,19 +266,25 @@ class _TeacherLobbyPhase extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('КОД ДЛЯ ВХОДА',
-                            style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.mono400,
-                                letterSpacing: 0.8)),
+                        const Text(
+                          'КОД ДЛЯ ВХОДА',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.mono400,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
                         const SizedBox(height: 4),
-                        Text(_code,
-                            style: const TextStyle(
-                                fontSize: 36,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.mono900,
-                                letterSpacing: 8)),
+                        Text(
+                          _code,
+                          style: const TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.mono900,
+                            letterSpacing: 8,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -295,27 +301,55 @@ class _TeacherLobbyPhase extends StatelessWidget {
               ),
             ),
           Expanded(
-            child: state.participants.isEmpty
-                ? const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.people_outline, color: AppColors.mono300, size: 48),
-                        SizedBox(height: 16),
-                        Text('Ждём участников...',
-                            style: TextStyle(color: AppColors.mono400, fontSize: 15)),
-                      ],
-                    ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 100),
-                    itemCount: state.participants.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, i) {
-                      final p = state.participants[i];
-                      return _ParticipantTile(participant: p, onKick: () => onKick(p.attemptId));
-                    },
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 100),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SectionLabel(
+                    label: 'Присоединились',
+                    trailing: '${state.participants.length}',
                   ),
+                  const SizedBox(height: 8),
+                  if (state.participants.isEmpty)
+                    _LobbyEmptyJoined()
+                  else
+                    ...state.participants.map(
+                      (p) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _LobbyJoinedTile(
+                          participant: p,
+                          onKick: () => onKick(p.attemptId),
+                        ),
+                      ),
+                    ),
+                  if (notJoined.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _SectionLabel(
+                      label: 'Ожидаем',
+                      trailing: '${notJoined.length}',
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.mono150),
+                      ),
+                      child: Column(
+                        children: notJoined.asMap().entries.map((entry) {
+                          return _LobbyNotJoinedRow(
+                            name: entry.value.name,
+                            isLast: entry.key == notJoined.length - 1,
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -330,12 +364,13 @@ class _TeacherLobbyPhase extends StatelessWidget {
                 backgroundColor: AppColors.mono900,
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: AppColors.mono200,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
                 elevation: 0,
               ),
               child: Text(
                 state.participants.isNotEmpty
-                    ? 'Начать квиз (${state.participants.length})'
+                    ? 'Начать квиз'
                     : 'Нет участников',
                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
               ),
@@ -347,20 +382,129 @@ class _TeacherLobbyPhase extends StatelessWidget {
   }
 }
 
-class _ParticipantTile extends StatelessWidget {
+class _LobbyJoinedTile extends StatelessWidget {
   final LiveLobbyParticipant participant;
   final VoidCallback onKick;
 
-  const _ParticipantTile({required this.participant, required this.onKick});
+  const _LobbyJoinedTile({required this.participant, required this.onKick});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        color: AppColors.error,
+        child: Dismissible(
+          key: ValueKey(participant.attemptId),
+          direction: DismissDirection.endToStart,
+          confirmDismiss: (_) => EdiumConfirmDialog.show(
+            context,
+            title: 'Исключить участника?',
+            body: '${participant.name} будет удалён из квиза.',
+            confirmLabel: 'Исключить',
+            cancelLabel: 'Отмена',
+            isDestructive: true,
+          ),
+          onDismissed: (_) => onKick(),
+          background: Container(
+            color: AppColors.error,
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
+            child: const Icon(
+              Icons.person_remove_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.mono150),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.mono100,
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    _participantInitials(participant.name),
+                    style: const TextStyle(
+                      color: AppColors.mono600,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    participant.name,
+                    style: const TextStyle(
+                      color: AppColors.mono900,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LobbyEmptyJoined extends StatelessWidget {
+  const _LobbyEmptyJoined();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.mono150),
+      ),
+      child: const Column(
+        children: [
+          Icon(Icons.people_outline, color: AppColors.mono300, size: 32),
+          SizedBox(height: 8),
+          Text(
+            'Ждём участников...',
+            style: TextStyle(color: AppColors.mono400, fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LobbyNotJoinedRow extends StatelessWidget {
+  final String name;
+  final bool isLast;
+
+  const _LobbyNotJoinedRow({required this.name, required this.isLast});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.mono150),
+        border: isLast
+            ? null
+            : const Border(
+                bottom: BorderSide(color: AppColors.mono100, width: 1)),
       ),
       child: Row(
         children: [
@@ -373,107 +517,31 @@ class _ParticipantTile extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: Text(
-              _participantInitials(participant.name),
+              _participantInitials(name),
               style: const TextStyle(
-                  color: AppColors.mono600, fontSize: 13, fontWeight: FontWeight.w700),
+                color: AppColors.mono300,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              participant.name,
+              name,
               style: const TextStyle(
-                  color: AppColors.mono900, fontSize: 15, fontWeight: FontWeight.w500),
+                color: AppColors.mono400,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          IconButton(
-            onPressed: () => _confirmKick(context),
-            icon: const Icon(Icons.remove_circle_outline, color: AppColors.mono300, size: 20),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          const Text(
+            'не вошёл',
+            style: TextStyle(fontSize: 12, color: AppColors.mono300),
           ),
         ],
-      ),
-    );
-  }
-
-  void _confirmKick(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Исключить участника?',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.mono900,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '${participant.name} будет удалён из квиза.',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.mono600,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: AppDimens.buttonHSm,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    onKick();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.mono900,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Исключить',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                height: AppDimens.buttonHSm,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.mono150),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-                    ),
-                  ),
-                  child: const Text(
-                    'Отмена',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.mono700,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -682,7 +750,7 @@ class _MonitorHeader extends StatelessWidget {
               const SizedBox(width: 8),
               const Expanded(
                 child: Text(
-                  'Лайв · идёт',
+                  'Лайв',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -2137,52 +2205,148 @@ class _LeaderboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (leaderboard.isEmpty) {
+      return const Center(
+        child: Text('Нет данных', style: TextStyle(color: AppColors.mono400)),
+      );
+    }
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
       itemCount: leaderboard.length,
-      itemBuilder: (context, i) {
-        final row = leaderboard[i];
-        final pct = row.maxScore > 0 ? (row.score / row.maxScore * 100).round() : 0;
+      itemBuilder: (context, i) => _LeaderboardRow(row: leaderboard[i]),
+    );
+  }
+}
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.mono150),
+class _LeaderboardRow extends StatelessWidget {
+  final LiveResultsTeacherAttempt row;
+  const _LeaderboardRow({required this.row});
+
+  static const _podiumBg = [
+    Color(0xFFFEF9C3), // 1 — yellow-100
+    Color(0xFFF1F5F9), // 2 — slate-100
+    Color(0xFFFFF7ED), // 3 — orange-50
+  ];
+  static const _podiumBorder = [
+    Color(0xFFFACC15), // 1 — yellow-400
+    Color(0xFFCBD5E1), // 2 — slate-300
+    Color(0xFFFDBA74), // 3 — orange-300
+  ];
+  static const _podiumScore = [
+    Color(0xFFCA8A04), // 1 — yellow-600
+    Color(0xFF64748B), // 2 — slate-500
+    Color(0xFFEA580C), // 3 — orange-600
+  ];
+
+  bool get _isTop3 => row.position >= 1 && row.position <= 3;
+  int get _idx => row.position - 1;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = _isTop3 ? _podiumBg[_idx] : Colors.white;
+    final border = _isTop3 ? _podiumBorder[_idx] : AppColors.mono150;
+    final scoreColor = _isTop3 ? _podiumScore[_idx] : AppColors.mono900;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        children: [
+          _PositionMark(position: row.position),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  row.name.isNotEmpty ? row.name : '—',
+                  style: const TextStyle(
+                    color: AppColors.mono900,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  '${row.correctCount} верных ответов',
+                  style: const TextStyle(color: AppColors.mono400, fontSize: 12),
+                ),
+              ],
+            ),
           ),
-          child: Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
-                width: 28,
-                child: Text(
-                  '${row.position}',
-                  style: const TextStyle(
-                      color: AppColors.mono400, fontSize: 14, fontWeight: FontWeight.w700),
-                  textAlign: TextAlign.center,
+              Text(
+                '${row.score.toInt()}',
+                style: TextStyle(
+                  color: scoreColor,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(row.name,
-                        style: const TextStyle(
-                            color: AppColors.mono900, fontSize: 15, fontWeight: FontWeight.w600)),
-                    Text('${row.correctCount} верных ответов',
-                        style: const TextStyle(color: AppColors.mono400, fontSize: 12)),
-                  ],
-                ),
+              Text(
+                'баллов',
+                style: TextStyle(color: scoreColor.withValues(alpha: 0.7), fontSize: 10),
               ),
-              Text('$pct%',
-                  style: const TextStyle(
-                      color: AppColors.mono900, fontSize: 18, fontWeight: FontWeight.w800)),
             ],
           ),
-        );
-      },
+        ],
+      ),
+    );
+  }
+}
+
+class _PositionMark extends StatelessWidget {
+  final int position;
+  const _PositionMark({required this.position});
+
+  @override
+  Widget build(BuildContext context) {
+    if (position > 3) {
+      return SizedBox(
+        width: 28,
+        child: Text(
+          '$position',
+          style: const TextStyle(
+            color: AppColors.mono400,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    const medalColors = [
+      Color(0xFFFACC15), // gold
+      Color(0xFF94A3B8), // silver
+      Color(0xFFFB923C), // bronze
+    ];
+    const medalLabels = ['1', '2', '3'];
+
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: medalColors[position - 1],
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        medalLabels[position - 1],
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     );
   }
 }
@@ -2199,6 +2363,9 @@ class _QuestionsTab extends StatelessWidget {
       itemBuilder: (context, i) {
         final q = questions[i];
         final pct = (q.correctRate * 100).round();
+        final answered = q.stats.answeredCount;
+        final correct = q.stats.correctCount;
+        final barColor = pct >= 60 ? const Color(0xFF22C55E) : AppColors.liveAccent;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
@@ -2214,7 +2381,8 @@ class _QuestionsTab extends StatelessWidget {
               Container(
                 width: 28,
                 height: 28,
-                decoration: const BoxDecoration(color: AppColors.mono100, shape: BoxShape.circle),
+                decoration:
+                    const BoxDecoration(color: AppColors.mono100, shape: BoxShape.circle),
                 alignment: Alignment.center,
                 child: Text(
                   '${q.orderIndex}',
@@ -2227,11 +2395,15 @@ class _QuestionsTab extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(q.text,
-                        style: const TextStyle(
-                            color: AppColors.mono900, fontSize: 14, fontWeight: FontWeight.w500),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis),
+                    Text(
+                      q.text,
+                      style: const TextStyle(
+                          color: AppColors.mono900,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 8),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
@@ -2239,12 +2411,28 @@ class _QuestionsTab extends StatelessWidget {
                         value: q.correctRate.clamp(0.0, 1.0),
                         minHeight: 6,
                         backgroundColor: AppColors.mono100,
-                        color: pct >= 60 ? const Color(0xFF22C55E) : AppColors.liveAccent,
+                        color: barColor,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text('$pct% ответили верно',
-                        style: const TextStyle(color: AppColors.mono400, fontSize: 12)),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Text(
+                          '$correct / $answered верных',
+                          style: TextStyle(
+                            color: barColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '($pct%)',
+                          style: const TextStyle(color: AppColors.mono400, fontSize: 12),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),

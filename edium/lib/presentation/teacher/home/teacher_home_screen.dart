@@ -10,6 +10,8 @@ import 'package:edium/presentation/profile/profile_screen.dart';
 import 'package:edium/presentation/teacher/classes/classes_screen.dart';
 import 'package:edium/presentation/teacher/create_quiz/bloc/create_quiz_bloc.dart';
 import 'package:edium/presentation/teacher/create_quiz/create_quiz_screen.dart';
+import 'package:edium/domain/repositories/live_repository.dart';
+import 'package:edium/presentation/teacher/quiz_library/bloc/live_library_cubit.dart';
 import 'package:edium/presentation/teacher/quiz_library/bloc/quiz_library_bloc.dart';
 import 'package:edium/presentation/teacher/quiz_library/bloc/quiz_library_event.dart';
 import 'package:edium/presentation/teacher/quiz_library/quiz_library_screen.dart';
@@ -55,6 +57,9 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
                 getIt<CreateSessionUsecase>(),
                 getIt<IQuizRepository>(),
               ),
+        ),
+        BlocProvider(
+          create: (_) => LiveLibraryCubit(getIt<ILiveRepository>()),
         ),
       ],
       child: Scaffold(

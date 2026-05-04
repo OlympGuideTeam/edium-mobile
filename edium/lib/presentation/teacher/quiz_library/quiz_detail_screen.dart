@@ -6,11 +6,13 @@ import 'package:edium/domain/entities/class_detail.dart';
 import 'package:edium/domain/entities/course_detail.dart';
 import 'package:edium/domain/entities/question.dart';
 import 'package:edium/domain/entities/quiz.dart';
+import 'package:edium/domain/repositories/live_repository.dart';
 import 'package:edium/domain/repositories/quiz_repository.dart';
 import 'package:edium/domain/usecases/class/get_class_detail_usecase.dart';
 import 'package:edium/domain/usecases/class/get_my_classes_usecase.dart';
 import 'package:edium/domain/usecases/course/get_course_detail_usecase.dart';
 import 'package:edium/domain/usecases/quiz/create_session_usecase.dart';
+import 'package:edium/presentation/live/teacher/live_teacher_screen.dart';
 import 'package:edium/presentation/shared/widgets/edium_button.dart';
 import 'package:edium/presentation/shared/widgets/edium_notification.dart';
 import 'package:edium/presentation/teacher/create_quiz/quiz_results_screen.dart';
@@ -250,6 +252,35 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
       ),
       builder: (_) => _AddToCourseSheet(quizId: widget.quizId),
     );
+  }
+
+  Future<void> _startLive() async {
+    setState(() => _actionLoading = true);
+    try {
+      final sessionId = await getIt<ILiveRepository>()
+          .createLiveLibrarySession(widget.quizId);
+      if (!mounted) return;
+      setState(() => _actionLoading = false);
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => LiveTeacherScreen(
+            sessionId: sessionId,
+            quizTitle: _quiz?.title ?? '',
+            questionCount: _quiz?.questionsCount ?? 0,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _actionLoading = false);
+        EdiumNotification.show(
+          context,
+          'Ошибка создания лайва',
+          type: EdiumNotificationType.error,
+        );
+      }
+    }
   }
 
   @override
@@ -525,6 +556,7 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
   }
 
   Widget _buildBottomBar() {
+    final showLive = _quiz?.needEvaluation == false;
     return Container(
       padding: EdgeInsets.only(
         left: AppDimens.screenPaddingH,
@@ -536,11 +568,51 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
         color: Colors.white,
         border: Border(top: BorderSide(color: AppColors.mono100)),
       ),
-      child: EdiumButton(
-        label: 'Добавить в курс',
-        icon: Icons.add_circle_outline,
-        onPressed: _addToCourse,
-      ),
+      child: showLive
+          ? Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: AppDimens.buttonH,
+                    child: OutlinedButton(
+                      onPressed: _actionLoading ? null : _startLive,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.mono900,
+                        disabledForegroundColor: AppColors.mono300,
+                        side: const BorderSide(color: AppColors.mono300),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppDimens.radiusLg),
+                        ),
+                        textStyle: AppTextStyles.primaryButton,
+                      ),
+                      child: _actionLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.mono700,
+                              ),
+                            )
+                          : const Text('Начать лайв'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: EdiumButton(
+                    label: 'Добавить в курс',
+                    onPressed: _actionLoading ? null : _addToCourse,
+                  ),
+                ),
+              ],
+            )
+          : EdiumButton(
+              label: 'Добавить в курс',
+              onPressed: _addToCourse,
+            ),
     );
   }
 

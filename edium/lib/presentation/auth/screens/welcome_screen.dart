@@ -3,6 +3,8 @@ import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
+import 'package:edium/domain/entities/live_session.dart';
+import 'package:edium/domain/repositories/live_repository.dart';
 import 'package:edium/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -21,6 +23,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   final _codeFocus = FocusNode();
   bool _codeFieldFocused = false;
   bool _switching = false;
+  bool _codeLoading = false;
+  String? _codeError;
 
   late final AnimationController _animController;
   late final Animation<double> _logoOpacity;
@@ -57,10 +61,45 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     super.dispose();
   }
 
-  void _submitCode() {
+  Future<void> _submitCode() async {
     final code = _codeController.text.trim();
-    if (code.length == 6) {
-      // TODO: навигация к квизу по коду
+    if (code.length != 6 || _codeLoading) return;
+
+    setState(() {
+      _codeLoading = true;
+      _codeError = null;
+    });
+
+    try {
+      final repo = getIt<ILiveRepository>();
+      final meta = await repo.resolveLiveCode(code);
+
+      if (!mounted) return;
+
+      if (meta.phase != LivePhase.lobby) {
+        setState(() {
+          _codeLoading = false;
+          _codeError = 'Квиз уже идёт или завершён';
+        });
+        return;
+      }
+
+      if (meta.source == 'course') {
+        setState(() {
+          _codeLoading = false;
+          _codeError = 'Этот квиз — только для авторизованных участников класса';
+        });
+        return;
+      }
+
+      context.push('/live/join/name', extra: meta);
+      setState(() => _codeLoading = false);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _codeLoading = false;
+        _codeError = 'Квиз не найден';
+      });
     }
   }
 
@@ -168,9 +207,21 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   controller: _codeController,
                   focusNode: _codeFocus,
                   isFocused: _codeFieldFocused,
+                  loading: _codeLoading,
                   onSubmit: _submitCode,
                   onCellTap: _onCellTap,
+                  onChanged: (_) {
+                    if (_codeError != null) setState(() => _codeError = null);
+                  },
                 ),
+                if (_codeError != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    _codeError!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 13, color: Color(0xFFD32F2F)),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 _EnvSwitcher(
                   current: ApiConfig.environment,
@@ -243,15 +294,19 @@ class _QuizCodeBlock extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool isFocused;
+  final bool loading;
   final VoidCallback onSubmit;
   final void Function(int index) onCellTap;
+  final void Function(String) onChanged;
 
   const _QuizCodeBlock({
     required this.controller,
     required this.focusNode,
     required this.isFocused,
+    required this.loading,
     required this.onSubmit,
     required this.onCellTap,
+    required this.onChanged,
   });
 
   @override
@@ -337,6 +392,7 @@ class _QuizCodeBlock extends StatelessWidget {
                             LengthLimitingTextInputFormatter(6),
                           ],
                           onChanged: (value) {
+                            onChanged(value);
                             if (value.length == 6) onSubmit();
                           },
                           decoration: const InputDecoration(
@@ -351,10 +407,16 @@ class _QuizCodeBlock extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Без авторизации',
-              style: TextStyle(fontSize: 12, color: AppColors.mono300),
-            ),
+            loading
+                ? const SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.mono400),
+                  )
+                : const Text(
+                    'Без авторизации',
+                    style: TextStyle(fontSize: 12, color: AppColors.mono300),
+                  ),
           ],
         ),
       ),

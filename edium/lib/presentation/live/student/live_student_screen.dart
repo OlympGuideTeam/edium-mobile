@@ -5,7 +5,6 @@ import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/domain/entities/live_question.dart';
 import 'package:edium/domain/entities/question.dart';
 import 'package:edium/domain/entities/live_results.dart';
-import 'package:edium/domain/entities/live_session.dart';
 import 'package:edium/domain/repositories/live_repository.dart';
 import 'package:edium/presentation/live/student/bloc/live_student_bloc.dart';
 import 'package:edium/presentation/live/student/bloc/live_student_event.dart';
@@ -54,22 +53,15 @@ class _LiveStudentScreenState extends State<LiveStudentScreen>
           questionCount: widget.questionCount,
           moduleId: widget.moduleId,
         )),
-      child: _LiveStudentBody(
-        quizTitle: widget.quizTitle,
-        questionCount: widget.questionCount,
-      ),
+      child: _LiveStudentBody(quizTitle: widget.quizTitle),
     );
   }
 }
 
 class _LiveStudentBody extends StatelessWidget {
   final String quizTitle;
-  final int questionCount;
 
-  const _LiveStudentBody({
-    required this.quizTitle,
-    required this.questionCount,
-  });
+  const _LiveStudentBody({required this.quizTitle});
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +78,6 @@ class _LiveStudentBody extends StatelessWidget {
             LiveStudentInitial() || LiveStudentConnecting() => _LoadingPhase(quizTitle: quizTitle),
             LiveStudentLobby() => _LobbyPhase(
                 quizTitle: quizTitle,
-                questionCount: questionCount,
                 state: state,
               ),
             LiveStudentQuestionActive() => _QuestionPhase(state: state),
@@ -151,12 +142,10 @@ class _LoadingPhase extends StatelessWidget {
 
 class _LobbyPhase extends StatelessWidget {
   final String quizTitle;
-  final int questionCount;
   final LiveStudentLobby state;
 
   const _LobbyPhase({
     required this.quizTitle,
-    required this.questionCount,
     required this.state,
   });
 
@@ -164,138 +153,187 @@ class _LobbyPhase extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: AppColors.liveAccent.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.bolt_rounded,
-                  color: AppColors.liveAccent,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                quizTitle,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '$questionCount вопрос${_questionsSuffix(questionCount)}',
-                style: const TextStyle(
-                  color: AppColors.liveDarkMuted,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 32),
-              // Participants counter
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.liveDarkSurface,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.people_alt_outlined,
-                        color: AppColors.liveDarkMuted, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      state.classmatesTotal != null && state.classmatesTotal! > 0
-                          ? '${state.participants.length} из ${state.classmatesTotal} в классе'
-                          : '${state.participants.length} подключилось',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+        child: Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    quizTitle,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      height: 1.25,
                     ),
+                    textAlign: TextAlign.start,
+                    maxLines: 6,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            // Participant list
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _LobbySectionLabel(
+                      label: 'Присоединились',
+                      trailing: '${state.participants.length}',
+                    ),
+                    const SizedBox(height: 8),
+                    if (state.participants.isEmpty)
+                      _LobbyEmptyCard()
+                    else
+                      ...state.participants.map(
+                        (p) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _LobbyParticipantTile(name: p.name),
+                        ),
+                      ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: state.participants.isEmpty
-                    ? Center(
-                        child: Text(
-                          'Ждём участников...',
-                          style: TextStyle(
-                            color: AppColors.liveDarkMuted,
-                            fontSize: 15,
-                          ),
-                        ),
-                      )
-                    : _ParticipantGrid(participants: state.participants),
-              ),
-              const SizedBox(height: 24),
-              const _PulsingWaitBadge(),
-              const SizedBox(height: 32),
-            ],
-          ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+          child: const _PulsingWaitBadge(),
         ),
       ),
     );
   }
-
-  String _questionsSuffix(int n) {
-    if (n % 10 == 1 && n % 100 != 11) return '';
-    if (n % 10 >= 2 && n % 10 <= 4 && !(n % 100 >= 12 && n % 100 <= 14)) return 'а';
-    return 'ов';
-  }
 }
 
-class _ParticipantGrid extends StatelessWidget {
-  final List<LiveLobbyParticipant> participants;
-  const _ParticipantGrid({required this.participants});
+class _LobbySectionLabel extends StatelessWidget {
+  final String label;
+  final String trailing;
+  const _LobbySectionLabel({required this.label, required this.trailing});
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      alignment: WrapAlignment.center,
-      children: participants.map((p) => _ParticipantChip(name: p.name)).toList(),
+    return Row(
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: AppColors.liveDarkMuted,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Container(
+          height: 18,
+          padding: const EdgeInsets.symmetric(horizontal: 7),
+          decoration: BoxDecoration(
+            color: AppColors.liveDarkSurface,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            trailing,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Colors.white70,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _ParticipantChip extends StatelessWidget {
+class _LobbyParticipantTile extends StatelessWidget {
   final String name;
-  const _ParticipantChip({required this.name});
+  const _LobbyParticipantTile({required this.name});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.liveDarkCard,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.liveDarkBorder),
       ),
-      child: Text(
-        name,
-        style: const TextStyle(color: Colors.white, fontSize: 13),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.liveDarkSurface,
+              borderRadius: BorderRadius.circular(9),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              _initials(name),
+              style: const TextStyle(
+                color: AppColors.liveDarkMuted,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              name,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LobbyEmptyCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      decoration: BoxDecoration(
+        color: AppColors.liveDarkCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.liveDarkBorder),
+      ),
+      child: const Column(
+        children: [
+          Icon(Icons.people_outline, color: AppColors.liveDarkMuted, size: 32),
+          SizedBox(height: 8),
+          Text(
+            'Ждём участников...',
+            style: TextStyle(color: AppColors.liveDarkMuted, fontSize: 14),
+          ),
+        ],
       ),
     );
   }
 }
 
 class _PulsingWaitBadge extends StatefulWidget {
-  const _PulsingWaitBadge();
+  final String text;
+  const _PulsingWaitBadge({this.text = 'Ожидайте начала квиза'});
 
   @override
   State<_PulsingWaitBadge> createState() => _PulsingWaitBadgeState();
@@ -326,12 +364,21 @@ class _PulsingWaitBadgeState extends State<_PulsingWaitBadge>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _anim,
-      child: const Text(
-        'Ожидайте начала квиза',
-        style: TextStyle(
-          color: AppColors.liveDarkMuted,
-          fontSize: 14,
-          letterSpacing: 0.3,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: AppColors.liveDarkSurface,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Text(
+          widget.text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: AppColors.liveDarkMuted,
+            fontSize: 14,
+            letterSpacing: 0.3,
+          ),
         ),
       ),
     );
@@ -352,7 +399,6 @@ class _QuestionPhase extends StatelessWidget {
           children: [
             _QuestionHeader(
               index: state.questionIndex,
-              total: state.questionTotal,
               deadlineAt: state.deadlineAt,
               timeLimitSec: state.timeLimitSec,
             ),
@@ -398,38 +444,88 @@ class _QuestionPhase extends StatelessWidget {
   }
 }
 
-class _QuestionHeader extends StatefulWidget {
+// _QuestionHeader: StatelessWidget — не перестраивается само по себе.
+// Два дочерних виджета управляют своей анимацией независимо:
+//   _TimerBadge   — Timer раз в секунду (текст + цвет бейджа)
+//   _TimerProgressBar — AnimationController плавно заполняет бар без мерцания
+class _QuestionHeader extends StatelessWidget {
   final int index;
-  final int total;
   final DateTime deadlineAt;
   final int timeLimitSec;
 
   const _QuestionHeader({
     required this.index,
-    required this.total,
     required this.deadlineAt,
     required this.timeLimitSec,
   });
 
   @override
-  State<_QuestionHeader> createState() => _QuestionHeaderState();
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.liveDarkSurface,
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Text(
+                'Вопрос $index',
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+              const Spacer(),
+              _TimerBadge(
+                deadlineAt: deadlineAt,
+                timeLimitSec: timeLimitSec,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _TimerProgressBar(
+            deadlineAt: deadlineAt,
+            timeLimitSec: timeLimitSec,
+          ),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
 }
 
-class _QuestionHeaderState extends State<_QuestionHeader> {
-  late Timer _timer;
+// Бейдж с таймером: перестраивается только раз в секунду.
+class _TimerBadge extends StatefulWidget {
+  final DateTime deadlineAt;
+  final int timeLimitSec;
+
+  const _TimerBadge({
+    required this.deadlineAt,
+    required this.timeLimitSec,
+  });
+
+  @override
+  State<_TimerBadge> createState() => _TimerBadgeState();
+}
+
+class _TimerBadgeState extends State<_TimerBadge> {
   late int _secondsLeft;
+  late final Timer _timer;
 
   @override
   void initState() {
     super.initState();
-    _secondsLeft = widget.deadlineAt.difference(DateTime.now()).inSeconds.clamp(0, widget.timeLimitSec);
+    _secondsLeft = _computeSeconds();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      setState(() {
-        _secondsLeft = widget.deadlineAt.difference(DateTime.now()).inSeconds.clamp(0, widget.timeLimitSec);
-      });
+      if (mounted) setState(() => _secondsLeft = _computeSeconds());
     });
   }
+
+  int _computeSeconds() =>
+      widget.deadlineAt.difference(DateTime.now()).inSeconds
+          .clamp(0, widget.timeLimitSec);
 
   @override
   void dispose() {
@@ -439,50 +535,115 @@ class _QuestionHeaderState extends State<_QuestionHeader> {
 
   @override
   Widget build(BuildContext context) {
-    final progress = widget.timeLimitSec > 0 ? _secondsLeft / widget.timeLimitSec : 0.0;
     final isUrgent = _secondsLeft <= 5;
+    final m = _secondsLeft ~/ 60;
+    final s = _secondsLeft % 60;
+    final label = _secondsLeft >= 60
+        ? '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}'
+        : '$_secondsLeft с';
 
-    return Container(
-      color: AppColors.liveDarkSurface,
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
-      child: Row(
-        children: [
-          Text(
-            '${widget.index} / ${widget.total}',
-            style: TextStyle(
-              color: AppColors.liveDarkMuted,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const Spacer(),
-          SizedBox(
-            width: 48,
-            height: 48,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                CircularProgressIndicator(
-                  value: progress,
-                  strokeWidth: 3,
-                  backgroundColor: AppColors.liveDarkCard,
-                  color: isUrgent ? Colors.redAccent : AppColors.liveAccent,
-                ),
-                Center(
-                  child: Text(
-                    '$_secondsLeft',
-                    style: TextStyle(
-                      color: isUrgent ? Colors.redAccent : Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      height: 28,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: isUrgent ? AppColors.liveAccent : Colors.white,
+        borderRadius: BorderRadius.circular(8),
       ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: isUrgent ? Colors.white : AppColors.liveDarkBg,
+          letterSpacing: 0.8,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      ),
+    );
+  }
+}
+
+// Полоса прогресса: AnimationController плавно везёт fill от текущей
+// доли до 1.0 за оставшееся время — никакого Ticker на родителе,
+// AnimatedBuilder перерисовывает только эту полосу.
+class _TimerProgressBar extends StatefulWidget {
+  final DateTime deadlineAt;
+  final int timeLimitSec;
+
+  const _TimerProgressBar({
+    required this.deadlineAt,
+    required this.timeLimitSec,
+  });
+
+  @override
+  State<_TimerProgressBar> createState() => _TimerProgressBarState();
+}
+
+class _TimerProgressBarState extends State<_TimerProgressBar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    final totalMs = widget.timeLimitSec > 0 ? widget.timeLimitSec * 1000 : 1;
+    final started =
+        widget.deadlineAt.subtract(Duration(seconds: widget.timeLimitSec));
+    final elapsedMs =
+        DateTime.now().difference(started).inMilliseconds.clamp(0, totalMs);
+    final remainingMs = totalMs - elapsedMs;
+    final startFraction = (elapsedMs / totalMs).clamp(0.0, 1.0);
+
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: remainingMs),
+    );
+    _anim = Tween<double>(begin: startFraction, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.linear),
+    );
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) {
+        final urgent = _anim.value >= 0.85;
+        final fillColor =
+            urgent ? Colors.redAccent : AppColors.liveAccent;
+        return Container(
+          height: 6,
+          decoration: BoxDecoration(
+            color: AppColors.liveDarkCard,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: _anim.value,
+              heightFactor: 1.0,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 400),
+                decoration: BoxDecoration(
+                  color: fillColor,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -647,7 +808,7 @@ class _OptionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isSelected ? AppColors.liveAccent : AppColors.liveDarkBorder,
-          width: isSelected ? 2 : 1,
+          width: 1.5,
         ),
       ),
       child: child,
@@ -800,7 +961,7 @@ class _AnsweredOverlay extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.liveDarkSurface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.liveAccent, width: 2),
+            border: Border.all(color: AppColors.liveAccent, width: 1.5),
           ),
           child: Row(
             children: [
@@ -858,44 +1019,12 @@ class _AnsweredOverlay extends StatelessWidget {
         );
 
       case QuestionType.connection:
-        final pairs = (myAnswer['pairs'] as Map<String, dynamic>?)
+        final rawPairs = (myAnswer['pairs'] as Map<String, dynamic>?)
                 ?.map((k, v) => MapEntry(k, v.toString())) ??
             {};
-        return Column(
-          children: pairs.entries.map((entry) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.liveDarkSurface,
-                borderRadius: BorderRadius.circular(12),
-                border:
-                    Border.all(color: AppColors.liveAccent, width: 1.5),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(entry.key,
-                        style: const TextStyle(
-                            fontSize: 14, color: Colors.white)),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Icon(Icons.arrow_forward,
-                        size: 16, color: AppColors.liveAccent),
-                  ),
-                  Expanded(
-                    child: Text(entry.value,
-                        style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600)),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
+        return _AnsweredConnectionDisplay(
+          question: question,
+          myPairs: rawPairs,
         );
 
       default:
@@ -945,7 +1074,7 @@ class _LockedOption extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected ? AppColors.liveAccent : AppColors.liveDarkBorder,
-              width: isSelected ? 2 : 1,
+              width: 1.5,
             ),
           ),
           child: Row(
@@ -1427,210 +1556,56 @@ class _LockedPhase extends StatelessWidget {
   final LiveStudentQuestionLocked state;
   const _LockedPhase({required this.state});
 
-  List<Widget> _buildLockedOptions() {
-    const green = Color(0xFF22C55E);
-    const greenBg = Color(0xFF16A34A);
-
-    switch (state.question.type) {
-      case QuestionType.drag:
-        final order = state.correctAnswer.correctOrder ?? [];
-        return order.asMap().entries.map((e) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: greenBg.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: green, width: 1.5),
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    '${e.key + 1}',
-                    style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: green),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(e.value,
-                        style: const TextStyle(
-                            fontSize: 15, color: Colors.white)),
-                  ),
-                  const Icon(Icons.check_rounded, color: green, size: 18),
-                ],
-              ),
-            ),
-          );
-        }).toList();
-
-      case QuestionType.connection:
-        final pairs = state.correctAnswer.correctPairs ?? {};
-        return pairs.entries.map((entry) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: greenBg.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: green, width: 1.5),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(entry.key,
-                        style: const TextStyle(
-                            fontSize: 14, color: Colors.white)),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Icon(Icons.arrow_forward, size: 16, color: green),
-                  ),
-                  Expanded(
-                    child: Text(entry.value,
-                        style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600)),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }).toList();
-
-      default:
-        final correctIds = state.question.type == QuestionType.multiChoice
-            ? (state.correctAnswer.correctOptionIds?.toSet() ?? <String>{})
-            : <String>{
-                if (state.correctAnswer.correctOptionId != null)
-                  state.correctAnswer.correctOptionId!
-              };
-        final isMulti = state.question.type == QuestionType.multiChoice;
-
-        return state.question.options.map((opt) {
-          final isCorrectOpt = correctIds.contains(opt.id);
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Opacity(
-              opacity: isCorrectOpt ? 1.0 : 0.4,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: isCorrectOpt
-                      ? greenBg.withValues(alpha: 0.15)
-                      : AppColors.liveDarkCard,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isCorrectOpt ? green : AppColors.liveDarkBorder,
-                    width: isCorrectOpt ? 2 : 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    if (isMulti)
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: isCorrectOpt ? green : Colors.transparent,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(
-                            color: isCorrectOpt ? green : const Color(0xFF4A4A4A),
-                            width: 2,
-                          ),
-                        ),
-                        child: isCorrectOpt
-                            ? const Icon(Icons.check,
-                                size: 13, color: Colors.white)
-                            : null,
-                      )
-                    else
-                      Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isCorrectOpt ? green : const Color(0xFF4A4A4A),
-                            width: isCorrectOpt ? 6 : 2,
-                          ),
-                        ),
-                      ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        opt.text,
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: isCorrectOpt ? Colors.white : Colors.white70,
-                          fontWeight: isCorrectOpt
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                    if (isCorrectOpt)
-                      const Icon(Icons.check_rounded, color: green, size: 20),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }).toList();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final myResult = state.myResult;
-    final isCorrect = myResult?.isCorrect ?? false;
-
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            // Top result banner
+            // Header mirrors _QuestionHeader layout to prevent layout shift
             Container(
-              width: double.infinity,
-              color: isCorrect
-                  ? const Color(0xFF16A34A).withValues(alpha: 0.15)
-                  : Colors.redAccent.withValues(alpha: 0.15),
-              padding: const EdgeInsets.symmetric(vertical: 20),
+              color: AppColors.liveDarkSurface,
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
               child: Column(
                 children: [
-                  Icon(
-                    isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                    color: isCorrect ? const Color(0xFF22C55E) : Colors.redAccent,
-                    size: 40,
+                  Row(
+                    children: [
+                      Text(
+                        'Вопрос ${state.questionIndex}',
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                      const Spacer(),
+                      _CorrectnessBadge(myResult: state.myResult),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    isCorrect ? 'Верно!' : 'Неверно',
-                    style: TextStyle(
-                      color: isCorrect ? const Color(0xFF22C55E) : Colors.redAccent,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
+                  const SizedBox(height: 12),
+                  Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: AppColors.liveDarkCard,
+                      borderRadius: BorderRadius.circular(999),
                     ),
-                  ),
-                  if (myResult != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      '+${myResult.score.toStringAsFixed(0)} очков',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
+                    clipBehavior: Clip.antiAlias,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FractionallySizedBox(
+                        widthFactor: 1.0,
+                        heightFactor: 1.0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF22C55E),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
                       ),
                     ),
-                  ],
+                  ),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
@@ -1644,117 +1619,1066 @@ class _LockedPhase extends StatelessWidget {
                       state.question.text,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
                         height: 1.4,
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    ..._buildLockedOptions(),
-                    if (state.stats is LiveChoiceStats) ...[
-                      const SizedBox(height: 24),
-                      _StatsBar(
-                          stats: state.stats as LiveChoiceStats,
-                          options: state.question.options),
-                    ],
+                    const SizedBox(height: 24),
+                    _buildLockedContent(),
                   ],
                 ),
               ),
             ),
-            Container(
-              color: AppColors.liveDarkSurface,
-              padding: const EdgeInsets.all(16),
-              child: const Text(
-                'Ожидайте следующий вопрос...',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.liveDarkMuted, fontSize: 14),
-              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+              child: _PulsingWaitBadge(text: 'Ожидайте следующий вопрос...'),
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildLockedContent() {
+    switch (state.question.type) {
+      case QuestionType.singleChoice:
+      case QuestionType.multiChoice:
+        return _LockedChoiceDistribution(
+          question: state.question,
+          stats: state.stats is LiveChoiceStats
+              ? state.stats as LiveChoiceStats
+              : null,
+          correctAnswer: state.correctAnswer,
+          myAnswer: state.myAnswer,
+        );
+      case QuestionType.withGivenAnswer:
+        return _WordCloudView(
+          words: state.wordCloud ?? [],
+          correctAnswers: state.correctAnswer.correctAnswers ?? [],
+        );
+      case QuestionType.drag:
+        return _LockedDragResult(correctAnswer: state.correctAnswer);
+      case QuestionType.connection:
+        final rawPairs =
+            state.myAnswer?['pairs'] as Map<String, dynamic>?;
+        if (rawPairs != null && rawPairs.isNotEmpty) {
+          return _LockedConnectionMyAnswer(
+            question: state.question,
+            myPairs: rawPairs.map((k, v) => MapEntry(k, v.toString())),
+            correctPairs: state.correctAnswer.correctPairs ?? {},
+          );
+        }
+        return _LockedConnectionResult(correctAnswer: state.correctAnswer);
+      default:
+        return const SizedBox.shrink();
+    }
+  }
 }
 
-class _StatsBar extends StatelessWidget {
-  final LiveChoiceStats stats;
-  final List<LiveAnswerOption> options;
+class _LockedChoiceDistribution extends StatelessWidget {
+  final LiveQuestion question;
+  final LiveChoiceStats? stats;
+  final LiveCorrectAnswer correctAnswer;
+  final Map<String, dynamic>? myAnswer;
 
-  const _StatsBar({required this.stats, required this.options});
+  const _LockedChoiceDistribution({
+    required this.question,
+    required this.stats,
+    required this.correctAnswer,
+    this.myAnswer,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final total = stats.answeredCount;
+    final total = stats?.answeredCount ?? 0;
+    final correctIds = _correctIds();
+    final selectedIds = _selectedIds();
+    final isMulti = question.type == QuestionType.multiChoice;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Ответы участников',
-          style: TextStyle(
-            color: AppColors.liveDarkMuted,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
+      children: question.options.map((opt) {
+        final dist = stats?.distribution
+            .where((d) => d.optionId == opt.id)
+            .firstOrNull;
+        final pct = total > 0 ? (dist?.count ?? 0) / total : 0.0;
+        final isCorrectOpt = correctIds.contains(opt.id);
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: _LockedOptionFillCell(
+            text: opt.text,
+            fillFraction: pct,
+            isCorrect: isCorrectOpt,
+            isMulti: isMulti,
+            isSelected: selectedIds.contains(opt.id),
           ),
-        ),
-        const SizedBox(height: 12),
-        ...stats.distribution.map((d) {
-          final opt = options.firstWhere((o) => o.id == d.optionId,
-              orElse: () => LiveAnswerOption(id: d.optionId, text: d.optionId));
-          final pct = total > 0 ? d.count / total : 0.0;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+        );
+      }).toList(),
+    );
+  }
+
+  Set<String> _selectedIds() {
+    if (myAnswer == null) return {};
+    final singleId = myAnswer!['selected_option_id'] as String? ??
+        myAnswer!['option_id'] as String?;
+    if (singleId != null) return {singleId};
+    final multiIds = (myAnswer!['selected_option_ids'] as List<dynamic>?) ??
+        (myAnswer!['option_ids'] as List<dynamic>?);
+    if (multiIds != null) return multiIds.map((e) => e.toString()).toSet();
+    return {};
+  }
+
+  Set<String> _correctIds() {
+    if (correctAnswer.correctOptionIds != null) {
+      return correctAnswer.correctOptionIds!.toSet();
+    }
+    if (correctAnswer.correctOptionId != null) {
+      return {correctAnswer.correctOptionId!};
+    }
+    return {};
+  }
+}
+
+class _LockedOptionFillCell extends StatelessWidget {
+  final String text;
+  final double fillFraction;
+  final bool isCorrect;
+  final bool isMulti;
+  final bool isSelected;
+
+  const _LockedOptionFillCell({
+    required this.text,
+    required this.fillFraction,
+    required this.isCorrect,
+    required this.isMulti,
+    required this.isSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const green = Color(0xFF22C55E);
+    final borderColor = isCorrect ? green : AppColors.liveDarkBorder;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.liveDarkCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor, width: 1.5),
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: AnimatedFractionallySizedBox(
+                duration: const Duration(milliseconds: 400),
+                widthFactor: fillFraction.clamp(0.0, 1.0),
+                heightFactor: 1.0,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isCorrect
+                        ? green.withValues(alpha: 0.15)
+                        : Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
-                SizedBox(
-                  width: 20,
-                  child: Text(
-                    opt.text.isNotEmpty ? opt.text[0] : '?',
-                    style: const TextStyle(
-                        color: AppColors.liveDarkMuted, fontSize: 12),
-                  ),
-                ),
-                const SizedBox(width: 8),
+                _LockedChoiceIndicator(
+                    isCorrect: isCorrect, isMulti: isMulti, isSelected: isSelected),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Stack(
-                    children: [
-                      Container(
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: AppColors.liveDarkCard,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      FractionallySizedBox(
-                        widthFactor: pct,
-                        child: Container(
-                          height: 20,
-                          decoration: BoxDecoration(
-                            color: d.isCorrect
-                                ? const Color(0xFF22C55E).withValues(alpha: 0.5)
-                                : AppColors.liveAccent.withValues(alpha: 0.4),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    text,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: isCorrect ? Colors.white : Colors.white70,
+                      height: 1.4,
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  d.count.toString(),
-                  style: const TextStyle(
-                      color: AppColors.liveDarkMuted, fontSize: 12),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LockedChoiceIndicator extends StatelessWidget {
+  final bool isCorrect;
+  final bool isMulti;
+  final bool isSelected;
+
+  const _LockedChoiceIndicator({
+    required this.isCorrect,
+    required this.isMulti,
+    required this.isSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const green = Color(0xFF22C55E);
+    const red = Colors.redAccent;
+
+    final Color borderColor;
+    final Color bgColor;
+    final Widget? inner;
+
+    if (isSelected && isCorrect) {
+      borderColor = green;
+      bgColor = green;
+      inner = isMulti
+          ? const Icon(Icons.check, size: 12, color: Colors.white)
+          : Container(
+              width: 7,
+              height: 7,
+              decoration: const BoxDecoration(
+                  shape: BoxShape.circle, color: Colors.white));
+    } else if (isSelected && !isCorrect) {
+      borderColor = red;
+      bgColor = red;
+      inner = isMulti
+          ? const Icon(Icons.close, size: 12, color: Colors.white)
+          : Container(
+              width: 7,
+              height: 7,
+              decoration: const BoxDecoration(
+                  shape: BoxShape.circle, color: Colors.white));
+    } else if (!isSelected && isCorrect) {
+      borderColor = green.withValues(alpha: 0.6);
+      bgColor = green.withValues(alpha: 0.1);
+      inner = isMulti
+          ? Icon(Icons.check, size: 12, color: green.withValues(alpha: 0.7))
+          : Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: green.withValues(alpha: 0.5)));
+    } else {
+      borderColor = const Color(0xFF4A4A4A);
+      bgColor = Colors.transparent;
+      inner = null;
+    }
+
+    return Container(
+      width: 20,
+      height: 20,
+      decoration: isMulti
+          ? BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(5),
+              border: Border.all(color: borderColor, width: 1.5),
+            )
+          : BoxDecoration(
+              color: bgColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: borderColor, width: 1.5),
+            ),
+      child: inner != null ? Center(child: inner) : null,
+    );
+  }
+}
+
+class _LockedDragResult extends StatelessWidget {
+  final LiveCorrectAnswer correctAnswer;
+  const _LockedDragResult({required this.correctAnswer});
+
+  @override
+  Widget build(BuildContext context) {
+    const green = Color(0xFF22C55E);
+    final order = correctAnswer.correctOrder ?? [];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.liveDarkCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.liveDarkBorder),
+      ),
+      child: Column(
+        children: order.asMap().entries.map((e) {
+          final isLast = e.key == order.length - 1;
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              border: isLast
+                  ? null
+                  : const Border(
+                      bottom: BorderSide(
+                          color: AppColors.liveDarkBorder, width: 1)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: green.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${e.key + 1}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: green,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    e.value,
+                    style: const TextStyle(fontSize: 15, color: Colors.white),
+                  ),
                 ),
               ],
             ),
           );
-        }),
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _LockedConnectionResult extends StatelessWidget {
+  final LiveCorrectAnswer correctAnswer;
+  const _LockedConnectionResult({required this.correctAnswer});
+
+  @override
+  Widget build(BuildContext context) {
+    const green = Color(0xFF22C55E);
+    final pairs = correctAnswer.correctPairs ?? {};
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.liveDarkCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.liveDarkBorder),
+      ),
+      child: Column(
+        children: pairs.entries.toList().asMap().entries.map((e) {
+          final isLast = e.key == pairs.length - 1;
+          final entry = e.value;
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              border: isLast
+                  ? null
+                  : const Border(
+                      bottom: BorderSide(
+                          color: AppColors.liveDarkBorder, width: 1)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    entry.key,
+                    style: const TextStyle(fontSize: 14, color: Colors.white),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Icon(Icons.arrow_forward_rounded,
+                      size: 16, color: green),
+                ),
+                Expanded(
+                  child: Text(
+                    entry.value,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// ─── Correctness badge ───────────────────────────────────────────────────────
+
+class _CorrectnessBadge extends StatelessWidget {
+  final LiveStudentResult? myResult;
+  const _CorrectnessBadge({required this.myResult});
+
+  @override
+  Widget build(BuildContext context) {
+    if (myResult == null) {
+      return Container(
+        height: 28,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppColors.liveDarkCard,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.liveDarkBorder),
+        ),
+        child: const Text(
+          'Нет ответа',
+          style: TextStyle(
+            color: AppColors.liveDarkMuted,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+    const green = Color(0xFF22C55E);
+    final isCorrect = myResult!.isCorrect;
+    final color = isCorrect ? green : Colors.redAccent;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      height: 28,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isCorrect ? Icons.check_rounded : Icons.close_rounded,
+            size: 13,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            isCorrect ? 'Верно' : 'Неверно',
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Word cloud ───────────────────────────────────────────────────────────────
+
+class _WordCloudView extends StatelessWidget {
+  final List<String> words;
+  final List<String> correctAnswers;
+
+  const _WordCloudView({
+    required this.words,
+    required this.correctAnswers,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const green = Color(0xFF22C55E);
+    final correctSet =
+        correctAnswers.map((a) => a.toLowerCase().trim()).toSet();
+
+    final freq = <String, int>{};
+    for (final w in words) {
+      freq[w] = (freq[w] ?? 0) + 1;
+    }
+
+    final someoneCorrect =
+        freq.keys.any((w) => correctSet.contains(w.toLowerCase().trim()));
+    final showNote = !someoneCorrect;
+
+    final maxFreq =
+        freq.values.fold(1, (a, b) => a > b ? a : b);
+
+    final entries = freq.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (entries.isNotEmpty) ...[
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: entries.map((e) {
+              final isCorrect =
+                  correctSet.contains(e.key.toLowerCase().trim());
+              final fontSize = 13.0 + (e.value / maxFreq) * 14.0;
+              return Text(
+                e.key,
+                style: TextStyle(
+                  fontSize: fontSize,
+                  color: isCorrect ? green : Colors.white70,
+                  fontWeight:
+                      isCorrect ? FontWeight.w700 : FontWeight.w400,
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (showNote && correctAnswers.isNotEmpty)
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: green.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: green.withValues(alpha: 0.35)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.lightbulb_outline,
+                    color: green, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Правильный ответ: ${correctAnswers.join(', ')}',
+                    style: const TextStyle(
+                      color: green,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (entries.isEmpty && correctAnswers.isEmpty)
+          const Text(
+            'Никто не ответил',
+            style: TextStyle(color: AppColors.liveDarkMuted, fontSize: 14),
+          ),
       ],
     );
   }
+}
+
+// ─── Connection locked (my answer + correct highlights) ──────────────────────
+
+class _LockedConnectionMyAnswer extends StatefulWidget {
+  final LiveQuestion question;
+  final Map<String, String> myPairs;
+  final Map<String, String> correctPairs;
+
+  const _LockedConnectionMyAnswer({
+    required this.question,
+    required this.myPairs,
+    required this.correctPairs,
+  });
+
+  @override
+  State<_LockedConnectionMyAnswer> createState() =>
+      _LockedConnectionMyAnswerState();
+}
+
+class _LockedConnectionMyAnswerState
+    extends State<_LockedConnectionMyAnswer> {
+  late List<GlobalKey> _leftKeys;
+  late List<GlobalKey> _rightKeys;
+  final _stackKey = GlobalKey();
+
+  List<String> get _leftItems =>
+      (widget.question.metadata?['left'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList() ??
+      [];
+
+  List<String> get _rightItems =>
+      (widget.question.metadata?['right'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList() ??
+      [];
+
+  @override
+  void initState() {
+    super.initState();
+    _leftKeys = List.generate(_leftItems.length, (_) => GlobalKey());
+    _rightKeys = List.generate(_rightItems.length, (_) => GlobalKey());
+    // Trigger repaint after layout so GlobalKey positions are available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  Rect? _rectOf(GlobalKey key) {
+    final box = key.currentContext?.findRenderObject() as RenderBox?;
+    final stackBox =
+        _stackKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || stackBox == null) return null;
+    final tl = stackBox.globalToLocal(box.localToGlobal(Offset.zero));
+    return tl & box.size;
+  }
+
+  List<({Rect fromRect, Rect toRect, bool isCorrect})> _arrowData() {
+    final left = _leftItems;
+    final right = _rightItems;
+    final result = <({Rect fromRect, Rect toRect, bool isCorrect})>[];
+
+    // Wrong user connections drawn first (under green arrows)
+    for (final entry in widget.myPairs.entries) {
+      if (widget.correctPairs[entry.key] == entry.value) continue;
+      final li = left.indexOf(entry.key);
+      final ri = right.indexOf(entry.value);
+      if (li == -1 || ri == -1) continue;
+      final from = _rectOf(_leftKeys[li]);
+      final to = _rectOf(_rightKeys[ri]);
+      if (from != null && to != null) {
+        result.add((fromRect: from, toRect: to, isCorrect: false));
+      }
+    }
+
+    // All correct connections on top (green, over red)
+    for (final entry in widget.correctPairs.entries) {
+      final li = left.indexOf(entry.key);
+      final ri = right.indexOf(entry.value);
+      if (li == -1 || ri == -1) continue;
+      final from = _rectOf(_leftKeys[li]);
+      final to = _rectOf(_rightKeys[ri]);
+      if (from != null && to != null) {
+        result.add((fromRect: from, toRect: to, isCorrect: true));
+      }
+    }
+
+    return result;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final left = _leftItems;
+    final right = _rightItems;
+    final rowCount = left.length > right.length ? left.length : right.length;
+
+    return Stack(
+      key: _stackKey,
+      children: [
+        Column(
+          children: List.generate(rowCount, (i) {
+            final l = i < left.length ? left[i] : null;
+            final r = i < right.length ? right[i] : null;
+            final isLeftPaired = l != null && widget.myPairs.containsKey(l);
+            final isLeftCorrect = l != null &&
+                isLeftPaired &&
+                widget.correctPairs[l] == widget.myPairs[l];
+            final isRightPaired = r != null && widget.myPairs.values.contains(r);
+            final rightLeftKey =
+                r != null ? widget.myPairs.entries.where((e) => e.value == r).firstOrNull?.key : null;
+            final isRightCorrect = rightLeftKey != null &&
+                widget.correctPairs[rightLeftKey] == r;
+
+            const green = Color(0xFF22C55E);
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: SizedBox(
+                height: 72,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: l != null
+                          ? Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  key: _leftKeys[i],
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: isLeftPaired
+                                        ? AppColors.liveDarkSurface
+                                        : AppColors.liveDarkCard,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isLeftCorrect
+                                          ? green
+                                          : isLeftPaired
+                                              ? Colors.redAccent
+                                              : AppColors.liveDarkBorder,
+                                      width: isLeftPaired ? 1.5 : 1,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      l,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  right: -5,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Center(
+                                    child: _LiveEdgeDot(
+                                        active: isLeftPaired),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    const SizedBox(width: 32),
+                    Expanded(
+                      child: r != null
+                          ? Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  key: _rightKeys[i],
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: isRightPaired
+                                        ? AppColors.liveDarkSurface
+                                        : AppColors.liveDarkCard,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isRightCorrect
+                                          ? green
+                                          : isRightPaired
+                                              ? Colors.redAccent
+                                              : AppColors.liveDarkBorder,
+                                      width: isRightPaired ? 1.5 : 1,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      r,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  left: -5,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Center(
+                                    child: _LiveEdgeDot(
+                                        active: isRightPaired),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: CustomPaint(
+              painter: _LockedArrowPainter(arrows: _arrowData()),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LockedArrowPainter extends CustomPainter {
+  final List<({Rect fromRect, Rect toRect, bool isCorrect})> arrows;
+  const _LockedArrowPainter({required this.arrows});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (arrows.isEmpty) return;
+    const green = Color(0xFF22C55E);
+
+    for (final a in arrows) {
+      final paint = Paint()
+        ..color = a.isCorrect ? green : Colors.redAccent
+        ..strokeWidth = a.isCorrect ? 2.0 : 1.5
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
+      final from = Offset(a.fromRect.right, a.fromRect.center.dy);
+      final to = Offset(a.toRect.left, a.toRect.center.dy);
+      if ((to - from).distance < 4) continue;
+      final dx = (to.dx - from.dx) * 0.5;
+      final path = Path()..moveTo(from.dx, from.dy);
+      path.cubicTo(
+          from.dx + dx, from.dy, to.dx - dx, to.dy, to.dx, to.dy);
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_LockedArrowPainter old) => old.arrows != arrows;
+}
+
+// ─── Connection answered (locked, no correctness) ────────────────────────────
+
+class _AnsweredConnectionDisplay extends StatefulWidget {
+  final LiveQuestion question;
+  final Map<String, String> myPairs;
+
+  const _AnsweredConnectionDisplay({
+    required this.question,
+    required this.myPairs,
+  });
+
+  @override
+  State<_AnsweredConnectionDisplay> createState() =>
+      _AnsweredConnectionDisplayState();
+}
+
+class _AnsweredConnectionDisplayState
+    extends State<_AnsweredConnectionDisplay> {
+  late List<GlobalKey> _leftKeys;
+  late List<GlobalKey> _rightKeys;
+  final _stackKey = GlobalKey();
+
+  List<String> get _leftItems =>
+      (widget.question.metadata?['left'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList() ??
+      [];
+
+  List<String> get _rightItems =>
+      (widget.question.metadata?['right'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList() ??
+      [];
+
+  @override
+  void initState() {
+    super.initState();
+    _leftKeys = List.generate(_leftItems.length, (_) => GlobalKey());
+    _rightKeys = List.generate(_rightItems.length, (_) => GlobalKey());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  Rect? _rectOf(GlobalKey key) {
+    final box = key.currentContext?.findRenderObject() as RenderBox?;
+    final stackBox =
+        _stackKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || stackBox == null) return null;
+    final tl = stackBox.globalToLocal(box.localToGlobal(Offset.zero));
+    return tl & box.size;
+  }
+
+  List<({Rect fromRect, Rect toRect})> _arrowData() {
+    final left = _leftItems;
+    final right = _rightItems;
+    final result = <({Rect fromRect, Rect toRect})>[];
+    for (final entry in widget.myPairs.entries) {
+      final li = left.indexOf(entry.key);
+      final ri = right.indexOf(entry.value);
+      if (li == -1 || ri == -1) continue;
+      final from = _rectOf(_leftKeys[li]);
+      final to = _rectOf(_rightKeys[ri]);
+      if (from != null && to != null) {
+        result.add((fromRect: from, toRect: to));
+      }
+    }
+    return result;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final left = _leftItems;
+    final right = _rightItems;
+    final rowCount = left.length > right.length ? left.length : right.length;
+
+    return Stack(
+      key: _stackKey,
+      children: [
+        Column(
+          children: List.generate(rowCount, (i) {
+            final l = i < left.length ? left[i] : null;
+            final r = i < right.length ? right[i] : null;
+            final isLeftPaired = l != null && widget.myPairs.containsKey(l);
+            final isRightPaired =
+                r != null && widget.myPairs.values.contains(r);
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: SizedBox(
+                height: 72,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: l != null
+                          ? Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  key: _leftKeys[i],
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: isLeftPaired
+                                        ? AppColors.liveDarkSurface
+                                        : AppColors.liveDarkCard,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isLeftPaired
+                                          ? AppColors.liveDarkMuted
+                                          : AppColors.liveDarkBorder,
+                                      width: isLeftPaired ? 1.5 : 1,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      l,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  right: -5,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Center(
+                                    child:
+                                        _LiveEdgeDot(active: isLeftPaired),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    const SizedBox(width: 32),
+                    Expanded(
+                      child: r != null
+                          ? Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  key: _rightKeys[i],
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: isRightPaired
+                                        ? AppColors.liveDarkSurface
+                                        : AppColors.liveDarkCard,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isRightPaired
+                                          ? AppColors.liveDarkMuted
+                                          : AppColors.liveDarkBorder,
+                                      width: isRightPaired ? 1.5 : 1,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      r,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  left: -5,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Center(
+                                    child:
+                                        _LiveEdgeDot(active: isRightPaired),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ),
+        Positioned.fill(
+          child: IgnorePointer(
+            child: CustomPaint(
+              painter: _NeutralArrowPainter(arrows: _arrowData()),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _NeutralArrowPainter extends CustomPainter {
+  final List<({Rect fromRect, Rect toRect})> arrows;
+  const _NeutralArrowPainter({required this.arrows});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (arrows.isEmpty) return;
+    final paint = Paint()
+      ..color = AppColors.liveDarkMuted
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    for (final a in arrows) {
+      final from = Offset(a.fromRect.right, a.fromRect.center.dy);
+      final to = Offset(a.toRect.left, a.toRect.center.dy);
+      if ((to - from).distance < 4) continue;
+      final dx = (to.dx - from.dx) * 0.5;
+      final path = Path()..moveTo(from.dx, from.dy);
+      path.cubicTo(from.dx + dx, from.dy, to.dx - dx, to.dy, to.dx, to.dy);
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_NeutralArrowPainter old) => old.arrows != arrows;
 }
 
 // ─── Results ─────────────────────────────────────────────────────────────────
@@ -1763,184 +2687,316 @@ class _ResultsPhase extends StatelessWidget {
   final LiveStudentResultsLoaded state;
   const _ResultsPhase({required this.state});
 
+  static const _green = Color(0xFF22C55E);
+
+  String _fmt(double v) =>
+      v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(1);
+
   @override
   Widget build(BuildContext context) {
     final r = state.results;
     final pct = r.maxScore > 0 ? (r.myScore / r.maxScore * 100).round() : 0;
+    final progress =
+        r.maxScore > 0 ? (r.myScore / r.maxScore).clamp(0.0, 1.0) : 0.0;
+    final wrongCount = r.questionsCount - r.correctCount;
+    final hasReview =
+        state.review != null && state.review!.answers.isNotEmpty;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Score header
-            Container(
-              width: double.infinity,
-              color: AppColors.liveDarkSurface,
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
-              child: Column(
-                children: [
-                  // Rank circle
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.liveAccent, width: 3),
-                      color: AppColors.liveAccent.withValues(alpha: 0.1),
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '#${r.myPosition}',
-                            style: const TextStyle(
-                              color: AppColors.liveAccent,
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800,
-                            ),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Score header ──────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        _ResultPositionCircle(position: r.myPosition),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Квиз завершён',
+                                style: TextStyle(
+                                  color: AppColors.liveDarkMuted,
+                                  fontSize: 12,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${r.myPosition} место из ${r.totalParticipants}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            'из ${r.totalParticipants}',
-                            style: const TextStyle(
-                              color: AppColors.liveDarkMuted,
-                              fontSize: 11,
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _fmt(r.myScore),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 40,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1.0,
+                                    letterSpacing: -1.5,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 5),
+                                  child: Text(
+                                    '/${_fmt(r.maxScore)}',
+                                    style: const TextStyle(
+                                      color: AppColors.liveDarkMuted,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w700,
+                                      height: 1.0,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
+                            Text(
+                              '$pct%',
+                              style: const TextStyle(
+                                color: AppColors.liveDarkMuted,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: Container(
+                        height: 6,
+                        color: AppColors.liveDarkCard,
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: progress,
+                          child: Container(color: AppColors.liveAccent),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _DarkStatCard(
+                            label: 'ПРАВИЛЬНО',
+                            value: '${r.correctCount}',
+                            valueColor: _green,
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _DarkStatCard(
+                            label: 'НЕВЕРНО',
+                            value: '$wrongCount',
+                            valueColor: Colors.redAccent,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _DarkStatCard(
+                            label: 'ВОПРОСОВ',
+                            value: '${r.questionsCount}',
+                            valueColor: Colors.white,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    '$pct%',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 48,
-                      fontWeight: FontWeight.w800,
-                      height: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${r.myScore.toStringAsFixed(0)} / ${r.maxScore.toStringAsFixed(0)} очков',
-                    style: const TextStyle(
-                      color: AppColors.liveDarkMuted,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _StatBadge(
-                        icon: Icons.check_rounded,
-                        color: const Color(0xFF22C55E),
-                        label: '${r.correctCount}',
-                        sublabel: 'верно',
-                      ),
-                      const SizedBox(width: 16),
-                      _StatBadge(
-                        icon: Icons.close_rounded,
-                        color: Colors.redAccent,
-                        label: '${r.questionsCount - r.correctCount}',
-                        sublabel: 'неверно',
-                      ),
-                    ],
-                  ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+              // ── Tabs ─────────────────────────────────────────────────
+              const TabBar(
+                labelColor: Colors.white,
+                unselectedLabelColor: AppColors.liveDarkMuted,
+                indicatorColor: AppColors.liveAccent,
+                dividerColor: AppColors.liveDarkBorder,
+                tabs: [
+                  Tab(text: 'Лидерборд'),
+                  Tab(text: 'Разбор вопросов'),
                 ],
               ),
-            ),
-            // Leaderboard
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-              child: Row(
-                children: [
-                  const Text(
-                    'Таблица лидеров',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _LeaderboardTabContent(top: r.top),
+                    hasReview
+                        ? _ReviewTabContent(review: state.review!)
+                        : const _ReviewEmptyContent(),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                itemCount: r.top.length,
-                itemBuilder: (context, i) {
-                  final row = r.top[i];
-                  return _LeaderboardRow(row: row, isLast: i == r.top.length - 1);
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: () => context.pop(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.liveAccent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+              // ── Done button ───────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                child: SizedBox(
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: () => context.pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.liveAccent,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 0,
                     ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Готово',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
+                    child: const Text(
+                      'Готово',
+                      style:
+                          TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _StatBadge extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String label;
-  final String sublabel;
+// ── Position circle ───────────────────────────────────────────────────────────
 
-  const _StatBadge({
-    required this.icon,
-    required this.color,
+class _ResultPositionCircle extends StatelessWidget {
+  final int position;
+  const _ResultPositionCircle({required this.position});
+
+  static const _gold = Color(0xFFFACC15);
+  static const _silver = Color(0xFF94A3B8);
+  static const _bronze = Color(0xFFFB923C);
+
+  @override
+  Widget build(BuildContext context) {
+    final isTop3 = position >= 1 && position <= 3;
+    final medalColor = [_gold, _silver, _bronze];
+
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isTop3
+            ? medalColor[position - 1]
+            : AppColors.liveDarkSurface,
+        border: isTop3
+            ? null
+            : Border.all(color: AppColors.liveDarkBorder, width: 1.5),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '$position',
+        style: TextStyle(
+          color: isTop3 ? Colors.white : Colors.white70,
+          fontSize: isTop3 ? 20 : 18,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Dark stat card ────────────────────────────────────────────────────────────
+
+class _DarkStatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color valueColor;
+
+  const _DarkStatCard({
     required this.label,
-    required this.sublabel,
+    required this.value,
+    required this.valueColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: AppColors.liveDarkCard,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.liveDarkBorder),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 16),
-          const SizedBox(width: 6),
           Text(
-            '$label $sublabel',
-            style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600),
+            label,
+            style: const TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              color: AppColors.liveDarkMuted,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: valueColor,
+              letterSpacing: -0.3,
+              height: 1.0,
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Leaderboard tab ───────────────────────────────────────────────────────────
+
+class _LeaderboardTabContent extends StatelessWidget {
+  final List<LiveLeaderboardRow> top;
+  const _LeaderboardTabContent({required this.top});
+
+  @override
+  Widget build(BuildContext context) {
+    if (top.isEmpty) {
+      return const Center(
+        child: Text(
+          'Нет данных',
+          style: TextStyle(color: AppColors.liveDarkMuted, fontSize: 14),
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      itemCount: top.length,
+      itemBuilder: (_, i) =>
+          _LeaderboardRow(row: top[i], isLast: i == top.length - 1),
     );
   }
 }
@@ -1951,65 +3007,826 @@ class _LeaderboardRow extends StatelessWidget {
 
   const _LeaderboardRow({required this.row, required this.isLast});
 
+  static const _gold = Color(0xFFFACC15);
+  static const _silver = Color(0xFF94A3B8);
+  static const _bronze = Color(0xFFFB923C);
+
   @override
   Widget build(BuildContext context) {
     final isMe = row.isMe;
-    final isTop3 = row.position <= 3;
-
-    final medalColors = {1: const Color(0xFFFFD700), 2: const Color(0xFFC0C0C0), 3: const Color(0xFFCD7F32)};
+    final isTop3 = row.position >= 1 && row.position <= 3;
+    final medalColors = [_gold, _silver, _bronze];
 
     return Container(
       margin: EdgeInsets.only(bottom: isLast ? 0 : 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: isMe
-            ? AppColors.liveAccent.withValues(alpha: 0.15)
+            ? AppColors.liveAccent.withValues(alpha: 0.12)
             : AppColors.liveDarkCard,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isMe ? AppColors.liveAccent.withValues(alpha: 0.5) : AppColors.liveDarkBorder,
+          color: isMe
+              ? AppColors.liveAccent.withValues(alpha: 0.5)
+              : AppColors.liveDarkBorder,
           width: isMe ? 1.5 : 1,
         ),
       ),
       child: Row(
         children: [
-          SizedBox(
-            width: 28,
-            child: isTop3
-                ? Icon(Icons.emoji_events_rounded,
-                    color: medalColors[row.position]!, size: 20)
-                : Text(
+          isTop3
+              ? Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: medalColors[row.position - 1],
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
                     '${row.position}',
                     style: const TextStyle(
-                        color: AppColors.liveDarkMuted,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600),
-                    textAlign: TextAlign.center,
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-          ),
-          const SizedBox(width: 10),
+                )
+              : SizedBox(
+                  width: 28,
+                  child: Text(
+                    '${row.position}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppColors.liveDarkMuted,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
-              row.name,
+              row.name.isNotEmpty ? row.name : '—',
               style: TextStyle(
                 color: isMe ? Colors.white : Colors.white70,
                 fontSize: 15,
                 fontWeight: isMe ? FontWeight.w700 : FontWeight.w400,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+          if (isMe) ...[
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.liveAccent.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'Я',
+                style: TextStyle(
+                  color: AppColors.liveAccent,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
           Text(
-            row.score.toStringAsFixed(0),
+            row.score.toStringAsFixed(row.score % 1 == 0 ? 0 : 1),
             style: TextStyle(
-              color: isMe ? AppColors.liveAccent : AppColors.liveDarkMuted,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
+              color: isMe ? AppColors.liveAccent : Colors.white70,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
         ],
       ),
     );
   }
+}
+
+// ── Review tab ────────────────────────────────────────────────────────────────
+
+class _ReviewTabContent extends StatelessWidget {
+  final LiveAttemptReview review;
+  const _ReviewTabContent({required this.review});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      itemCount: review.answers.length,
+      itemBuilder: (_, i) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: _LiveQuestionCard(index: i + 1, answer: review.answers[i]),
+      ),
+    );
+  }
+}
+
+class _ReviewEmptyContent extends StatelessWidget {
+  const _ReviewEmptyContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Text(
+        'Разбор недоступен',
+        style: TextStyle(color: AppColors.liveDarkMuted, fontSize: 14),
+      ),
+    );
+  }
+}
+
+class _LiveQuestionCard extends StatelessWidget {
+  final int index;
+  final LiveAnswerReview answer;
+
+  const _LiveQuestionCard({required this.index, required this.answer});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.liveDarkCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.liveDarkBorder),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            color: AppColors.liveDarkSurface,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Row(
+              children: [
+                Text(
+                  'Вопрос $index',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const Spacer(),
+                _ReviewScoreBadge(answer: answer),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  answer.questionText,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildAnswerBlock(),
+                if (answer.finalFeedback != null &&
+                    answer.finalFeedback!.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.liveDarkSurface,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.chat_bubble_outline_rounded,
+                            size: 14, color: AppColors.liveDarkMuted),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            answer.finalFeedback!,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.white70,
+                              fontStyle: FontStyle.italic,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (answer.finalSource != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    _sourceLabel(answer.finalSource!),
+                    style: const TextStyle(
+                        fontSize: 11, color: AppColors.liveDarkMuted),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnswerBlock() {
+    switch (answer.questionType) {
+      case 'single_choice':
+        return _ReviewSingleChoiceBlock(answer: answer);
+      case 'multiple_choice':
+        return _ReviewMultiChoiceBlock(answer: answer);
+      case 'with_given_answer':
+        return _ReviewGivenAnswerBlock(answer: answer);
+      case 'with_free_answer':
+        return _ReviewFreeAnswerBlock(answer: answer);
+      case 'drag':
+        return _ReviewDragBlock(answer: answer);
+      case 'connection':
+        return _ReviewConnectionBlock(answer: answer);
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  String _sourceLabel(String s) {
+    switch (s) {
+      case 'auto':
+        return 'Проверено автоматически';
+      case 'llm':
+        return 'Проверено ИИ';
+      case 'teacher':
+        return 'Проверено учителем';
+      default:
+        return s;
+    }
+  }
+}
+
+class _ReviewScoreBadge extends StatelessWidget {
+  final LiveAnswerReview answer;
+  const _ReviewScoreBadge({required this.answer});
+
+  static const _green = Color(0xFF22C55E);
+
+  @override
+  Widget build(BuildContext context) {
+    final score = answer.finalScore;
+    if (score == null) {
+      return _chip(Icons.remove_rounded, 'Нет ответа',
+          AppColors.liveDarkMuted, AppColors.liveDarkSurface, AppColors.liveDarkBorder);
+    }
+    if (score > 0) {
+      return _chip(Icons.check_rounded, 'Верно', _green,
+          _green.withValues(alpha: 0.12), _green.withValues(alpha: 0.4));
+    }
+    return _chip(Icons.close_rounded, 'Неверно', Colors.redAccent,
+        Colors.redAccent.withValues(alpha: 0.12),
+        Colors.redAccent.withValues(alpha: 0.4));
+  }
+
+  Widget _chip(
+      IconData icon, String label, Color color, Color bg, Color border) {
+    return Container(
+      height: 26,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: color)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewSingleChoiceBlock extends StatelessWidget {
+  final LiveAnswerReview answer;
+  const _ReviewSingleChoiceBlock({required this.answer});
+
+  @override
+  Widget build(BuildContext context) {
+    final picked = answer.answerData['selected_option_id'] as String? ??
+        answer.answerData['option_id'] as String?;
+    final options = answer.options ?? [];
+    if (options.isEmpty) {
+      return const Text('Нет вариантов',
+          style: TextStyle(color: AppColors.liveDarkMuted, fontSize: 14));
+    }
+    return Column(
+      children: options
+          .map((o) => _ReviewChoiceOption(
+                text: o.text,
+                isPicked: o.id == picked,
+                isCorrect: o.isCorrect,
+                isMulti: false,
+              ))
+          .toList(),
+    );
+  }
+}
+
+class _ReviewMultiChoiceBlock extends StatelessWidget {
+  final LiveAnswerReview answer;
+  const _ReviewMultiChoiceBlock({required this.answer});
+
+  @override
+  Widget build(BuildContext context) {
+    final picked = (answer.answerData['selected_option_ids'] as List<dynamic>? ??
+            answer.answerData['option_ids'] as List<dynamic>? ??
+            [])
+        .map((e) => e.toString())
+        .toSet();
+    final options = answer.options ?? [];
+    if (options.isEmpty) {
+      return Text('Выбрано: ${picked.length}',
+          style:
+              const TextStyle(color: AppColors.liveDarkMuted, fontSize: 14));
+    }
+    return Column(
+      children: options
+          .map((o) => _ReviewChoiceOption(
+                text: o.text,
+                isPicked: picked.contains(o.id),
+                isCorrect: o.isCorrect,
+                isMulti: true,
+              ))
+          .toList(),
+    );
+  }
+}
+
+class _ReviewChoiceOption extends StatelessWidget {
+  final String text;
+  final bool isPicked;
+  final bool isCorrect;
+  final bool isMulti;
+
+  const _ReviewChoiceOption({
+    required this.text,
+    required this.isPicked,
+    required this.isCorrect,
+    required this.isMulti,
+  });
+
+  static const _green = Color(0xFF22C55E);
+
+  @override
+  Widget build(BuildContext context) {
+    final Color borderColor;
+    final Color bgColor;
+    if (isCorrect) {
+      borderColor = _green;
+      bgColor = AppColors.liveDarkSurface;
+    } else if (isPicked) {
+      borderColor = Colors.redAccent;
+      bgColor = AppColors.liveDarkSurface;
+    } else {
+      borderColor = AppColors.liveDarkBorder;
+      bgColor = AppColors.liveDarkCard;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          _LockedChoiceIndicator(
+              isCorrect: isCorrect, isMulti: isMulti, isSelected: isPicked),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 15,
+                color: isCorrect ? Colors.white : Colors.white70,
+                fontWeight:
+                    isCorrect ? FontWeight.w600 : FontWeight.w400,
+                height: 1.4,
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewGivenAnswerBlock extends StatelessWidget {
+  final LiveAnswerReview answer;
+  const _ReviewGivenAnswerBlock({required this.answer});
+
+  static const _green = Color(0xFF22C55E);
+
+  @override
+  Widget build(BuildContext context) {
+    final myText = answer.answerData['text']?.toString() ?? '';
+    final correctAnswers =
+        (answer.metadata?['correct_answers'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        [];
+    final isCorrect = answer.finalScore != null && answer.finalScore! > 0;
+    final hasText = myText.isNotEmpty;
+    final borderColor = !hasText
+        ? AppColors.liveDarkBorder
+        : isCorrect
+            ? _green
+            : Colors.redAccent;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.liveDarkSurface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: borderColor, width: 1.5),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                !hasText
+                    ? Icons.remove_circle_outline
+                    : isCorrect
+                        ? Icons.check_circle_rounded
+                        : Icons.cancel_rounded,
+                color: !hasText
+                    ? AppColors.liveDarkMuted
+                    : isCorrect
+                        ? _green
+                        : Colors.redAccent,
+                size: 18,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  hasText ? myText : 'Нет ответа',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: hasText ? Colors.white : AppColors.liveDarkMuted,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (!isCorrect && correctAnswers.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: _green.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _green.withValues(alpha: 0.35)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.lightbulb_outline,
+                    color: _green, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Правильный ответ: ${correctAnswers.join(', ')}',
+                    style: const TextStyle(
+                      color: _green,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ReviewFreeAnswerBlock extends StatelessWidget {
+  final LiveAnswerReview answer;
+  const _ReviewFreeAnswerBlock({required this.answer});
+
+  @override
+  Widget build(BuildContext context) {
+    final text = answer.answerData['text']?.toString() ?? '';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.liveDarkSurface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.liveDarkBorder),
+      ),
+      child: Text(
+        text.isEmpty ? 'Нет ответа' : text,
+        style: TextStyle(
+          fontSize: 15,
+          color: text.isEmpty ? AppColors.liveDarkMuted : Colors.white70,
+          height: 1.4,
+        ),
+      ),
+    );
+  }
+}
+
+class _ReviewDragBlock extends StatelessWidget {
+  final LiveAnswerReview answer;
+  const _ReviewDragBlock({required this.answer});
+
+  static const _green = Color(0xFF22C55E);
+
+  @override
+  Widget build(BuildContext context) {
+    final myOrder = (answer.answerData['order'] as List<dynamic>? ?? [])
+        .map((e) => e.toString())
+        .toList();
+    final correctOrder =
+        (answer.metadata?['correct_order'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList();
+
+    if (myOrder.isEmpty) {
+      return const Text('Нет ответа',
+          style: TextStyle(color: AppColors.liveDarkMuted, fontSize: 14));
+    }
+
+    final isFullyCorrect =
+        answer.finalScore != null && answer.finalScore! > 0;
+    final showCorrect = !isFullyCorrect &&
+        correctOrder != null &&
+        correctOrder.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.liveDarkCard,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.liveDarkBorder),
+          ),
+          child: Column(
+            children: myOrder.asMap().entries.map((e) {
+              final i = e.key;
+              final item = e.value;
+              final isLast = i == myOrder.length - 1;
+              final isItemCorrect = correctOrder != null
+                  ? (i < correctOrder.length && correctOrder[i] == item)
+                  : null;
+              final numBg = isItemCorrect == null
+                  ? AppColors.liveDarkSurface
+                  : isItemCorrect
+                      ? _green.withValues(alpha: 0.15)
+                      : Colors.redAccent.withValues(alpha: 0.15);
+              final numColor = isItemCorrect == null
+                  ? AppColors.liveDarkMuted
+                  : isItemCorrect
+                      ? _green
+                      : Colors.redAccent;
+
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  border: isLast
+                      ? null
+                      : const Border(
+                          bottom: BorderSide(
+                              color: AppColors.liveDarkBorder, width: 1)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: numBg,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '${i + 1}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: numColor,
+                          fontFeatures: const [
+                            FontFeature.tabularFigures()
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(item,
+                          style: const TextStyle(
+                              fontSize: 15, color: Colors.white)),
+                    ),
+                    if (isItemCorrect != null) ...[
+                      const SizedBox(width: 8),
+                      Icon(
+                        isItemCorrect
+                            ? Icons.check_rounded
+                            : Icons.close_rounded,
+                        size: 16,
+                        color: isItemCorrect ? _green : Colors.redAccent,
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        if (showCorrect) ...[
+          const SizedBox(height: 10),
+          const Text(
+            'Правильный порядок:',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.liveDarkMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _LockedDragResult(
+            correctAnswer:
+                LiveCorrectAnswer({'correct_order': correctOrder}),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ReviewConnectionBlock extends StatelessWidget {
+  final LiveAnswerReview answer;
+  const _ReviewConnectionBlock({required this.answer});
+
+  static const _green = Color(0xFF22C55E);
+
+  @override
+  Widget build(BuildContext context) {
+    final rawPairs =
+        answer.answerData['pairs'] as Map<String, dynamic>? ?? const {};
+    final myPairs = rawPairs.map((k, v) => MapEntry(k, v.toString()));
+    final rawCorrect =
+        answer.metadata?['correct_pairs'] as Map<String, dynamic>? ??
+            const {};
+    final correctPairs =
+        rawCorrect.map((k, v) => MapEntry(k, v.toString()));
+
+    if (myPairs.isEmpty) {
+      return const Text('Нет ответа',
+          style: TextStyle(color: AppColors.liveDarkMuted, fontSize: 14));
+    }
+
+    final allCorrect = correctPairs.isEmpty ||
+        myPairs.entries.every((e) => correctPairs[e.key] == e.value);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.liveDarkCard,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.liveDarkBorder),
+          ),
+          child: Column(
+            children: myPairs.entries.toList().asMap().entries.map((e) {
+              final i = e.key;
+              final entry = e.value;
+              final isLast = i == myPairs.length - 1;
+              final isPairCorrect = correctPairs.isEmpty ||
+                  correctPairs[entry.key] == entry.value;
+
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  border: isLast
+                      ? null
+                      : const Border(
+                          bottom: BorderSide(
+                              color: AppColors.liveDarkBorder, width: 1)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        entry.key,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isPairCorrect
+                              ? Colors.white
+                              : Colors.white70,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 10),
+                      child: Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 16,
+                        color: isPairCorrect ? _green : Colors.redAccent,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        entry.value,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isPairCorrect
+                              ? Colors.white
+                              : Colors.white70,
+                          fontWeight: isPairCorrect
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      isPairCorrect
+                          ? Icons.check_rounded
+                          : Icons.close_rounded,
+                      size: 16,
+                      color: isPairCorrect ? _green : Colors.redAccent,
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        if (!allCorrect && correctPairs.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          const Text(
+            'Правильные пары:',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.liveDarkMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _LockedConnectionResult(
+            correctAnswer:
+                LiveCorrectAnswer({'correct_pairs': correctPairs}),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+String _initials(String name) {
+  final parts = name.trim().split(RegExp(r'\s+'));
+  if (parts.length >= 2) {
+    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+  }
+  return name.isNotEmpty ? name[0].toUpperCase() : '?';
 }
 
 // ─── Kicked ──────────────────────────────────────────────────────────────────

@@ -71,6 +71,8 @@ class LiveStudentQuestionLocked extends LiveStudentState {
   final LiveCorrectAnswer correctAnswer;
   final LiveQuestionStats stats;
   final LiveStudentResult? myResult;
+  final List<String>? wordCloud;
+  final Map<String, dynamic>? myAnswer;
 
   LiveStudentQuestionLocked({
     required this.question,
@@ -79,6 +81,8 @@ class LiveStudentQuestionLocked extends LiveStudentState {
     required this.correctAnswer,
     required this.stats,
     this.myResult,
+    this.wordCloud,
+    this.myAnswer,
   });
 }
 
@@ -88,7 +92,8 @@ class LiveStudentResultsLoading extends LiveStudentState {}
 
 class LiveStudentResultsLoaded extends LiveStudentState {
   final LiveResultsStudent results;
-  LiveStudentResultsLoaded(this.results);
+  final LiveAttemptReview? review;
+  LiveStudentResultsLoaded(this.results, {this.review});
 }
 
 class LiveStudentKicked extends LiveStudentState {}

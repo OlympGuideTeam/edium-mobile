@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:edium/domain/entities/live_question.dart';
+import 'package:edium/domain/entities/live_results.dart';
 import 'package:edium/domain/entities/live_session.dart';
 import 'package:edium/domain/entities/live_ws_event.dart';
 import 'package:edium/domain/repositories/live_repository.dart';
@@ -15,6 +16,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
   final LiveWsService _ws;
 
   String? _sessionId;
+  String? _attemptId;
   String _quizTitle = '';
   int _questionCount = 0;
   int? _classmatesTotal;
@@ -24,6 +26,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
   LiveQuestion? _currentQuestion;
   int _questionIndex = 0;
   int _questionTotal = 0;
+  Map<String, dynamic>? _myLastAnswer;
 
   StreamSubscription<LiveWsEvent>? _wsSub;
 
@@ -45,6 +48,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
     Emitter<LiveStudentState> emit,
   ) async {
     _sessionId = event.sessionId;
+    _attemptId = event.attemptId;
     _quizTitle = event.quizTitle;
     _questionCount = event.questionCount;
     _classmatesTotal = null;
@@ -159,6 +163,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
         ):
         _currentQuestion = question;
         _questionIndex = questionIndex;
+        _myLastAnswer = null;
         emit(LiveStudentQuestionActive(
           question: question,
           questionIndex: questionIndex,
@@ -171,6 +176,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
           :final correctAnswer,
           :final stats,
           :final myResult,
+          :final wordCloud,
         ):
         if (_currentQuestion != null) {
           emit(LiveStudentQuestionLocked(
@@ -180,6 +186,8 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
             correctAnswer: correctAnswer,
             stats: stats,
             myResult: myResult,
+            wordCloud: wordCloud,
+            myAnswer: _myLastAnswer,
           ));
         }
 
@@ -245,6 +253,8 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
             correctAnswer: locked.correctAnswer,
             stats: locked.stats,
             myResult: locked.myResult,
+            wordCloud: locked.wordCloud,
+            myAnswer: _myLastAnswer,
           ));
         }
 
@@ -257,6 +267,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
     LiveStudentSubmitAnswer event,
     Emitter<LiveStudentState> emit,
   ) async {
+    _myLastAnswer = event.answerData;
     _ws.send({
       'type': 'student.submit_answer',
       'data': {
@@ -276,11 +287,42 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
     Emitter<LiveStudentState> emit,
   ) async {
     final sid = _sessionId;
-    if (sid == null) return;
+    final aid = _attemptId;
+    if (sid == null || aid == null) return;
     emit(LiveStudentResultsLoading());
     try {
-      final results = await _repo.getLiveResultsStudent(sid);
-      emit(LiveStudentResultsLoaded(results));
+      final resultsF = _repo.getLiveResultsStudent(sid, aid);
+      final reviewF = _repo.getAttemptReview(aid);
+
+      final raw = await resultsF;
+      final resolvedTop = raw.top
+          .map((row) => LiveLeaderboardRow(
+                position: row.position,
+                attemptId: row.attemptId,
+                userId: row.userId,
+                name: _resolveName(row.userId, row.name),
+                score: row.score,
+                isMe: row.isMe,
+              ))
+          .toList();
+      final resolved = LiveResultsStudent(
+        myPosition: raw.myPosition,
+        totalParticipants: raw.totalParticipants,
+        myScore: raw.myScore,
+        maxScore: raw.maxScore,
+        correctCount: raw.correctCount,
+        questionsCount: raw.questionsCount,
+        top: resolvedTop,
+      );
+
+      LiveAttemptReview? review;
+      try {
+        review = await reviewF;
+      } catch (e) {
+        debugPrint('[LiveStudentBloc] review load failed: $e');
+      }
+
+      emit(LiveStudentResultsLoaded(resolved, review: review));
     } catch (e) {
       emit(LiveStudentError(e.toString()));
     }

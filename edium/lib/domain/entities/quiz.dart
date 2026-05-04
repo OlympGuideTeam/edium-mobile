@@ -78,6 +78,9 @@ class Quiz {
   /// Опубликован ли шаблон «для всех». После публикации редактирование недоступно.
   final bool isPublic;
 
+  /// Требует ли квиз ручной проверки (свободные ответы). false → можно создать лайв.
+  final bool needEvaluation;
+
   const Quiz({
     required this.id,
     required this.title,
@@ -93,6 +96,7 @@ class Quiz {
     required this.createdAt,
     this.listedQuestionCount,
     this.isPublic = false,
+    this.needEvaluation = false,
   });
 
   int get questionsCount => listedQuestionCount ?? questions.length;
@@ -113,6 +117,7 @@ class Quiz {
     DateTime? createdAt,
     int? listedQuestionCount,
     bool? isPublic,
+    bool? needEvaluation,
   }) {
     return Quiz(
       id: id ?? this.id,
@@ -129,6 +134,7 @@ class Quiz {
       createdAt: createdAt ?? this.createdAt,
       listedQuestionCount: listedQuestionCount ?? this.listedQuestionCount,
       isPublic: isPublic ?? this.isPublic,
+      needEvaluation: needEvaluation ?? this.needEvaluation,
     );
   }
 }
