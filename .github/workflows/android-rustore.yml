@@ -56,7 +56,7 @@ jobs:
       # ── Сборка ───────────────────────────────────────────────
       - name: Build APK
         working-directory: edium
-        run: flutter build apk --release --build-number ${{ github.run_number }}
+        run: flutter build apk --release --build-number ${{ github.run_number }} --dart-define=ENVIRONMENT=prod
 
       # (рекомендую AAB, но RuStore принимает APK тоже)
       # flutter build appbundle

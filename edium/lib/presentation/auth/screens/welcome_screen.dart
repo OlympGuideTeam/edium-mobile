@@ -223,12 +223,14 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   ),
                 ],
                 const SizedBox(height: 24),
-                _EnvSwitcher(
-                  current: ApiConfig.environment,
-                  switching: _switching,
-                  onSelect: _switchEnv,
-                ),
-                const SizedBox(height: 16),
+                if (!ApiConfig.isStoreBuild) ...[
+                  _EnvSwitcher(
+                    current: ApiConfig.environment,
+                    switching: _switching,
+                    onSelect: _switchEnv,
+                  ),
+                  const SizedBox(height: 16),
+                ],
               ],
             ),
           ),
