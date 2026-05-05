@@ -8,6 +8,7 @@ import 'package:edium/domain/entities/user_statistic.dart';
 import 'package:edium/presentation/profile/bloc/profile_bloc.dart';
 import 'package:edium/presentation/profile/bloc/profile_event.dart';
 import 'package:edium/presentation/profile/bloc/profile_state.dart';
+import 'package:edium/presentation/shared/widgets/edium_refresh_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -51,7 +52,8 @@ class _ProfileView extends StatelessWidget {
                 children: [
                   Text(
                     state.message,
-                    style: const TextStyle(fontSize: 15, color: AppColors.mono400),
+                    style:
+                        const TextStyle(fontSize: 15, color: AppColors.mono400),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
@@ -97,68 +99,84 @@ class _ProfileContent extends StatelessWidget {
     final roleLabel = isTeacher ? 'Учитель' : 'Ученик';
 
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: AppDimens.screenPaddingH),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 32),
-            // Тег
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.mono900,
-                borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+      child: EdiumRefreshIndicator(
+        onRefresh: () async {
+          final bloc = context.read<ProfileBloc>();
+          bloc.add(const LoadProfileEvent());
+          await bloc.stream.firstWhere(
+              (s) => s is ProfileLoaded || s is ProfileError);
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding:
+              const EdgeInsets.symmetric(horizontal: AppDimens.screenPaddingH),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 32),
+              // Тег
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.mono900,
+                  borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+                ),
+                child: Text(roleLabel.toUpperCase(),
+                    style: AppTextStyles.badgeText),
               ),
-              child: Text(roleLabel.toUpperCase(), style: AppTextStyles.badgeText),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              [user.surname, user.name].whereType<String>().where((s) => s.isNotEmpty).join(' '),
-              style: AppTextStyles.screenTitle,
-            ),
-            const SizedBox(height: 32),
-            // Статистика
-            isTeacher
-                ? _TeacherStats(statistic: statistic)
-                : _StudentStats(statistic: statistic),
-            const SizedBox(height: 24),
-            // Действия
-            _ActionTile(
-              icon: Icons.edit_outlined,
-              label: 'Редактировать профиль',
-              onTap: () async {
-                final result = await context.push('/profile/edit', extra: user);
-                if (result == true && context.mounted) {
-                  context.read<ProfileBloc>().add(const LoadProfileEvent());
-                }
-              },
-            ),
-            const SizedBox(height: 8),
-            _ActionTile(
-              icon: Icons.notifications_outlined,
-              label: 'Уведомления',
-              onTap: () => context.push('/profile/notifications'),
-            ),
-            const SizedBox(height: 8),
-            _ActionTile(
-              icon: Icons.swap_horiz_outlined,
-              label: isTeacher
-                  ? 'Переключиться на ученика'
-                  : 'Переключиться на учителя',
-              onTap: () {
-                final storage = getIt<ProfileStorage>();
-                if (isTeacher) {
-                  storage.saveRole('student');
-                  context.go('/student/home');
-                } else {
-                  storage.saveRole('teacher');
-                  context.go('/teacher/home');
-                }
-              },
-            ),
-            const SizedBox(height: 32),
-          ],
+              const SizedBox(height: 12),
+              Text(
+                [user.surname, user.name]
+                    .whereType<String>()
+                    .where((s) => s.isNotEmpty)
+                    .join(' '),
+                style: AppTextStyles.screenTitle,
+              ),
+              const SizedBox(height: 32),
+              // Статистика
+              isTeacher
+                  ? _TeacherStats(statistic: statistic)
+                  : _StudentStats(statistic: statistic),
+              const SizedBox(height: 24),
+              // Действия
+              _ActionTile(
+                icon: Icons.edit_outlined,
+                label: 'Редактировать профиль',
+                onTap: () async {
+                  final result =
+                      await context.push('/profile/edit', extra: user);
+                  if (result == true && context.mounted) {
+                    context.read<ProfileBloc>().add(const LoadProfileEvent());
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+              _ActionTile(
+                icon: Icons.notifications_outlined,
+                label: 'Уведомления',
+                onTap: () => context.push('/profile/notifications'),
+              ),
+              const SizedBox(height: 8),
+              _ActionTile(
+                icon: Icons.swap_horiz_outlined,
+                label: isTeacher
+                    ? 'Переключиться на ученика'
+                    : 'Переключиться на учителя',
+                onTap: () {
+                  final storage = getIt<ProfileStorage>();
+                  if (isTeacher) {
+                    storage.saveRole('student');
+                    context.go('/student/home');
+                  } else {
+                    storage.saveRole('teacher');
+                    context.go('/teacher/home');
+                  }
+                },
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );
@@ -257,7 +275,8 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-        border: Border.all(color: AppColors.mono150, width: AppDimens.borderWidth),
+        border:
+            Border.all(color: AppColors.mono150, width: AppDimens.borderWidth),
       ),
       child: Column(
         children: [

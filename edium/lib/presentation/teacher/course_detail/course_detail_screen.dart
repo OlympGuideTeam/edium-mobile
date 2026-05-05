@@ -14,6 +14,7 @@ import 'package:edium/domain/entities/course_detail.dart';
 import 'package:edium/domain/entities/quiz.dart';
 import 'package:edium/domain/repositories/quiz_repository.dart';
 import 'package:edium/presentation/shared/widgets/edium_notification.dart';
+import 'package:edium/presentation/shared/widgets/edium_refresh_indicator.dart';
 import 'package:edium/presentation/teacher/course_detail/bloc/course_detail_bloc.dart';
 import 'package:edium/presentation/teacher/course_detail/bloc/course_detail_event.dart';
 import 'package:edium/presentation/teacher/course_detail/bloc/course_detail_state.dart';
@@ -256,7 +257,8 @@ class _CourseDetailBody extends StatelessWidget {
   }
 
   Widget _modulesContent(BuildContext context) {
-    if (course.modules.isEmpty && (!course.isTeacher || course.drafts.isEmpty)) {
+    if (course.modules.isEmpty &&
+        (!course.isTeacher || course.drafts.isEmpty)) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -285,6 +287,11 @@ class _CourseDetailBody extends StatelessWidget {
       onDraftTap: (draft) => _openCreateQuizFromDraft(context, draft),
       onDraftDelete: (draft) => bloc.add(DeleteDraftEvent(draft.id)),
       onModulesReorder: (ids) => bloc.add(ReorderModulesEvent(ids)),
+      onRefresh: () async {
+        bloc.add(SilentReloadCourseDetailEvent(course.id));
+        await bloc.stream.firstWhere(
+            (s) => s is CourseDetailLoaded || s is CourseDetailError);
+      },
     );
   }
 
@@ -683,10 +690,10 @@ class _CourseDetailBody extends StatelessWidget {
   }
 
   static String _quizModeString(QuizCreationMode mode) => switch (mode) {
-    QuizCreationMode.live => 'live',
-    QuizCreationMode.test => 'test',
-    QuizCreationMode.template => 'test',
-  };
+        QuizCreationMode.live => 'live',
+        QuizCreationMode.test => 'test',
+        QuizCreationMode.template => 'test',
+      };
 
   // ─── Локализация ────────────────────────────────────────────────────────
 
@@ -865,8 +872,7 @@ class _TemplatePickerContentState extends State<_TemplatePickerContent> {
               controller: _searchController,
               cursorColor: AppColors.mono900,
               style: AppTextStyles.fieldText,
-              onChanged: (v) =>
-                  context.read<TemplateSearchCubit>().search(v),
+              onChanged: (v) => context.read<TemplateSearchCubit>().search(v),
               decoration: InputDecoration(
                 hintText: 'Поиск шаблонов…',
                 hintStyle: AppTextStyles.fieldHint,
@@ -931,8 +937,7 @@ class _TemplatePickerContentState extends State<_TemplatePickerContent> {
                 );
               }
 
-              final quizzes =
-                  (state as TemplateSearchLoaded).quizzes;
+              final quizzes = (state as TemplateSearchLoaded).quizzes;
               final query = _searchController.text;
 
               if (quizzes.isEmpty) {
@@ -1091,12 +1096,14 @@ class _CourseContentList extends StatelessWidget {
   final void Function(CourseDraft draft) onDraftTap;
   final void Function(CourseDraft draft) onDraftDelete;
   final void Function(List<String> moduleIds) onModulesReorder;
+  final RefreshCallback? onRefresh;
 
   const _CourseContentList({
     required this.course,
     required this.onDraftTap,
     required this.onDraftDelete,
     required this.onModulesReorder,
+    this.onRefresh,
   });
 
   @override
@@ -1105,7 +1112,7 @@ class _CourseContentList extends StatelessWidget {
     final drafts = course.drafts;
     final canReorder = course.isTeacher && modules.length > 1;
 
-    return CustomScrollView(
+    final scrollView = CustomScrollView(
       slivers: [
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(
@@ -1200,6 +1207,10 @@ class _CourseContentList extends StatelessWidget {
           ),
       ],
     );
+    if (onRefresh != null) {
+      return EdiumRefreshIndicator(onRefresh: onRefresh!, child: scrollView);
+    }
+    return scrollView;
   }
 }
 
@@ -1480,9 +1491,14 @@ class _ModuleSectionState extends State<_ModuleSection>
                                               final now = DateTime.now();
                                               final p = item.payload;
                                               final isActive = p != null &&
-                                                  !(p.finishedAt != null && now.isAfter(p.finishedAt!)) &&
-                                                  (p.startedAt == null || !now.isBefore(p.startedAt!));
-                                              if (isActive && widget.classId != null) {
+                                                  !(p.finishedAt != null &&
+                                                      now.isAfter(
+                                                          p.finishedAt!)) &&
+                                                  (p.startedAt == null ||
+                                                      !now.isBefore(
+                                                          p.startedAt!));
+                                              if (isActive &&
+                                                  widget.classId != null) {
                                                 context.push(
                                                   '/test/${item.refId}/monitor',
                                                   extra: {
@@ -1639,8 +1655,8 @@ class _QuizItemTile extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 7, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                   decoration: BoxDecoration(
                     color: item.quizType == 'live'
                         ? AppColors.mono900
@@ -1665,8 +1681,8 @@ class _QuizItemTile extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(top: 2),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 7, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
                       color: AppColors.mono900,
                       borderRadius: BorderRadius.circular(AppDimens.radiusXs),
@@ -1774,8 +1790,8 @@ class _TrailingBadge extends StatelessWidget {
 
     final label = switch (sessionState) {
       'in_progress' => 'Идёт',
-      'waiting'     => 'Ожидает',
-      'completed'   => 'Завершён',
+      'waiting' => 'Ожидает',
+      'completed' => 'Завершён',
       _ => 'Не начат',
     };
     return Text(
@@ -1790,8 +1806,20 @@ class _TrailingBadge extends StatelessWidget {
   String _buildMeta(CourseItemPayload? p) {
     if (p == null) return '';
     final parts = <String>[];
-    const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн',
-                    'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+    const months = [
+      'янв',
+      'фев',
+      'мар',
+      'апр',
+      'май',
+      'июн',
+      'июл',
+      'авг',
+      'сен',
+      'окт',
+      'ноя',
+      'дек'
+    ];
 
     if (p.startedAt != null) {
       final d = p.startedAt!.toLocal();
@@ -1973,8 +2001,20 @@ class _DraftTile extends StatelessWidget {
   String _buildMeta(CourseItemPayload? p) {
     if (p == null) return '';
     final parts = <String>[];
-    const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн',
-                    'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+    const months = [
+      'янв',
+      'фев',
+      'мар',
+      'апр',
+      'май',
+      'июн',
+      'июл',
+      'авг',
+      'сен',
+      'окт',
+      'ноя',
+      'дек'
+    ];
 
     if (p.startedAt != null) {
       final d = p.startedAt!.toLocal();
@@ -2027,7 +2067,8 @@ class _CourseSheetTabState extends State<_CourseSheetTab> {
     return index;
   }
 
-  Future<void> _export(CourseSheet sheet, Map<String, String> titleIndex) async {
+  Future<void> _export(
+      CourseSheet sheet, Map<String, String> titleIndex) async {
     setState(() => _exporting = true);
     try {
       await _exportToXlsx(
@@ -2055,7 +2096,8 @@ class _CourseSheetTabState extends State<_CourseSheetTab> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-            child: CircularProgressIndicator(color: AppColors.mono900, strokeWidth: 2),
+            child: CircularProgressIndicator(
+                color: AppColors.mono900, strokeWidth: 2),
           );
         }
         if (snapshot.hasError) {
@@ -2070,8 +2112,8 @@ class _CourseSheetTabState extends State<_CourseSheetTab> {
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: () => setState(() {
-                    _future =
-                        getIt<GetCourseSheetUsecase>()(courseId: widget.courseId);
+                    _future = getIt<GetCourseSheetUsecase>()(
+                        courseId: widget.courseId);
                   }),
                   child: const Text('Повторить',
                       style: TextStyle(color: AppColors.mono900)),
@@ -2097,16 +2139,18 @@ class _CourseSheetTabState extends State<_CourseSheetTab> {
             // ── Тулбар ──
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                AppDimens.screenPaddingH, 6, AppDimens.screenPaddingH, 2),
+                  AppDimens.screenPaddingH, 6, AppDimens.screenPaddingH, 2),
               child: Row(
                 children: [
                   Text(
                     '${sheet.rows.length} учеников · ${sheet.columns.length} квизов',
-                    style: const TextStyle(fontSize: 12, color: AppColors.mono400),
+                    style:
+                        const TextStyle(fontSize: 12, color: AppColors.mono400),
                   ),
                   const Spacer(),
                   TextButton.icon(
-                    onPressed: _exporting ? null : () => _export(sheet, titleIndex),
+                    onPressed:
+                        _exporting ? null : () => _export(sheet, titleIndex),
                     icon: _exporting
                         ? const SizedBox(
                             width: 14,
@@ -2152,9 +2196,8 @@ Future<void> _exportToXlsx({
     'Средний балл',
   ];
   for (var i = 0; i < headers.length; i++) {
-    sh
-        .cell(xl.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
-        .value = xl.TextCellValue(headers[i]);
+    sh.cell(xl.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0)).value =
+        xl.TextCellValue(headers[i]);
   }
 
   // Data rows
@@ -2174,10 +2217,10 @@ Future<void> _exportToXlsx({
           score != null ? xl.DoubleCellValue(score) : xl.TextCellValue('—');
     }
 
-    final passed = row.scores.where((s) => s.score != null).map((s) => s.score!).toList();
-    final avg = passed.isEmpty
-        ? null
-        : passed.reduce((a, b) => a + b) / passed.length;
+    final passed =
+        row.scores.where((s) => s.score != null).map((s) => s.score!).toList();
+    final avg =
+        passed.isEmpty ? null : passed.reduce((a, b) => a + b) / passed.length;
     sh
         .cell(xl.CellIndex.indexByColumnRow(
             columnIndex: sheet.columns.length + 1, rowIndex: ri + 1))
@@ -2327,8 +2370,7 @@ class _SheetTableState extends State<_SheetTable> {
                                 onTap: () => _showDetails(
                                   context,
                                   studentName: row.studentName,
-                                  quizTitle:
-                                      widget.titleIndex[col.id] ?? '—',
+                                  quizTitle: widget.titleIndex[col.id] ?? '—',
                                   score: score,
                                 ),
                               );
@@ -2549,8 +2591,8 @@ class _SheetTableState extends State<_SheetTable> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
                     color: chipBg,
                     borderRadius: BorderRadius.circular(12),

@@ -7,6 +7,7 @@ import 'package:edium/domain/entities/class_summary.dart';
 import 'package:edium/domain/entities/course_detail.dart';
 import 'package:edium/domain/usecases/class/get_class_detail_usecase.dart';
 import 'package:edium/domain/usecases/class/get_my_classes_usecase.dart';
+import 'package:edium/presentation/shared/widgets/edium_refresh_indicator.dart';
 import 'package:edium/domain/usecases/course/get_course_detail_usecase.dart';
 import 'package:edium/domain/repositories/quiz_repository.dart';
 import 'package:edium/domain/usecases/quiz/create_session_usecase.dart';
@@ -66,7 +67,8 @@ class _CoursesScreenState extends State<CoursesScreen> {
       return;
     }
     setState(() => _expandedClasses.add(classId));
-    if (_classDetails.containsKey(classId) || _loadingClasses.contains(classId)) return;
+    if (_classDetails.containsKey(classId) || _loadingClasses.contains(classId))
+      return;
     setState(() => _loadingClasses.add(classId));
     try {
       final detail = await getIt<GetClassDetailUsecase>()(classId: classId);
@@ -87,7 +89,8 @@ class _CoursesScreenState extends State<CoursesScreen> {
       return;
     }
     setState(() => _expandedCourses.add(courseId));
-    if (_courseDetails.containsKey(courseId) || _loadingCourses.contains(courseId)) return;
+    if (_courseDetails.containsKey(courseId) ||
+        _loadingCourses.contains(courseId)) return;
     setState(() => _loadingCourses.add(courseId));
     try {
       final detail = await getIt<GetCourseDetailUsecase>()(courseId: courseId);
@@ -135,15 +138,14 @@ class _CoursesScreenState extends State<CoursesScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppColors.mono900,
-                      borderRadius:
-                          BorderRadius.circular(AppDimens.radiusXs),
+                      borderRadius: BorderRadius.circular(AppDimens.radiusXs),
                     ),
-                    child: const Text('УЧИТЕЛЬ',
-                        style: AppTextStyles.badgeText),
+                    child:
+                        const Text('УЧИТЕЛЬ', style: AppTextStyles.badgeText),
                   ),
                   const SizedBox(height: 12),
                   const Text('Курсы', style: AppTextStyles.screenTitle),
@@ -179,11 +181,15 @@ class _CoursesScreenState extends State<CoursesScreen> {
             const SizedBox(height: 16),
             GestureDetector(
               onTap: () {
-                setState(() { _isLoading = true; _error = null; });
+                setState(() {
+                  _isLoading = true;
+                  _error = null;
+                });
                 _loadClasses();
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 decoration: BoxDecoration(
                   color: AppColors.mono900,
                   borderRadius: BorderRadius.circular(AppDimens.radiusMd),
@@ -198,37 +204,50 @@ class _CoursesScreenState extends State<CoursesScreen> {
       );
     }
 
+    Future<void> onRefresh() async {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+        _classDetails.clear();
+        _courseDetails.clear();
+        _expandedClasses.clear();
+        _expandedCourses.clear();
+      });
+      await _loadClasses();
+    }
+
     if (_classes.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      return EdiumRefreshIndicator(
+        onRefresh: onRefresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            const Icon(Icons.school_outlined, size: 48, color: AppColors.mono200),
-            const SizedBox(height: 12),
-            Text('Классов пока нет',
-                style: AppTextStyles.fieldText
-                    .copyWith(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 4),
-            const Text('Создайте класс на вкладке «Классы»',
-                style: AppTextStyles.screenSubtitle),
+            SizedBox(
+              height: 320,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.school_outlined,
+                        size: 48, color: AppColors.mono200),
+                    const SizedBox(height: 12),
+                    Text('Классов пока нет',
+                        style: AppTextStyles.fieldText
+                            .copyWith(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    const Text('Создайте класс на вкладке «Классы»',
+                        style: AppTextStyles.screenSubtitle),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       );
     }
 
-    return RefreshIndicator(
-      color: AppColors.mono900,
-      onRefresh: () async {
-        setState(() {
-          _isLoading = true;
-          _error = null;
-          _classDetails.clear();
-          _courseDetails.clear();
-          _expandedClasses.clear();
-          _expandedCourses.clear();
-        });
-        await _loadClasses();
-      },
+    return EdiumRefreshIndicator(
+      onRefresh: onRefresh,
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(
             AppDimens.screenPaddingH, 0, AppDimens.screenPaddingH, 32),
@@ -291,8 +310,8 @@ class _ClassSection extends StatelessWidget {
         ),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(
-            AppDimens.radiusLg - AppDimens.borderWidth),
+        borderRadius:
+            BorderRadius.circular(AppDimens.radiusLg - AppDimens.borderWidth),
         child: Column(
           children: [
             // Class header
@@ -302,8 +321,8 @@ class _ClassSection extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 color: isExpanded ? AppColors.mono900 : Colors.white,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                 child: Row(
                   children: [
                     Expanded(
@@ -315,9 +334,8 @@ class _ClassSection extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
-                              color: isExpanded
-                                  ? Colors.white
-                                  : AppColors.mono900,
+                              color:
+                                  isExpanded ? Colors.white : AppColors.mono900,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -382,8 +400,7 @@ class _ClassSection extends StatelessWidget {
                                   course: course,
                                   isExpanded:
                                       expandedCourses.contains(course.id),
-                                  isLoading:
-                                      loadingCourses.contains(course.id),
+                                  isLoading: loadingCourses.contains(course.id),
                                   detail: courseDetails[course.id],
                                   onToggle: () => onToggleCourse(course.id),
                                   onAddQuiz: onAddQuiz,
@@ -589,8 +606,8 @@ class _ModuleSection extends StatelessWidget {
                         color: AppColors.mono900,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.add,
-                          size: 16, color: Colors.white),
+                      child:
+                          const Icon(Icons.add, size: 16, color: Colors.white),
                     ),
                   ),
                 ],
