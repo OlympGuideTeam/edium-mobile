@@ -57,7 +57,7 @@ class ClassDetailBloc extends Bloc<ClassDetailEvent, ClassDetailState> {
     LoadClassDetailEvent event,
     Emitter<ClassDetailState> emit,
   ) async {
-    emit(const ClassDetailLoading());
+    if (_currentDetail == null) emit(const ClassDetailLoading());
     try {
       final detail = await _getClassDetail(classId: event.classId);
       emit(ClassDetailLoaded(detail));

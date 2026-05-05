@@ -30,7 +30,7 @@ class ClassesBloc extends Bloc<ClassesEvent, ClassesState> {
     LoadClassesEvent event,
     Emitter<ClassesState> emit,
   ) async {
-    emit(const ClassesLoading());
+    if (state is! ClassesLoaded) emit(const ClassesLoading());
     try {
       final classes = await _getMyClasses(role: role);
       emit(ClassesLoaded(classes: classes, filtered: classes));

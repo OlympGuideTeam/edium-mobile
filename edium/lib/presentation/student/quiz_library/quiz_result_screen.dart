@@ -7,6 +7,7 @@ import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/quiz_attempt.dart';
 import 'package:edium/domain/usecases/library_quiz/get_attempt_result_usecase.dart';
 import 'package:edium/presentation/shared/widgets/edium_button.dart';
+import 'package:edium/presentation/shared/widgets/edium_refresh_indicator.dart';
 import 'package:edium/presentation/student/quiz_library/student_question_review_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -53,14 +54,12 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
   void _maybeStartPolling() {
     if (!_isPending) return;
     _pollTimer?.cancel();
-    _pollTimer =
-        Timer.periodic(const Duration(seconds: 8), (_) => _refresh());
+    _pollTimer = Timer.periodic(const Duration(seconds: 8), (_) => _refresh());
   }
 
   Future<void> _refresh() async {
     try {
-      final fresh =
-          await getIt<GetAttemptResultUsecase>()(_current.attemptId);
+      final fresh = await getIt<GetAttemptResultUsecase>()(_current.attemptId);
       if (!mounted) return;
       setState(() => _current = fresh);
       if (!_isPending) _pollTimer?.cancel();
@@ -80,11 +79,14 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
             Expanded(
               child: _isPending
                   ? const _PendingBody()
-                  : _ResultBody(
-                      result: _current,
-                      maxPossibleScore: widget.maxPossibleScore,
-                      quizTitle: widget.quizTitle,
-                      questions: widget.questions,
+                  : EdiumRefreshIndicator(
+                      onRefresh: _refresh,
+                      child: _ResultBody(
+                        result: _current,
+                        maxPossibleScore: widget.maxPossibleScore,
+                        quizTitle: widget.quizTitle,
+                        questions: widget.questions,
+                      ),
                     ),
             ),
             _BottomCta(onPressed: () => Navigator.pop(context)),
@@ -129,8 +131,8 @@ class _PendingBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppDimens.screenPaddingH),
+        padding:
+            const EdgeInsets.symmetric(horizontal: AppDimens.screenPaddingH),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -146,8 +148,7 @@ class _PendingBody extends StatelessWidget {
                   size: 28, color: AppColors.mono600),
             ),
             const SizedBox(height: 18),
-            const Text('Ответы проверяются',
-                style: AppTextStyles.screenTitle),
+            const Text('Ответы проверяются', style: AppTextStyles.screenTitle),
             const SizedBox(height: 8),
             Text(
               'Часть ответов проверяется ИИ или учителем. Экран обновится автоматически.',
@@ -249,8 +250,7 @@ class _ResultBody extends StatelessWidget {
         Row(
           children: [
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 color: AppColors.mono100,
                 borderRadius: BorderRadius.circular(AppDimens.radiusXs),
@@ -301,12 +301,9 @@ class _ResultBody extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: const [
-            Text('0',
-                style:
-                    TextStyle(fontSize: 11, color: AppColors.mono300)),
+            Text('0', style: TextStyle(fontSize: 11, color: AppColors.mono300)),
             Text('100',
-                style:
-                    TextStyle(fontSize: 11, color: AppColors.mono300)),
+                style: TextStyle(fontSize: 11, color: AppColors.mono300)),
           ],
         ),
         const SizedBox(height: 20),
@@ -374,7 +371,8 @@ class _BigScore extends StatelessWidget {
     required this.pct,
   });
 
-  String _fmt(double v) => v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(1);
+  String _fmt(double v) =>
+      v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(1);
 
   @override
   Widget build(BuildContext context) {
@@ -572,58 +570,57 @@ class _AnswerRow extends StatelessWidget {
         ),
       ),
       child: Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-        border: Border.all(color: AppColors.mono150),
-      ),
-      child: Row(
-        children: [
-          _StatusDot(status: breakdown.status),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 18,
-            child: Text(
-              '$index',
-              style: const TextStyle(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+          border: Border.all(color: AppColors.mono150),
+        ),
+        child: Row(
+          children: [
+            _StatusDot(status: breakdown.status),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 18,
+              child: Text(
+                '$index',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mono400,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                breakdown.answer.finalFeedback != null &&
+                        breakdown.answer.finalFeedback!.isNotEmpty
+                    ? breakdown.answer.finalFeedback!
+                    : 'Вопрос $index',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.mono900,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              scoreText,
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: AppColors.mono400,
+                color: _colorForStatus(breakdown.status),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              breakdown.answer.finalFeedback != null &&
-                      breakdown.answer.finalFeedback!.isNotEmpty
-                  ? breakdown.answer.finalFeedback!
-                  : 'Вопрос $index',
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.mono900,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            scoreText,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: _colorForStatus(breakdown.status),
-            ),
-          ),
-          const SizedBox(width: 6),
-          const Icon(Icons.chevron_right,
-              size: 18, color: AppColors.mono300),
-        ],
+            const SizedBox(width: 6),
+            const Icon(Icons.chevron_right, size: 18, color: AppColors.mono300),
+          ],
+        ),
       ),
-    ),
     );
   }
 

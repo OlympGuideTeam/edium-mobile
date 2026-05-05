@@ -4,6 +4,7 @@ import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/class_summary.dart';
 import 'package:edium/presentation/shared/widgets/edium_notification.dart';
+import 'package:edium/presentation/shared/widgets/edium_refresh_indicator.dart';
 import 'package:edium/presentation/shared/widgets/search_bar_widget.dart';
 import 'package:edium/presentation/teacher/classes/bloc/classes_bloc.dart';
 import 'package:edium/presentation/teacher/classes/bloc/classes_event.dart';
@@ -82,21 +83,25 @@ class _ClassesView extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFBBBBBB), width: 1.5),
+                  border:
+                      Border.all(color: const Color(0xFFBBBBBB), width: 1.5),
                 ),
                 child: TextField(
                   controller: controller,
                   autofocus: true,
                   cursorColor: const Color(0xFF1A1A1A),
-                  style: const TextStyle(fontSize: 15, color: Color(0xFF333333)),
+                  style:
+                      const TextStyle(fontSize: 15, color: Color(0xFF333333)),
                   decoration: const InputDecoration(
                     hintText: 'Например, 7А — Математика',
-                    hintStyle: TextStyle(fontSize: 15, color: Color(0xFFBBBBBB)),
+                    hintStyle:
+                        TextStyle(fontSize: 15, color: Color(0xFFBBBBBB)),
                     filled: false,
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   ),
                 ),
               ),
@@ -138,7 +143,8 @@ class _ClassesView extends StatelessWidget {
       builder: (dialogContext) {
         return Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -178,7 +184,8 @@ class _ClassesView extends StatelessWidget {
                     ),
                     child: const Text(
                       'Удалить',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      style:
+                          TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -223,154 +230,168 @@ class _ClassesView extends StatelessWidget {
         } else if (state is ClassDeleted) {
           EdiumNotification.show(context, 'Класс удалён');
         } else if (state is ClassCreateError) {
-          EdiumNotification.show(context, state.message, type: EdiumNotificationType.error);
+          EdiumNotification.show(context, state.message,
+              type: EdiumNotificationType.error);
         } else if (state is ClassDeleteError) {
-          EdiumNotification.show(context, state.message, type: EdiumNotificationType.error);
+          EdiumNotification.show(context, state.message,
+              type: EdiumNotificationType.error);
         }
       },
       child: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Заголовок
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 32, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.mono900,
-                        borderRadius: BorderRadius.circular(AppDimens.radiusXs),
-                      ),
-                      child: Text(
-                        isTeacher ? 'УЧИТЕЛЬ' : 'УЧЕНИК',
-                        style: AppTextStyles.badgeText,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'Классы',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1A1A1A),
-                            ),
-                          ),
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Заголовок
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 32, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.mono900,
+                          borderRadius:
+                              BorderRadius.circular(AppDimens.radiusXs),
                         ),
-                        if (isTeacher)
-                          IconButton(
-                            onPressed: () => _showCreateClassDialog(context),
-                            icon: const Icon(Icons.add, size: 26),
-                            color: const Color(0xFF1A1A1A),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-              // Поиск
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: SearchBarWidget(
-                  hint: 'Найти класс...',
-                  onChanged: (q) => context
-                      .read<ClassesBloc>()
-                      .add(SearchClassesEvent(q)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Список
-              Expanded(
-                child: BlocBuilder<ClassesBloc, ClassesState>(
-                  builder: (context, state) {
-                    if (state is ClassesLoading || state is ClassesInitial) {
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF1A1A1A),
-                          strokeWidth: 2,
+                        child: Text(
+                          isTeacher ? 'УЧИТЕЛЬ' : 'УЧЕНИК',
+                          style: AppTextStyles.badgeText,
                         ),
-                      );
-                    }
-                    if (state is ClassesError) {
-                      return Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                              'Ошибка загрузки',
-                              style: TextStyle(fontSize: 14, color: Color(0xFF888888)),
-                            ),
-                            const SizedBox(height: 12),
-                            TextButton(
-                              onPressed: () => context
-                                  .read<ClassesBloc>()
-                                  .add(const LoadClassesEvent()),
-                              child: const Text(
-                                'Повторить',
-                                style: TextStyle(color: Color(0xFF1A1A1A)),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Классы',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1A1A1A),
                               ),
                             ),
-                          ],
-                        ),
-                      );
-                    }
-                    final loaded = state as ClassesLoaded;
-                    if (loaded.filtered.isEmpty) {
-                      return Center(
-                        child: Text(
-                          loaded.searchQuery.isNotEmpty
-                              ? 'Ничего не найдено'
-                              : 'У вас пока нет классов',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF888888),
                           ),
+                          if (isTeacher)
+                            IconButton(
+                              onPressed: () => _showCreateClassDialog(context),
+                              icon: const Icon(Icons.add, size: 26),
+                              color: const Color(0xFF1A1A1A),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                // Поиск
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: SearchBarWidget(
+                    hint: 'Найти класс...',
+                    onChanged: (q) =>
+                        context.read<ClassesBloc>().add(SearchClassesEvent(q)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Список
+                Expanded(
+                  child: BlocBuilder<ClassesBloc, ClassesState>(
+                    builder: (context, state) {
+                      if (state is ClassesLoading || state is ClassesInitial) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF1A1A1A),
+                            strokeWidth: 2,
+                          ),
+                        );
+                      }
+                      if (state is ClassesError) {
+                        return Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                'Ошибка загрузки',
+                                style: TextStyle(
+                                    fontSize: 14, color: Color(0xFF888888)),
+                              ),
+                              const SizedBox(height: 12),
+                              TextButton(
+                                onPressed: () => context
+                                    .read<ClassesBloc>()
+                                    .add(const LoadClassesEvent()),
+                                child: const Text(
+                                  'Повторить',
+                                  style: TextStyle(color: Color(0xFF1A1A1A)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      final loaded = state as ClassesLoaded;
+                      if (loaded.filtered.isEmpty) {
+                        return Center(
+                          child: Text(
+                            loaded.searchQuery.isNotEmpty
+                                ? 'Ничего не найдено'
+                                : 'У вас пока нет классов',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF888888),
+                            ),
+                          ),
+                        );
+                      }
+                      return EdiumRefreshIndicator(
+                        onRefresh: () async {
+                          final bloc = context.read<ClassesBloc>();
+                          bloc.add(const LoadClassesEvent());
+                          await bloc.stream.firstWhere(
+                              (s) => s is ClassesLoaded || s is ClassesError);
+                        },
+                        child: ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                          itemCount: loaded.filtered.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (context, i) {
+                            final item = loaded.filtered[i];
+                            final tile = _ClassTile(
+                              classSummary: item,
+                              isTeacher: isTeacher,
+                            );
+
+                            if (!item.isOwner) return tile;
+
+                            return _buildDismissible(
+                              key: ValueKey(item.id),
+                              confirmDismiss: (_) =>
+                                  _confirmDeleteClass(context, item.title),
+                              onDismissed: () {
+                                context
+                                    .read<ClassesBloc>()
+                                    .add(DeleteClassEvent(item.id));
+                              },
+                              child: tile,
+                            );
+                          },
                         ),
                       );
-                    }
-                    return ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                      itemCount: loaded.filtered.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (context, i) {
-                        final item = loaded.filtered[i];
-                        final tile = _ClassTile(
-                          classSummary: item,
-                          isTeacher: isTeacher,
-                        );
-
-                        if (!item.isOwner) return tile;
-
-                        return _buildDismissible(
-                          key: ValueKey(item.id),
-                          confirmDismiss: (_) =>
-                              _confirmDeleteClass(context, item.title),
-                          onDismissed: () {
-                            context
-                                .read<ClassesBloc>()
-                                .add(DeleteClassEvent(item.id));
-                          },
-                          child: tile,
-                        );
-                      },
-                    );
-                  },
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
