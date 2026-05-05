@@ -18,14 +18,14 @@ class TestSessionResultsScreen extends StatelessWidget {
   final String sessionId;
   final CourseItem? courseItem;
   final bool isTeacher;
-  final String? classId;
+  final String? moduleId;
 
   const TestSessionResultsScreen({
     super.key,
     required this.sessionId,
     this.courseItem,
     this.isTeacher = false,
-    this.classId,
+    this.moduleId,
   });
 
   @override
@@ -52,11 +52,11 @@ class TestSessionResultsScreen extends StatelessWidget {
       create: (_) => TestSessionResultsBloc(
         listAttempts: getIt(),
         repo: getIt(),
-        classRepo: getIt(),
+        liveRepo: getIt(),
       )..add(LoadSessionResultsEvent(
           sessionId: sessionId,
           title: title,
-          classId: classId,
+          moduleId: moduleId,
         )),
       child: _View(sessionId: sessionId, courseItem: courseItem),
     );

@@ -284,47 +284,260 @@ class _QuestionCard extends StatelessWidget {
             fontSize: 13, color: AppColors.mono900, height: 1.4));
   }
 
+  static const _green = Color(0xFF22C55E);
+  static const _greenBg = Color(0xFFE8F5E9);
+  static const _red = Color(0xFFEF4444);
+  static const _redBg = Color(0xFFFEE2E2);
+
   Widget _dragBlock(AnswerReview a) {
-    final order = (a.answerData['order'] as List<dynamic>? ?? const [])
+    final studentOrder = (a.answerData['order'] as List<dynamic>? ?? const [])
         .map((e) => e.toString())
         .toList();
-    final correct = (a.metadata?['correct_order'] as List<dynamic>?)
-        ?.map((e) => e.toString())
-        .toList();
-    return Column(
+    final correctOrder = (a.metadata?['correct_order'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        const [];
+
+    if (studentOrder.isEmpty) return _emptyBlock();
+
+    final isFullyCorrect = correctOrder.isNotEmpty &&
+        studentOrder.length == correctOrder.length &&
+        List.generate(
+          studentOrder.length,
+          (i) => studentOrder[i] == correctOrder[i],
+        ).every((b) => b);
+
+    if (isFullyCorrect || correctOrder.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: studentOrder.asMap().entries.map((e) {
+          return _OrderItem(
+            index: e.key + 1,
+            text: e.value,
+            isCorrect: true,
+            showIcon: false,
+          );
+        }).toList(),
+      );
+    }
+
+    final count = studentOrder.length > correctOrder.length
+        ? studentOrder.length
+        : correctOrder.length;
+
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Ваш порядок: ${order.join(" → ")}',
-            style: const TextStyle(fontSize: 13, color: AppColors.mono900)),
-        if (correct != null) ...[
-          const SizedBox(height: 4),
-          Text('Верный: ${correct.join(" → ")}',
-              style: AppTextStyles.caption.copyWith(color: AppColors.mono400)),
-        ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('ВАШ ОТВЕТ', style: AppTextStyles.sectionTag),
+              const SizedBox(height: 6),
+              ...List.generate(count, (i) {
+                final text =
+                    i < studentOrder.length ? studentOrder[i] : '—';
+                final isCorrect = i < correctOrder.length &&
+                    i < studentOrder.length &&
+                    studentOrder[i] == correctOrder[i];
+                return _OrderItem(
+                    index: i + 1,
+                    text: text,
+                    isCorrect: isCorrect,
+                    showIcon: true);
+              }),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('ПРАВИЛЬНО', style: AppTextStyles.sectionTag),
+              const SizedBox(height: 6),
+              ...List.generate(count, (i) {
+                final text =
+                    i < correctOrder.length ? correctOrder[i] : '—';
+                return _OrderItem(
+                    index: i + 1,
+                    text: text,
+                    isCorrect: true,
+                    showIcon: false);
+              }),
+            ],
+          ),
+        ),
       ],
     );
   }
 
   Widget _connectionBlock(AnswerReview a) {
-    final pairs =
-        (a.answerData['pairs'] as Map<String, dynamic>? ?? const {});
-    final correct =
-        (a.metadata?['correct_pairs'] as Map<String, dynamic>? ?? const {});
+    final studentPairs =
+        (a.answerData['pairs'] as Map<String, dynamic>? ?? const {})
+            .map((k, v) => MapEntry(k, v.toString()));
+    final correctPairs =
+        (a.metadata?['correct_pairs'] as Map<String, dynamic>? ?? const {})
+            .map((k, v) => MapEntry(k, v.toString()));
+
+    if (studentPairs.isEmpty) return _emptyBlock();
+
+    final keys = correctPairs.isNotEmpty
+        ? correctPairs.keys.toList()
+        : studentPairs.keys.toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Ваши пары:',
-            style: AppTextStyles.caption.copyWith(color: AppColors.mono600)),
-        ...pairs.entries.map((e) => Text('  ${e.key} → ${e.value}',
-            style: const TextStyle(fontSize: 13, color: AppColors.mono900))),
-        if (correct.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Text('Верные пары:',
-              style: AppTextStyles.caption.copyWith(color: AppColors.mono400)),
-          ...correct.entries.map((e) => Text('  ${e.key} → ${e.value}',
-              style: AppTextStyles.caption.copyWith(color: AppColors.mono400))),
+      children: keys.map((left) {
+        final studentRight = studentPairs[left];
+        final correctRight = correctPairs[left];
+        final isCorrect =
+            studentRight != null && studentRight == correctRight;
+        final color = isCorrect ? _green : _red;
+        final bgColor = isCorrect ? _greenBg : _redBg;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+            border: Border.all(color: color),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                left,
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: color),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(Icons.arrow_forward, size: 12, color: color),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      studentRight ?? '—',
+                      style: TextStyle(fontSize: 13, color: color),
+                    ),
+                  ),
+                  Icon(
+                    isCorrect ? Icons.check_circle : Icons.cancel,
+                    size: 14,
+                    color: color,
+                  ),
+                ],
+              ),
+              if (!isCorrect && correctRight != null) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.check, size: 12, color: _green),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        correctRight,
+                        style: const TextStyle(
+                            fontSize: 13, color: _green),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _emptyBlock() => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: AppColors.mono50,
+          borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+          border: Border.all(color: AppColors.mono150),
+        ),
+        child: const Text('— нет ответа —',
+            style: TextStyle(fontSize: 13, color: AppColors.mono400)),
+      );
+}
+
+class _OrderItem extends StatelessWidget {
+  final int index;
+  final String text;
+  final bool isCorrect;
+  final bool showIcon;
+
+  static const _green = Color(0xFF22C55E);
+  static const _greenBg = Color(0xFFE8F5E9);
+  static const _red = Color(0xFFEF4444);
+  static const _redBg = Color(0xFFFEE2E2);
+
+  const _OrderItem({
+    required this.index,
+    required this.text,
+    required this.isCorrect,
+    required this.showIcon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isCorrect ? _green : _red;
+    final bgColor = isCorrect ? _greenBg : _redBg;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+        border: Border.all(color: color),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(5),
+            ),
+            child: Center(
+              child: Text(
+                '$index',
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 13, color: color, height: 1.3),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (showIcon) ...[
+            const SizedBox(width: 4),
+            Icon(
+              isCorrect ? Icons.check : Icons.close,
+              size: 12,
+              color: color,
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
