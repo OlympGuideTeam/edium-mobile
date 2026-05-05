@@ -7,6 +7,7 @@ import 'package:edium/presentation/class_detail/bloc/class_detail_bloc.dart';
 import 'package:edium/presentation/class_detail/bloc/class_detail_event.dart';
 import 'package:edium/presentation/class_detail/bloc/class_detail_state.dart';
 import 'package:edium/presentation/shared/widgets/edium_notification.dart';
+import 'package:edium/presentation/shared/widgets/edium_refresh_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -223,16 +224,40 @@ class _ClassDetailViewState extends State<_ClassDetailView>
                       _CoursesTab(
                         courses: detail.courses,
                         isOwner: detail.isOwner,
+                        onRefresh: () async {
+                          final bloc = context.read<ClassDetailBloc>();
+                          bloc.add(LoadClassDetailEvent(bloc.classId));
+                          await bloc.stream.firstWhere((s) =>
+                              s is ClassDetailLoaded ||
+                              s is ClassDetailError ||
+                              s is ClassNotFound);
+                        },
                       ),
                       _MembersTab(
                         members: detail.students,
                         isOwner: detail.isOwner,
                         role: 'student',
+                        onRefresh: () async {
+                          final bloc = context.read<ClassDetailBloc>();
+                          bloc.add(LoadClassDetailEvent(bloc.classId));
+                          await bloc.stream.firstWhere((s) =>
+                              s is ClassDetailLoaded ||
+                              s is ClassDetailError ||
+                              s is ClassNotFound);
+                        },
                       ),
                       _MembersTab(
                         members: detail.teachers,
                         isOwner: detail.isOwner,
                         role: 'teacher',
+                        onRefresh: () async {
+                          final bloc = context.read<ClassDetailBloc>();
+                          bloc.add(LoadClassDetailEvent(bloc.classId));
+                          await bloc.stream.firstWhere((s) =>
+                              s is ClassDetailLoaded ||
+                              s is ClassDetailError ||
+                              s is ClassNotFound);
+                        },
                       ),
                     ],
                   ),
@@ -402,7 +427,8 @@ class _ClassDetailViewState extends State<_ClassDetailView>
       builder: (dialogContext) {
         return Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -445,7 +471,8 @@ class _ClassDetailViewState extends State<_ClassDetailView>
                     ),
                     child: const Text(
                       'Удалить',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      style:
+                          TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -499,8 +526,13 @@ class _ClassDetailViewState extends State<_ClassDetailView>
 class _CoursesTab extends StatelessWidget {
   final List<CourseSummary> courses;
   final bool isOwner;
+  final RefreshCallback onRefresh;
 
-  const _CoursesTab({required this.courses, required this.isOwner});
+  const _CoursesTab({
+    required this.courses,
+    required this.isOwner,
+    required this.onRefresh,
+  });
 
   Future<bool?> _confirmDeleteCourse(
     BuildContext context,
@@ -511,7 +543,8 @@ class _CoursesTab extends StatelessWidget {
       builder: (dialogContext) {
         return Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -551,7 +584,8 @@ class _CoursesTab extends StatelessWidget {
                     ),
                     child: const Text(
                       'Удалить',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      style:
+                          TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -591,40 +625,56 @@ class _CoursesTab extends StatelessWidget {
       children: [
         Expanded(
           child: courses.isEmpty
-              ? const Center(
-                  child: Text(
-                    'Курсов пока нет',
-                    style: TextStyle(fontSize: 14, color: AppColors.mono400),
+              ? EdiumRefreshIndicator(
+                  onRefresh: onRefresh,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: const [
+                      SizedBox(
+                        height: 280,
+                        child: Center(
+                          child: Text(
+                            'Курсов пока нет',
+                            style: TextStyle(
+                                fontSize: 14, color: AppColors.mono400),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 )
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppDimens.screenPaddingH,
-                    16,
-                    AppDimens.screenPaddingH,
-                    16,
+              : EdiumRefreshIndicator(
+                  onRefresh: onRefresh,
+                  child: ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppDimens.screenPaddingH,
+                      16,
+                      AppDimens.screenPaddingH,
+                      16,
+                    ),
+                    itemCount: courses.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, i) {
+                      final course = courses[i];
+                      final card = _CourseCard(course: course);
+                      final canDelete = isOwner && course.isTeacher;
+
+                      if (!canDelete) return card;
+
+                      return _buildDismissible(
+                        key: ValueKey(course.id),
+                        confirmDismiss: (_) =>
+                            _confirmDeleteCourse(context, course.title),
+                        onDismissed: () {
+                          context
+                              .read<ClassDetailBloc>()
+                              .add(DeleteCourseEvent(course.id));
+                        },
+                        child: card,
+                      );
+                    },
                   ),
-                  itemCount: courses.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, i) {
-                    final course = courses[i];
-                    final card = _CourseCard(course: course);
-                    final canDelete = isOwner && course.isTeacher;
-
-                    if (!canDelete) return card;
-
-                    return _buildDismissible(
-                      key: ValueKey(course.id),
-                      confirmDismiss: (_) =>
-                          _confirmDeleteCourse(context, course.title),
-                      onDismissed: () {
-                        context
-                            .read<ClassDetailBloc>()
-                            .add(DeleteCourseEvent(course.id));
-                      },
-                      child: card,
-                    );
-                  },
                 ),
         ),
         if (isOwner)
@@ -657,8 +707,7 @@ class _CoursesTab extends StatelessWidget {
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppDimens.radiusLg),
+                    borderRadius: BorderRadius.circular(AppDimens.radiusLg),
                   ),
                   textStyle: AppTextStyles.primaryButton,
                 ),
@@ -832,11 +881,13 @@ class _MembersTab extends StatefulWidget {
   final List<MemberShort> members;
   final bool isOwner;
   final String role;
+  final RefreshCallback onRefresh;
 
   const _MembersTab({
     required this.members,
     required this.isOwner,
     required this.role,
+    required this.onRefresh,
   });
 
   @override
@@ -869,97 +920,116 @@ class _MembersTabState extends State<_MembersTab> {
       children: [
         Expanded(
           child: _members.isEmpty
-              ? Center(
-                  child: Text(
-                    widget.role == 'student' ? 'Учеников пока нет' : 'Учителей пока нет',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.mono400,
-                    ),
-                  ),
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppDimens.screenPaddingH,
-                    16,
-                    AppDimens.screenPaddingH,
-                    16,
-                  ),
-                  itemCount: _members.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, i) {
-                    final member = _members[i];
-                    final initial = member.name.isNotEmpty
-                        ? member.name[0].toUpperCase()
-                        : (member.surname.isNotEmpty ? member.surname[0].toUpperCase() : '?');
-
-                    final tile = Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius:
-                            BorderRadius.circular(AppDimens.radiusLg),
-                        border: Border.all(
-                          color: AppColors.mono150,
-                          width: AppDimens.borderWidth,
+              ? EdiumRefreshIndicator(
+                  onRefresh: widget.onRefresh,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      SizedBox(
+                        height: 280,
+                        child: Center(
+                          child: Text(
+                            widget.role == 'student'
+                                ? 'Учеников пока нет'
+                                : 'Учителей пока нет',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.mono400,
+                            ),
+                          ),
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: AppColors.mono100,
-                              borderRadius:
-                                  BorderRadius.circular(AppDimens.radiusMd),
-                            ),
-                            child: Center(
-                              child: Text(
-                                initial,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.mono600,
+                    ],
+                  ),
+                )
+              : EdiumRefreshIndicator(
+                  onRefresh: widget.onRefresh,
+                  child: ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppDimens.screenPaddingH,
+                      16,
+                      AppDimens.screenPaddingH,
+                      16,
+                    ),
+                    itemCount: _members.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, i) {
+                      final member = _members[i];
+                      final initial = member.name.isNotEmpty
+                          ? member.name[0].toUpperCase()
+                          : (member.surname.isNotEmpty
+                              ? member.surname[0].toUpperCase()
+                              : '?');
+
+                      final tile = Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius:
+                              BorderRadius.circular(AppDimens.radiusLg),
+                          border: Border.all(
+                            color: AppColors.mono150,
+                            width: AppDimens.borderWidth,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: AppColors.mono100,
+                                borderRadius:
+                                    BorderRadius.circular(AppDimens.radiusMd),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  initial,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.mono600,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              member.fullName,
-                              style: AppTextStyles.fieldText.copyWith(
-                                fontWeight: FontWeight.w600,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                member.fullName,
+                                style: AppTextStyles.fieldText.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
-                      ),
-                    );
+                          ],
+                        ),
+                      );
 
-                    if (!canDelete) return tile;
+                      if (!canDelete) return tile;
 
-                    return _buildDismissible(
-                      key: ValueKey(member.id),
-                      confirmDismiss: (_) => _confirmRemoveMember(
-                        context,
-                        member.fullName,
-                      ),
-                      onDismissed: () {
-                        setState(() => _members.removeAt(i));
-                        context
-                            .read<ClassDetailBloc>()
-                            .add(RemoveMemberEvent(member.id));
-                      },
-                      child: tile,
-                    );
-                  },
+                      return _buildDismissible(
+                        key: ValueKey(member.id),
+                        confirmDismiss: (_) => _confirmRemoveMember(
+                          context,
+                          member.fullName,
+                        ),
+                        onDismissed: () {
+                          setState(() => _members.removeAt(i));
+                          context
+                              .read<ClassDetailBloc>()
+                              .add(RemoveMemberEvent(member.id));
+                        },
+                        child: tile,
+                      );
+                    },
+                  ),
                 ),
         ),
         if (canInvite)
@@ -1003,7 +1073,8 @@ class _MembersTabState extends State<_MembersTab> {
       builder: (dialogContext) {
         return Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -1011,7 +1082,9 @@ class _MembersTabState extends State<_MembersTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.role == 'teacher' ? 'Удалить учителя?' : 'Удалить ученика?',
+                  widget.role == 'teacher'
+                      ? 'Удалить учителя?'
+                      : 'Удалить ученика?',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -1043,7 +1116,8 @@ class _MembersTabState extends State<_MembersTab> {
                     ),
                     child: const Text(
                       'Удалить',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      style:
+                          TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),

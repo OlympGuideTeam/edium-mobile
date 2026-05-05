@@ -22,7 +22,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     LoadProfileEvent event,
     Emitter<ProfileState> emit,
   ) async {
-    emit(const ProfileLoading());
+    if (state is! ProfileLoaded) emit(const ProfileLoading());
     try {
       final user = await _getMe();
       UserStatistic statistic;
