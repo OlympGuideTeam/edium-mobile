@@ -9,16 +9,16 @@ abstract class TestSessionResultsEvent extends Equatable {
 class LoadSessionResultsEvent extends TestSessionResultsEvent {
   final String sessionId;
   final String title;
-  final String? classId;
+  final String? moduleId;
 
   const LoadSessionResultsEvent({
     required this.sessionId,
     required this.title,
-    this.classId,
+    this.moduleId,
   });
 
   @override
-  List<Object?> get props => [sessionId, title, classId];
+  List<Object?> get props => [sessionId, title, moduleId];
 }
 
 class RefreshSessionResultsEvent extends TestSessionResultsEvent {
