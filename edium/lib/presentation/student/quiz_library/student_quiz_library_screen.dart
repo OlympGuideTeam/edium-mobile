@@ -1,6 +1,7 @@
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
+import 'package:edium/presentation/shared/widgets/edium_refresh_indicator.dart';
 import 'package:edium/presentation/shared/widgets/library_quiz_card.dart';
 import 'package:edium/presentation/shared/widgets/search_bar_widget.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/student_quiz_bloc.dart';
@@ -18,164 +19,189 @@ class StudentQuizLibraryScreen extends StatelessWidget {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.mono900,
-                      borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.mono900,
+                        borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+                      ),
+                      child:
+                          const Text('УЧЕНИК', style: AppTextStyles.badgeText),
                     ),
-                    child: const Text('УЧЕНИК', style: AppTextStyles.badgeText),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text('Квизы', style: AppTextStyles.screenTitle),
-                ],
+                    const SizedBox(height: 12),
+                    const Text('Квизы', style: AppTextStyles.screenTitle),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: SearchBarWidget(
-                hint: 'Найти квиз...',
-                onChanged: (q) => context
-                    .read<StudentQuizBloc>()
-                    .add(StudentSearchChangedEvent(q)),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: SearchBarWidget(
+                  hint: 'Найти квиз...',
+                  onChanged: (q) => context
+                      .read<StudentQuizBloc>()
+                      .add(StudentSearchChangedEvent(q)),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: BlocBuilder<StudentQuizBloc, StudentQuizState>(
-                builder: (context, state) {
-                  if (state is StudentQuizLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.mono700,
-                        strokeWidth: 2,
-                      ),
-                    );
-                  }
-                  if (state is StudentQuizError) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.error_outline,
-                                color: AppColors.mono200, size: 48),
-                            const SizedBox(height: 12),
-                            Text(state.message,
-                                style: AppTextStyles.screenSubtitle,
-                                textAlign: TextAlign.center),
-                            const SizedBox(height: 20),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 48,
-                              child: OutlinedButton(
-                                onPressed: () => context
-                                    .read<StudentQuizBloc>()
-                                    .add(const LoadStudentQuizzesEvent()),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(
-                                      color: AppColors.mono150),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(14)),
-                                ),
-                                child: const Text(
-                                  'Попробовать снова',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.mono700,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-                  if (state is StudentQuizLoaded) {
-                    if (state.filtered.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.quiz_outlined,
-                                size: 48, color: AppColors.mono200),
-                            const SizedBox(height: 12),
-                            Text(
-                              state.searchQuery.isNotEmpty
-                                  ? 'Ничего не найдено'
-                                  : 'Квизы не найдены',
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.mono900,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              state.searchQuery.isNotEmpty
-                                  ? 'Попробуйте изменить поисковый запрос'
-                                  : 'Пока нет доступных квизов',
-                              style: AppTextStyles.screenSubtitle,
-                            ),
-                          ],
+              const SizedBox(height: 8),
+              Expanded(
+                child: BlocBuilder<StudentQuizBloc, StudentQuizState>(
+                  buildWhen: (previous, current) {
+                    if (previous is StudentQuizLoaded &&
+                        current is StudentQuizLoading) {
+                      return false;
+                    }
+                    return true;
+                  },
+                  builder: (context, state) {
+                    if (state is StudentQuizLoading) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.mono700,
+                          strokeWidth: 2,
                         ),
                       );
                     }
-                    return RefreshIndicator(
-                      color: AppColors.mono700,
-                      onRefresh: () async => context
-                          .read<StudentQuizBloc>()
-                          .add(const LoadStudentQuizzesEvent()),
-                      child: ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-                        itemCount: state.filtered.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 10),
-                        itemBuilder: (context, i) {
-                          final quiz = state.filtered[i];
-                          return LibraryQuizCard(
-                            quiz: quiz,
-                            onTap: () {
-                              final bloc =
-                                  context.read<StudentQuizBloc>();
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      QuizPreviewScreen(quiz: quiz),
+                    if (state is StudentQuizError) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.error_outline,
+                                  color: AppColors.mono200, size: 48),
+                              const SizedBox(height: 12),
+                              Text(state.message,
+                                  style: AppTextStyles.screenSubtitle,
+                                  textAlign: TextAlign.center),
+                              const SizedBox(height: 20),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 48,
+                                child: OutlinedButton(
+                                  onPressed: () => context
+                                      .read<StudentQuizBloc>()
+                                      .add(const LoadStudentQuizzesEvent()),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(
+                                        color: AppColors.mono150),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(14)),
+                                  ),
+                                  child: const Text(
+                                    'Попробовать снова',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.mono700,
+                                    ),
+                                  ),
                                 ),
-                              ).then((_) => bloc.add(
-                                  const LoadStudentQuizzesEvent()));
-                            },
-                          );
-                        },
-                      ),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    if (state is StudentQuizLoaded) {
+                      Future<void> onRefresh() async {
+                        final bloc = context.read<StudentQuizBloc>();
+                        bloc.add(const LoadStudentQuizzesEvent());
+                        await bloc.stream
+                            .firstWhere((s) =>
+                                s is StudentQuizLoaded || s is StudentQuizError)
+                            .timeout(const Duration(seconds: 30),
+                                onTimeout: () => state);
+                      }
+                      if (state.filtered.isEmpty) {
+                        return EdiumRefreshIndicator(
+                          onRefresh: onRefresh,
+                          child: ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              SizedBox(
+                                height: 320,
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.quiz_outlined,
+                                          size: 48, color: AppColors.mono200),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        state.searchQuery.isNotEmpty
+                                            ? 'Ничего не найдено'
+                                            : 'Квизы не найдены',
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.mono900,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        state.searchQuery.isNotEmpty
+                                            ? 'Попробуйте изменить поисковый запрос'
+                                            : 'Пока нет доступных квизов',
+                                        style: AppTextStyles.screenSubtitle,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      return EdiumRefreshIndicator(
+                        onRefresh: onRefresh,
+                        child: ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+                          itemCount: state.filtered.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (context, i) {
+                            final quiz = state.filtered[i];
+                            return LibraryQuizCard(
+                              quiz: quiz,
+                              onTap: () {
+                                final bloc = context.read<StudentQuizBloc>();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        QuizPreviewScreen(quiz: quiz),
+                                  ),
+                                ).then((_) =>
+                                    bloc.add(const LoadStudentQuizzesEvent()));
+                              },
+                            );
+                          },
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }
