@@ -1512,7 +1512,7 @@ class _ModuleSectionState extends State<_ModuleSection>
                                                   extra: {
                                                     'courseItem': item,
                                                     'isTeacher': true,
-                                                    'classId': widget.classId,
+                                                    'moduleId': widget.module.id,
                                                   },
                                                 );
                                               }
