@@ -292,7 +292,7 @@ class SheetColumnModel {
   factory SheetColumnModel.fromJson(Map<String, dynamic> json) =>
       SheetColumnModel(
         id: json['id'] as String,
-        objectId: json['object_id'] as String,
+        objectId: (json['ref_id'] ?? json['object_id']) as String,
       );
 
   SheetColumn toEntity() => SheetColumn(id: id, objectId: objectId);
@@ -306,10 +306,10 @@ class CourseSheetModel {
 
   factory CourseSheetModel.fromJson(Map<String, dynamic> json) =>
       CourseSheetModel(
-        columns: (json['items'] as List<dynamic>)
+        columns: (json['items'] as List<dynamic>? ?? [])
             .map((e) => SheetColumnModel.fromJson(e as Map<String, dynamic>))
             .toList(),
-        rows: (json['students'] as List<dynamic>)
+        rows: (json['students'] as List<dynamic>? ?? [])
             .map((e) => SheetRowModel.fromJson(e as Map<String, dynamic>))
             .toList(),
       );
