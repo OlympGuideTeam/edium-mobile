@@ -300,9 +300,9 @@ class _StatusHero extends StatelessWidget {
       TestPreviewStatus.graded => (
         tag: 'СТАТУС',
         title: 'Результаты\nбудут позже',
-        subtitle: 'Преподаватель ещё не открыл доступ',
+        subtitle: 'Ожидайте: учитель проверяет',
       ),
-      TestPreviewStatus.completed => (
+      TestPreviewStatus.published => (
         tag: 'РЕЗУЛЬТАТ',
         title: _completedTitle(state),
         subtitle: 'Посмотреть подробнее',
@@ -357,7 +357,7 @@ class _DetailsSection extends StatelessWidget {
     }
 
     final attemptUsed = status == TestPreviewStatus.resume ||
-        status == TestPreviewStatus.completed ||
+        status == TestPreviewStatus.published ||
         status == TestPreviewStatus.grading ||
         status == TestPreviewStatus.graded;
 
@@ -684,12 +684,12 @@ class _BottomCta extends StatelessWidget {
       TestPreviewStatus.expired => 'Дедлайн истёк',
       TestPreviewStatus.grading => 'Ответы проверяются',
       TestPreviewStatus.graded => 'Результаты недоступны',
-      TestPreviewStatus.completed => 'Посмотреть результат',
+      TestPreviewStatus.published => 'Посмотреть результат',
     };
 
     final enabled = status == TestPreviewStatus.start ||
         status == TestPreviewStatus.resume ||
-        status == TestPreviewStatus.completed;
+        status == TestPreviewStatus.published;
 
     return SizedBox(
       width: double.infinity,
@@ -716,7 +716,7 @@ class _BottomCta extends StatelessWidget {
     TestSessionMeta meta,
     TestPreviewStatus status,
   ) {
-    if (status == TestPreviewStatus.completed) {
+    if (status == TestPreviewStatus.published) {
       final review = state.review;
       if (review != null) {
         context.push('/test/$sessionId/attempts/${review.attemptId}');

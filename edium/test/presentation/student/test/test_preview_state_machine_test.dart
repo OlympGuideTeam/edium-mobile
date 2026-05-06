@@ -21,14 +21,14 @@ void main() {
 
   final now = DateTime.utc(2026, 4, 22, 12);
 
-  test('completed имеет высший приоритет', () {
+  test('published имеет высший приоритет', () {
     final s = derivePreviewStatus(
       meta: meta(finishedAt: now.subtract(const Duration(days: 1))),
       hasActiveCache: true,
-      latestAttemptStatus: AttemptStatus.completed,
+      latestAttemptStatus: AttemptStatus.published,
       now: now,
     );
-    expect(s, TestPreviewStatus.completed);
+    expect(s, TestPreviewStatus.published);
   });
 
   test('grading выше expired', () {
@@ -41,14 +41,24 @@ void main() {
     expect(s, TestPreviewStatus.grading);
   });
 
-  test('graded тоже grading', () {
+  test('graded → TestPreviewStatus.graded', () {
     final s = derivePreviewStatus(
       meta: meta(),
       hasActiveCache: false,
       latestAttemptStatus: AttemptStatus.graded,
       now: now,
     );
-    expect(s, TestPreviewStatus.grading);
+    expect(s, TestPreviewStatus.graded);
+  });
+
+  test('completed → TestPreviewStatus.graded (не опубликовано)', () {
+    final s = derivePreviewStatus(
+      meta: meta(),
+      hasActiveCache: false,
+      latestAttemptStatus: AttemptStatus.completed,
+      now: now,
+    );
+    expect(s, TestPreviewStatus.graded);
   });
 
   test('expired когда finishedAt < now и нет attempt', () {
