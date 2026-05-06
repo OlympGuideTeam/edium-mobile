@@ -10,6 +10,7 @@ import 'package:edium/presentation/student/quiz_library/bloc/student_quiz_state.
 import 'package:edium/presentation/student/quiz_library/quiz_preview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 class StudentQuizLibraryScreen extends StatelessWidget {
   const StudentQuizLibraryScreen({super.key});
@@ -307,6 +308,9 @@ class _PassedTab extends StatelessWidget {
             quiz: quiz,
             score: attempt.score,
             date: attempt.finishedAt ?? attempt.startedAt,
+            onTap: () => context.push(
+              '/test/${attempt.sessionId}/attempts/${attempt.id}',
+            ),
           );
         },
       ),
