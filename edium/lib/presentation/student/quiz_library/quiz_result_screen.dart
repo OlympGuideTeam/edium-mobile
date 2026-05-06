@@ -49,7 +49,8 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
 
   bool get _isPending =>
       _current.status == AttemptStatus.grading ||
-      _current.status == AttemptStatus.graded;
+      _current.status == AttemptStatus.graded ||
+      _current.status == AttemptStatus.completed;
 
   void _maybeStartPolling() {
     if (!_isPending) return;
