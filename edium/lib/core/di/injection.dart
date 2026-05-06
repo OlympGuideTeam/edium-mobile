@@ -1,4 +1,5 @@
 import 'package:edium/core/config/api_config.dart';
+import 'package:edium/services/louvre_service/louvre_service.dart';
 import 'package:edium/core/router/app_router.dart' show resetAppRouterAfterGetItClear;
 import 'package:edium/core/storage/profile_storage.dart';
 import 'package:edium/data/datasources/live/live_datasource.dart';
@@ -80,6 +81,7 @@ import 'package:edium/domain/usecases/course/create_module_usecase.dart';
 import 'package:edium/domain/usecases/course/get_course_detail_usecase.dart';
 import 'package:edium/domain/usecases/course/get_course_sheet_usecase.dart';
 import 'package:edium/domain/usecases/course/get_module_detail_usecase.dart';
+import 'package:edium/domain/usecases/course/get_session_statuses_usecase.dart';
 import 'package:edium/domain/usecases/class/create_class_usecase.dart';
 import 'package:edium/domain/usecases/class/delete_class_usecase.dart';
 import 'package:edium/domain/usecases/class/delete_course_usecase.dart';
@@ -150,6 +152,7 @@ Future<void> initializeDependencies({
   getIt.registerSingleton<IDoormanApiService>(
     DoormanApiService(getIt<DioHandler>().dio),
   );
+  getIt.registerSingleton<LouvreService>(LouvreService(getIt<DioHandler>()));
   if (ApiConfig.useMock) {
     getIt.registerSingleton<IHeraldApiService>(HeraldApiServiceMock());
   } else {
@@ -256,6 +259,7 @@ Future<void> initializeDependencies({
   getIt.registerLazySingleton(() => GetCourseDetailUsecase(getIt()));
   getIt.registerLazySingleton(() => GetModuleDetailUsecase(getIt()));
   getIt.registerLazySingleton(() => GetCourseSheetUsecase(getIt()));
+  getIt.registerLazySingleton(() => GetSessionStatusesUsecase(getIt()));
   getIt.registerLazySingleton(() => RemoveMemberUsecase(getIt()));
   getIt.registerLazySingleton(() => GetInviteLinkUsecase(getIt()));
   getIt.registerLazySingleton(() => GetInvitationUsecase(getIt()));

@@ -42,6 +42,7 @@ class QuestionModel {
   final int orderIndex;
   final Map<String, dynamic>? metadata;
   final int? maxScore;
+  final String? imageId;
 
   const QuestionModel({
     required this.id,
@@ -53,6 +54,7 @@ class QuestionModel {
     required this.orderIndex,
     this.metadata,
     this.maxScore,
+    this.imageId,
   });
 
   /// Teacher create flow uses [answer_options]; stored quizzes use [options].
@@ -98,6 +100,7 @@ class QuestionModel {
           ? Map<String, dynamic>.from(metaRaw)
           : null,
       maxScore: json['max_score'] as int?,
+      imageId: json['image_id'] as String?,
     );
   }
 
@@ -111,6 +114,7 @@ class QuestionModel {
         'order_index': orderIndex,
         if (metadata != null) 'metadata': metadata,
         if (maxScore != null) 'max_score': maxScore,
+        if (imageId != null) 'image_id': imageId,
       };
 
   Question toEntity() {
@@ -144,6 +148,7 @@ class QuestionModel {
       orderIndex: orderIndex,
       metadata: metadata != null ? Map<String, dynamic>.from(metadata!) : null,
       maxScore: maxScore,
+      imageId: imageId,
     );
   }
 
@@ -177,6 +182,7 @@ class QuestionModel {
       orderIndex: q.orderIndex,
       metadata: q.metadata != null ? Map<String, dynamic>.from(q.metadata!) : null,
       maxScore: q.maxScore,
+      imageId: q.imageId,
     );
   }
 }

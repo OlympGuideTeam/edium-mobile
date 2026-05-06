@@ -3,7 +3,9 @@ import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/live_session.dart';
 import 'package:edium/domain/repositories/live_repository.dart';
+import 'package:edium/presentation/live/live_session_completed_navigation.dart';
 import 'package:edium/presentation/shared/widgets/edium_button.dart';
+import 'package:edium/services/network/api_exception.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -63,11 +65,26 @@ class _LiveJoinNameScreenState extends State<LiveJoinNameScreen> {
           if (moduleId != null) 'moduleId': moduleId,
         },
       );
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
+      final m = widget.meta;
+      if (tryNavigateLiveStudentAfterJoinSessionCompleted(
+            e,
+            context: context,
+            sessionId: m.sessionId,
+            quizTitle: m.quizTitle,
+            questionCount: m.questionCount,
+            moduleId: m.moduleId,
+            replaceCurrentRoute: true,
+          )) {
+        setState(() => _loading = false);
+        return;
+      }
       setState(() {
         _loading = false;
-        _error = 'Не удалось войти. Попробуйте ещё раз.';
+        _error = e is ApiException && e.code == 'SESSION_COMPLETED'
+            ? e.message
+            : 'Не удалось войти. Попробуйте ещё раз.';
       });
     }
   }

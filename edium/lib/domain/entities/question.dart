@@ -41,6 +41,9 @@ class Question {
 
   final int? maxScore;
 
+  /// Riddler: идентификатор картинки к тексту вопроса (Louvre).
+  final String? imageId;
+
   const Question({
     required this.id,
     required this.text,
@@ -50,6 +53,7 @@ class Question {
     required this.orderIndex,
     this.metadata,
     this.maxScore,
+    this.imageId,
   });
 
   Question copyWith({
@@ -63,6 +67,8 @@ class Question {
     bool clearMetadata = false,
     int? maxScore,
     bool clearMaxScore = false,
+    String? imageId,
+    bool clearImageId = false,
   }) {
     return Question(
       id: id ?? this.id,
@@ -73,6 +79,7 @@ class Question {
       orderIndex: orderIndex ?? this.orderIndex,
       metadata: clearMetadata ? null : (metadata ?? this.metadata),
       maxScore: clearMaxScore ? null : (maxScore ?? this.maxScore),
+      imageId: clearImageId ? null : (imageId ?? this.imageId),
     );
   }
 }

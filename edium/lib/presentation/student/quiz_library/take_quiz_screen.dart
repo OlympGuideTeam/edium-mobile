@@ -2,6 +2,7 @@ import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
+import 'package:edium/presentation/shared/widgets/question_image_widget.dart';
 import 'package:edium/services/navigation_block_service/navigation_block_service.dart';
 import 'package:edium/domain/entities/quiz_attempt.dart';
 import 'package:edium/presentation/shared/mixins/screen_protection_mixin.dart';
@@ -521,6 +522,10 @@ class _QuestionPageState extends State<_QuestionPage>
                 height: 1.4,
               ),
             ),
+            if (widget.question.imageId != null) ...[
+              const SizedBox(height: 16),
+              QuestionImageWidget(imageId: widget.question.imageId!),
+            ],
             const SizedBox(height: 24),
             _buildAnswerWidget(context),
             if (widget.question.type ==
