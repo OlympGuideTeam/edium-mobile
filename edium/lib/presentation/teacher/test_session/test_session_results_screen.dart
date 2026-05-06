@@ -599,6 +599,7 @@ class _StatusBadge extends StatelessWidget {
           icon: Icons.edit_outlined,
         );
       case AttemptStatus.completed:
+      case AttemptStatus.published:
         return const SizedBox.shrink();
     }
   }

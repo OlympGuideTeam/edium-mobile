@@ -1,3 +1,23 @@
+class QuizAttemptSummary {
+  final String id;
+  final String sessionId;
+  final String sessionType;
+  final String status;
+  final double? score;
+  final DateTime startedAt;
+  final DateTime? finishedAt;
+
+  const QuizAttemptSummary({
+    required this.id,
+    required this.sessionId,
+    required this.sessionType,
+    required this.status,
+    this.score,
+    required this.startedAt,
+    this.finishedAt,
+  });
+}
+
 class QuizDefaultSettings {
   final int? totalTimeLimitSec;
   final int? questionTimeLimitSec;
@@ -21,6 +41,7 @@ class LibraryQuiz {
   final bool needEvaluation;
   final int questionCount;
   final String? libraryTestSessionId;
+  final List<QuizAttemptSummary> attempts;
 
   const LibraryQuiz({
     required this.id,
@@ -33,6 +54,7 @@ class LibraryQuiz {
     required this.needEvaluation,
     required this.questionCount,
     this.libraryTestSessionId,
+    this.attempts = const [],
   });
 
   bool get hasTimeLimit => defaultSettings.totalTimeLimitSec != null;
