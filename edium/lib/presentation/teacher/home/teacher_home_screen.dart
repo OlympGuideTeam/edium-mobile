@@ -267,13 +267,13 @@ class _AwaitingReviewCard extends StatelessWidget {
               Row(
                 children: [
                   _StatusChip(
-                    label: 'учит.',
+                    label: 'к проверке',
                     count: session.gradedCount,
                     active: session.gradedCount > 0,
                   ),
                   const SizedBox(width: 6),
                   _StatusChip(
-                    label: 'ИИ',
+                    label: 'у ИИ',
                     count: session.gradingCount,
                     active: false,
                   ),

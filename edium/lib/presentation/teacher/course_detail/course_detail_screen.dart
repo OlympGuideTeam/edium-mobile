@@ -2533,18 +2533,26 @@ class _SheetTableState extends State<_SheetTable> {
     required Color rowBg,
     required VoidCallback onTap,
   }) {
-    final effectiveScore = score ?? 0.0;
     final Color chipBg;
     final Color chipFg;
-    if (effectiveScore >= 80) {
+    final String label;
+
+    if (score == null) {
+      chipBg = AppColors.mono100;
+      chipFg = AppColors.mono400;
+      label = '—';
+    } else if (score >= 80) {
       chipBg = const Color(0xFFDCFCE7);
       chipFg = const Color(0xFF15803D);
-    } else if (effectiveScore >= 60) {
+      label = score.toStringAsFixed(0);
+    } else if (score >= 60) {
       chipBg = const Color(0xFFFEF9C3);
       chipFg = const Color(0xFF854D0E);
+      label = score.toStringAsFixed(0);
     } else {
       chipBg = const Color(0xFFFEE2E2);
       chipFg = const Color(0xFFB91C1C);
+      label = score.toStringAsFixed(0);
     }
 
     return GestureDetector(
@@ -2561,7 +2569,7 @@ class _SheetTableState extends State<_SheetTable> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              effectiveScore.toStringAsFixed(0),
+              label,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -2610,20 +2618,27 @@ class _SheetTableState extends State<_SheetTable> {
     required String quizTitle,
     required double? score,
   }) {
-    final effectiveScore = score ?? 0.0;
     final Color chipBg;
     final Color chipFg;
-    if (effectiveScore >= 80) {
+    final String label;
+
+    if (score == null) {
+      chipBg = AppColors.mono100;
+      chipFg = AppColors.mono400;
+      label = '—';
+    } else if (score >= 80) {
       chipBg = const Color(0xFFDCFCE7);
       chipFg = const Color(0xFF15803D);
-    } else if (effectiveScore >= 60) {
+      label = score.toStringAsFixed(0);
+    } else if (score >= 60) {
       chipBg = const Color(0xFFFEF9C3);
       chipFg = const Color(0xFF854D0E);
+      label = score.toStringAsFixed(0);
     } else {
       chipBg = const Color(0xFFFEE2E2);
       chipFg = const Color(0xFFB91C1C);
+      label = score.toStringAsFixed(0);
     }
-    final label = effectiveScore.toStringAsFixed(0);
 
     showModalBottomSheet(
       context: context,
@@ -2680,11 +2695,13 @@ class _SheetTableState extends State<_SheetTable> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                const Text(
-                  '/ 100',
-                  style: TextStyle(fontSize: 14, color: AppColors.mono300),
-                ),
+                if (score != null) ...[
+                  const SizedBox(width: 8),
+                  const Text(
+                    '/ 100',
+                    style: TextStyle(fontSize: 14, color: AppColors.mono300),
+                  ),
+                ],
               ],
             ),
           ],
