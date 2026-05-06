@@ -1,5 +1,47 @@
 import 'package:edium/domain/entities/library_quiz.dart';
 
+class QuizAttemptSummaryModel {
+  final String id;
+  final String sessionId;
+  final String sessionType;
+  final String status;
+  final double? score;
+  final String startedAt;
+  final String? finishedAt;
+
+  const QuizAttemptSummaryModel({
+    required this.id,
+    required this.sessionId,
+    required this.sessionType,
+    required this.status,
+    this.score,
+    required this.startedAt,
+    this.finishedAt,
+  });
+
+  factory QuizAttemptSummaryModel.fromJson(Map<String, dynamic> json) {
+    return QuizAttemptSummaryModel(
+      id: json['id'] as String,
+      sessionId: json['session_id'] as String,
+      sessionType: json['session_type'] as String? ?? 'test',
+      status: json['status'] as String,
+      score: (json['score'] as num?)?.toDouble(),
+      startedAt: json['started_at'] as String,
+      finishedAt: json['finished_at'] as String?,
+    );
+  }
+
+  QuizAttemptSummary toEntity() => QuizAttemptSummary(
+        id: id,
+        sessionId: sessionId,
+        sessionType: sessionType,
+        status: status,
+        score: score,
+        startedAt: DateTime.parse(startedAt),
+        finishedAt: finishedAt != null ? DateTime.parse(finishedAt!) : null,
+      );
+}
+
 class QuizDefaultSettingsModel {
   final int? totalTimeLimitSec;
   final int? questionTimeLimitSec;
@@ -45,6 +87,7 @@ class LibraryQuizModel {
   final bool needEvaluation;
   final int questionCount;
   final String? libraryTestSessionId;
+  final List<QuizAttemptSummaryModel> attempts;
 
   const LibraryQuizModel({
     required this.id,
@@ -57,6 +100,7 @@ class LibraryQuizModel {
     required this.needEvaluation,
     required this.questionCount,
     this.libraryTestSessionId,
+    this.attempts = const [],
   });
 
   factory LibraryQuizModel.fromJson(Map<String, dynamic> json) {
@@ -73,6 +117,9 @@ class LibraryQuizModel {
       needEvaluation: json['need_evaluation'] as bool? ?? false,
       questionCount: json['question_count'] as int? ?? 0,
       libraryTestSessionId: json['library_test_session_id'] as String?,
+      attempts: (json['attempts'] as List<dynamic>? ?? [])
+          .map((e) => QuizAttemptSummaryModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 
@@ -101,5 +148,6 @@ class LibraryQuizModel {
         needEvaluation: needEvaluation,
         questionCount: questionCount,
         libraryTestSessionId: libraryTestSessionId,
+        attempts: attempts.map((e) => e.toEntity()).toList(),
       );
 }

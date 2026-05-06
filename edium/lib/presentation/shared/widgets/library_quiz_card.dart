@@ -7,8 +7,29 @@ import 'package:flutter/material.dart';
 class LibraryQuizCard extends StatelessWidget {
   final LibraryQuiz quiz;
   final VoidCallback? onTap;
+  final double? score;
+  final DateTime? date;
 
-  const LibraryQuizCard({super.key, required this.quiz, this.onTap});
+  const LibraryQuizCard({
+    super.key,
+    required this.quiz,
+    this.onTap,
+    this.score,
+    this.date,
+  });
+
+  String _fmtScore(double s) {
+    final str = s % 1 == 0 ? s.toInt().toString() : s.toStringAsFixed(1);
+    return '$str / 10';
+  }
+
+  static const _months = [
+    'янв', 'фев', 'мар', 'апр', 'май', 'июн',
+    'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
+  ];
+
+  String _fmtDate(DateTime d) =>
+      '${d.day} ${_months[d.month - 1]} ${d.year}';
 
   @override
   Widget build(BuildContext context) {
@@ -29,12 +50,24 @@ class LibraryQuizCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _Tag(
-                    label: quiz.questionCount == 1
-                        ? '1 ВОПРОС'
-                        : '${quiz.questionCount} ВОПРОСОВ',
-                    bg: AppColors.mono50,
-                    fg: AppColors.mono400,
+                  Row(
+                    children: [
+                      _Tag(
+                        label: quiz.questionCount == 1
+                            ? '1 ВОПРОС'
+                            : '${quiz.questionCount} ВОПРОСОВ',
+                        bg: AppColors.mono50,
+                        fg: AppColors.mono400,
+                      ),
+                      if (score != null) ...[
+                        const SizedBox(width: 6),
+                        _Tag(
+                          label: _fmtScore(score!),
+                          bg: AppColors.mono900,
+                          fg: Colors.white,
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 10),
                   Text(
@@ -58,22 +91,36 @@ class LibraryQuizCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
-                  if (quiz.hasTimeLimit) ...[
+                  if (quiz.hasTimeLimit || date != null) ...[
                     const SizedBox(height: 12),
-                    _InfoChip(
-                      icon: Icons.timer_outlined,
-                      label: '${quiz.timeLimitMinutes} мин',
+                    Row(
+                      children: [
+                        if (quiz.hasTimeLimit)
+                          _InfoChip(
+                            icon: Icons.timer_outlined,
+                            label: '${quiz.timeLimitMinutes} мин',
+                          ),
+                        if (quiz.hasTimeLimit && date != null)
+                          const SizedBox(width: 6),
+                        if (date != null)
+                          _InfoChip(
+                            icon: Icons.calendar_today_outlined,
+                            label: _fmtDate(date!),
+                          ),
+                      ],
                     ),
                   ],
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 14,
-              color: AppColors.mono250,
-            ),
+            if (onTap != null) ...[
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.arrow_forward_ios,
+                size: 14,
+                color: AppColors.mono250,
+              ),
+            ],
           ],
         ),
       ),

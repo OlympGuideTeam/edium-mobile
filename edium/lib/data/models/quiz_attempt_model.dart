@@ -198,6 +198,9 @@ class AttemptResultModel {
       case 'completed':
         st = AttemptStatus.completed;
         break;
+      case 'published':
+        st = AttemptStatus.published;
+        break;
       default:
         st = AttemptStatus.inProgress;
     }
