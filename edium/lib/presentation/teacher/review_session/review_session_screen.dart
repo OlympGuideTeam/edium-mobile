@@ -49,6 +49,10 @@ class _Loaded extends _State {
       );
 }
 
+class _Published extends _State {
+  const _Published();
+}
+
 class _Error extends _State {
   final String message;
   const _Error(this.message);
@@ -91,8 +95,7 @@ class _Cubit extends Cubit<_State> {
     emit(current.copyWith(isPublishing: true, publishError: null));
     try {
       await _publish(sessionId);
-      // Перезагрузить список, чтобы отразить статус published
-      await _load();
+      emit(const _Published());
     } catch (e) {
       emit(current.copyWith(isPublishing: false, publishError: e.toString()));
     }
@@ -139,6 +142,35 @@ class _View extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return BlocListener<_Cubit, _State>(
+      listener: (context, state) {
+        if (state is _Published) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Результаты опубликованы')),
+          );
+          context.pop();
+        }
+        if (state is _Loaded && state.publishError != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Ошибка публикации: ${state.publishError}'),
+            ),
+          );
+        }
+      },
+      child: _ViewBody(sessionId: sessionId, quizTitle: quizTitle),
+    );
+  }
+}
+
+class _ViewBody extends StatelessWidget {
+  final String sessionId;
+  final String quizTitle;
+
+  const _ViewBody({required this.sessionId, required this.quizTitle});
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -159,9 +191,9 @@ class _View extends StatelessWidget {
                       message: message,
                       onRetry: () => context.read<_Cubit>().refresh(),
                     ),
+                  _Published() => const Center(child: SizedBox.shrink()),
                   _Loaded(:final attempts, :final isPublishing, :final publishError) =>
                     _LoadedBody(
-                      attempts: attempts,
                       sessionId: sessionId,
                       onRefresh: () => context.read<_Cubit>().refresh(),
                       state: _Loaded(
@@ -261,13 +293,11 @@ class _ErrorBody extends StatelessWidget {
 // ─── Загруженное тело ─────────────────────────────────────────────────────────
 
 class _LoadedBody extends StatelessWidget {
-  final List<AttemptSummary> attempts;
   final String sessionId;
   final Future<void> Function() onRefresh;
   final _Loaded state;
 
   const _LoadedBody({
-    required this.attempts,
     required this.sessionId,
     required this.onRefresh,
     required this.state,
@@ -275,16 +305,7 @@ class _LoadedBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Показать snackbar при ошибке публикации
-    if (state.publishError != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка публикации: ${state.publishError}'),
-          ),
-        );
-      });
-    }
+    final attempts = state.attempts;
 
     if (attempts.isEmpty) {
       return Center(
@@ -502,6 +523,30 @@ class _AttemptTile extends StatelessWidget {
 
   const _AttemptTile({required this.attempt, required this.onTap});
 
+  Widget _trailingIcon(AttemptStatus status) {
+    if (status == AttemptStatus.graded) {
+      return const Icon(Icons.chevron_right, color: AppColors.mono400);
+    }
+    if (status == AttemptStatus.grading) {
+      return const SizedBox(
+        width: 16,
+        height: 16,
+        child: CircularProgressIndicator(
+          color: AppColors.mono300,
+          strokeWidth: 2,
+        ),
+      );
+    }
+    if (status == AttemptStatus.completed) {
+      return const Icon(
+        Icons.check_circle_outline,
+        color: AppColors.mono400,
+        size: 20,
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isGraded = attempt.status == AttemptStatus.graded;
@@ -555,18 +600,7 @@ class _AttemptTile extends StatelessWidget {
                   ],
                 ),
               ),
-              if (isCompleted)
-                const Icon(
-                  Icons.check_circle_outline,
-                  color: AppColors.mono400,
-                  size: 20,
-                )
-              else
-                const Icon(
-                  Icons.chevron_right,
-                  color: AppColors.mono300,
-                  size: 20,
-                ),
+              _trailingIcon(attempt.status),
             ],
           ),
         ),
