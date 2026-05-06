@@ -1,6 +1,7 @@
 import 'package:edium/core/storage/profile_storage.dart';
 import 'package:edium/data/datasources/course/course_datasource.dart';
 import 'package:edium/domain/entities/course_detail.dart';
+import 'package:edium/domain/entities/session_status_item.dart';
 
 final _mockModules = <String, ModuleDetail>{
   'module-1': ModuleDetail(
@@ -330,6 +331,14 @@ class CourseDatasourceMock implements ICourseDatasource {
     required List<String> moduleIds,
   }) async {
     await Future.delayed(const Duration(milliseconds: 200));
+  }
+
+  @override
+  Future<Map<String, SessionStatusItem>> getSessionStatuses(
+    List<String> sessionIds,
+  ) async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    return const {};
   }
 
   @override

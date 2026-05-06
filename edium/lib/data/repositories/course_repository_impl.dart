@@ -1,5 +1,6 @@
 import 'package:edium/data/datasources/course/course_datasource.dart';
 import 'package:edium/domain/entities/course_detail.dart';
+import 'package:edium/domain/entities/session_status_item.dart';
 import 'package:edium/domain/repositories/course_repository.dart';
 
 class CourseRepositoryImpl implements ICourseRepository {
@@ -54,5 +55,12 @@ class CourseRepositoryImpl implements ICourseRepository {
   @override
   Future<CourseSheet> getCourseSheet({required String courseId}) {
     return _datasource.getCourseSheet(courseId: courseId);
+  }
+
+  @override
+  Future<Map<String, SessionStatusItem>> getSessionStatuses(
+    List<String> sessionIds,
+  ) {
+    return _datasource.getSessionStatuses(sessionIds);
   }
 }

@@ -112,7 +112,7 @@ class DioHandler {
           },
           onError: (error, handler) {
             debugPrint('[API ✗] ${error.response?.statusCode} ${error.requestOptions.uri}');
-            debugPrint('[API ✗] ${error.message}');
+            debugPrint('[API ✗] type=${error.type} msg=${error.message}');
             if (error.response?.data != null) debugPrint('[API ✗] data: ${error.response?.data}');
             handler.next(error);
           },

@@ -152,6 +152,7 @@ class _EditQuizTemplateScreenState extends State<EditQuizTemplateScreen> {
       'type': _questionTypeStr[q.type] ?? 'single_choice',
       'text': q.text,
       'max_score': q.maxScore ?? 10,
+      if (q.imageId != null) 'image_id': q.imageId,
       'answer_options': q.options
           .map((o) => {'text': o.text, 'is_correct': o.isCorrect})
           .toList(),

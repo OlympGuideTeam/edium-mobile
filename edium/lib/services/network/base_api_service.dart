@@ -73,6 +73,8 @@ abstract class BaseApiService {
         return 'Сессия истекла. Войдите снова';
       case 'VALIDATION_ERROR':
         return 'Некорректные данные запроса';
+      case 'SESSION_COMPLETED':
+        return 'Сессия уже завершена';
       default:
         return 'Ошибка: $code';
     }

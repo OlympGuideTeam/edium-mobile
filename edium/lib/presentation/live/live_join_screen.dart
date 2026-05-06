@@ -3,7 +3,9 @@ import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/live_session.dart';
 import 'package:edium/domain/repositories/live_repository.dart';
+import 'package:edium/presentation/live/live_session_completed_navigation.dart';
 import 'package:edium/presentation/shared/widgets/edium_button.dart';
+import 'package:edium/services/network/api_exception.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -50,11 +52,12 @@ class _LiveJoinScreenState extends State<LiveJoinScreen> {
       _error = null;
     });
 
+    LiveSessionMeta? meta;
     try {
       final repo = getIt<ILiveRepository>();
 
       // Step 1: resolve code → session meta
-      final meta = await repo.resolveLiveCode(code);
+      meta = await repo.resolveLiveCode(code);
 
       if (!mounted) return;
 
@@ -84,9 +87,24 @@ class _LiveJoinScreenState extends State<LiveJoinScreen> {
       );
     } catch (e) {
       if (!mounted) return;
+      final m = meta;
+      if (m != null &&
+          tryNavigateLiveStudentAfterJoinSessionCompleted(
+            e,
+            context: context,
+            sessionId: m.sessionId,
+            quizTitle: m.quizTitle,
+            questionCount: m.questionCount,
+            moduleId: m.moduleId,
+          )) {
+        setState(() => _loading = false);
+        return;
+      }
       setState(() {
         _loading = false;
-        _error = e.toString();
+        _error = e is ApiException && e.code == 'SESSION_COMPLETED'
+            ? e.message
+            : e.toString();
       });
     }
   }

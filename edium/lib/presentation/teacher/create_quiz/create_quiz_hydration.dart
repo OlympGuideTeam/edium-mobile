@@ -8,6 +8,8 @@ Map<String, dynamic> questionEntityToCreateMap(Question q) {
   final maxScore = q.maxScore ?? 10;
   final meta =
       q.metadata != null ? Map<String, dynamic>.from(q.metadata!) : null;
+  final imageEntry =
+      q.imageId != null ? <String, dynamic>{'image_id': q.imageId!} : <String, dynamic>{};
 
   switch (q.type) {
     case QuestionType.multiChoice:
@@ -15,6 +17,7 @@ Map<String, dynamic> questionEntityToCreateMap(Question q) {
         'type': 'multiple_choice',
         'text': q.text,
         'max_score': maxScore,
+        ...imageEntry,
         'answer_options': q.options
             .map((o) => {'text': o.text, 'is_correct': o.isCorrect})
             .toList(),
@@ -24,6 +27,7 @@ Map<String, dynamic> questionEntityToCreateMap(Question q) {
         'type': 'with_free_answer',
         'text': q.text,
         'max_score': maxScore,
+        ...imageEntry,
         'answer_options': <Map<String, dynamic>>[],
       };
     case QuestionType.withGivenAnswer:
@@ -31,6 +35,7 @@ Map<String, dynamic> questionEntityToCreateMap(Question q) {
         'type': 'with_given_answer',
         'text': q.text,
         'max_score': maxScore,
+        ...imageEntry,
         'answer_options': <Map<String, dynamic>>[],
         if (meta != null) 'metadata': meta,
       };
@@ -39,6 +44,7 @@ Map<String, dynamic> questionEntityToCreateMap(Question q) {
         'type': 'drag',
         'text': q.text,
         'max_score': maxScore,
+        ...imageEntry,
         'answer_options': <Map<String, dynamic>>[],
         if (meta != null) 'metadata': meta,
       };
@@ -47,6 +53,7 @@ Map<String, dynamic> questionEntityToCreateMap(Question q) {
         'type': 'connection',
         'text': q.text,
         'max_score': maxScore,
+        ...imageEntry,
         'answer_options': <Map<String, dynamic>>[],
         if (meta != null) 'metadata': meta,
       };
@@ -55,6 +62,7 @@ Map<String, dynamic> questionEntityToCreateMap(Question q) {
         'type': 'single_choice',
         'text': q.text,
         'max_score': maxScore,
+        ...imageEntry,
         'answer_options': q.options
             .map((o) => {'text': o.text, 'is_correct': o.isCorrect})
             .toList(),

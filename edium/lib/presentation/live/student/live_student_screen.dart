@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
+import 'package:edium/presentation/shared/widgets/question_image_widget.dart';
 import 'package:edium/domain/entities/live_question.dart';
 import 'package:edium/domain/entities/question.dart';
 import 'package:edium/domain/entities/live_results.dart';
@@ -417,6 +418,10 @@ class _QuestionPhase extends StatelessWidget {
                         height: 1.4,
                       ),
                     ),
+                    if (state.question.imageId != null) ...[
+                      const SizedBox(height: 16),
+                      QuestionImageWidget(imageId: state.question.imageId!, dark: true),
+                    ],
                     const SizedBox(height: 24),
                     if (!state.hasAnswered)
                       _AnswerOptions(
@@ -1624,8 +1629,18 @@ class _LockedPhase extends StatelessWidget {
                         height: 1.4,
                       ),
                     ),
+                    if (state.question.imageId != null) ...[
+                      const SizedBox(height: 16),
+                      QuestionImageWidget(imageId: state.question.imageId!, dark: true),
+                    ],
                     const SizedBox(height: 24),
                     _buildLockedContent(),
+                    const SizedBox(height: 24),
+                    _GivenAnswerDistribution(
+                      stats: state.stats is LiveBinaryStats
+                          ? state.stats as LiveBinaryStats
+                          : null,
+                    ),
                   ],
                 ),
               ),
@@ -1673,6 +1688,132 @@ class _LockedPhase extends StatelessWidget {
       default:
         return const SizedBox.shrink();
     }
+  }
+}
+
+// Верно/неверно по классу — всегда на экране locked; тёмная карточка как у вариантов ответа
+class _GivenAnswerDistribution extends StatelessWidget {
+  final LiveBinaryStats? stats;
+  const _GivenAnswerDistribution({required this.stats});
+
+  static const _green = Color(0xFF22C55E);
+
+  @override
+  Widget build(BuildContext context) {
+    final total = stats?.answeredCount ?? 0;
+    final correct = stats?.correctCount ?? 0;
+    final incorrect = stats?.incorrectCount ?? 0;
+    final correctPct = total > 0 ? correct / total : 0.0;
+    final incorrectPct = total > 0 ? incorrect / total : 0.0;
+
+    final track = Colors.white.withValues(alpha: 0.08);
+    const labelStyle = TextStyle(
+      fontSize: 12,
+      color: AppColors.liveDarkMuted,
+    );
+    const countStyle = TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      color: Colors.white,
+      fontFeatures: [FontFeature.tabularFigures()],
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.liveDarkCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.liveDarkBorder, width: 1.5),
+      ),
+      child: Column(
+        children: [
+          _BinaryBar(
+            label: 'Верно',
+            count: correct,
+            pct: correctPct,
+            fillColor: _green,
+            trackColor: track,
+            labelStyle: labelStyle,
+            countStyle: countStyle,
+          ),
+          const SizedBox(height: 8),
+          _BinaryBar(
+            label: 'Неверно',
+            count: incorrect,
+            pct: incorrectPct,
+            fillColor: Colors.white.withValues(alpha: 0.22),
+            trackColor: track,
+            labelStyle: labelStyle,
+            countStyle: countStyle,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BinaryBar extends StatelessWidget {
+  final String label;
+  final int count;
+  final double pct;
+  final Color fillColor;
+  final Color trackColor;
+  final TextStyle labelStyle;
+  final TextStyle countStyle;
+
+  const _BinaryBar({
+    required this.label,
+    required this.count,
+    required this.pct,
+    required this.fillColor,
+    required this.trackColor,
+    required this.labelStyle,
+    required this.countStyle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 56,
+          child: Text(label, style: labelStyle),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: SizedBox(
+              height: 8,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ColoredBox(color: trackColor),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: AnimatedFractionallySizedBox(
+                      duration: const Duration(milliseconds: 400),
+                      widthFactor: pct.clamp(0.0, 1.0),
+                      heightFactor: 1.0,
+                      child: ColoredBox(color: fillColor),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 28,
+          child: Text(
+            '$count',
+            style: countStyle,
+            textAlign: TextAlign.end,
+          ),
+        ),
+      ],
+    );
   }
 }
 

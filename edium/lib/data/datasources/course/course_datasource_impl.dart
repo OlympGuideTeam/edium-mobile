@@ -1,6 +1,7 @@
 import 'package:edium/data/datasources/course/course_datasource.dart';
 import 'package:edium/data/models/course_detail_model.dart';
 import 'package:edium/domain/entities/course_detail.dart';
+import 'package:edium/domain/entities/session_status_item.dart';
 import 'package:edium/services/network/base_api_service.dart';
 import 'package:edium/services/network/http_method.dart';
 
@@ -91,6 +92,31 @@ class CourseDatasourceImpl extends BaseApiService implements ICourseDatasource {
       method: HttpMethod.get,
       parser: (data) =>
           CourseSheetModel.fromJson(data as Map<String, dynamic>).toEntity(),
+    );
+  }
+
+  @override
+  Future<Map<String, SessionStatusItem>> getSessionStatuses(
+    List<String> sessionIds,
+  ) {
+    return request(
+      'riddler/v1/sessions/statuses',
+      method: HttpMethod.get,
+      query: {'ids': sessionIds.join(',')},
+      parser: (data) {
+        final items =
+            (data as Map<String, dynamic>)['items'] as List<dynamic>? ?? [];
+        return {
+          for (final e in items)
+            (e as Map<String, dynamic>)['session_id'] as String:
+                SessionStatusItem(
+              sessionId: e['session_id'] as String,
+              mode: e['mode'] as String,
+              status: e['status'] as String,
+              phase: e['phase'] as String?,
+            ),
+        };
+      },
     );
   }
 }

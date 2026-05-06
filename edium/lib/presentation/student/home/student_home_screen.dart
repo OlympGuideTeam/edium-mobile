@@ -7,6 +7,8 @@ import 'package:edium/domain/repositories/live_repository.dart';
 import 'package:edium/domain/usecases/live/get_active_lobby_usecase.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
+import 'package:edium/presentation/live/live_session_completed_navigation.dart';
+import 'package:edium/services/network/api_exception.dart';
 import 'package:edium/presentation/profile/profile_screen.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/student_quiz_bloc.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/student_quiz_event.dart';
@@ -337,9 +339,21 @@ class _ActiveLiveBanner extends StatelessWidget {
       );
     } catch (e) {
       nav.pop();
-      messenger.showSnackBar(
-        SnackBar(content: Text('Ошибка входа: $e')),
-      );
+      if (!context.mounted) return;
+      if (tryNavigateLiveStudentAfterJoinSessionCompleted(
+            e,
+            context: context,
+            sessionId: meta.sessionId,
+            quizTitle: meta.quizTitle,
+            questionCount: meta.questionCount,
+            moduleId: meta.moduleId,
+          )) {
+        return;
+      }
+      final msg = e is ApiException && e.code == 'SESSION_COMPLETED'
+          ? e.message
+          : 'Ошибка входа: $e';
+      messenger.showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 }

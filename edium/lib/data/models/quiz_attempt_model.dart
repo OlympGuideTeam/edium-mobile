@@ -23,7 +23,7 @@ class QuizQuestionForStudentModel {
   final String id;
   final String type;
   final String text;
-  final String? imageLink;
+  final String? imageId;
   final int maxScore;
   final List<QuestionOptionForStudentModel>? options;
   final Map<String, dynamic>? metadata;
@@ -32,7 +32,7 @@ class QuizQuestionForStudentModel {
     required this.id,
     required this.type,
     required this.text,
-    this.imageLink,
+    this.imageId,
     required this.maxScore,
     this.options,
     this.metadata,
@@ -43,7 +43,7 @@ class QuizQuestionForStudentModel {
       id: json['id'] as String,
       type: json['type'] as String,
       text: json['text'] as String,
-      imageLink: json['image_link'] as String?,
+      imageId: json['image_id'] as String?,
       maxScore: json['max_score'] as int? ?? 10,
       options: (json['options'] as List<dynamic>?)
           ?.map((e) => QuestionOptionForStudentModel.fromJson(
@@ -57,7 +57,7 @@ class QuizQuestionForStudentModel {
         'id': id,
         'type': type,
         'text': text,
-        if (imageLink != null) 'image_link': imageLink,
+        if (imageId != null) 'image_id': imageId,
         'max_score': maxScore,
         if (options != null)
           'options': options!.map((e) => e.toJson()).toList(),
@@ -70,7 +70,7 @@ class QuizQuestionForStudentModel {
       id: id,
       type: qType,
       text: text,
-      imageLink: imageLink,
+      imageId: imageId,
       maxScore: maxScore,
       options: options?.map((e) => e.toEntity()).toList(),
       metadata: metadata,
