@@ -155,6 +155,8 @@ class AttemptReviewModel {
         return AttemptStatus.graded;
       case 'completed':
         return AttemptStatus.completed;
+      case 'published':
+        return AttemptStatus.published;
       default:
         return AttemptStatus.inProgress;
     }

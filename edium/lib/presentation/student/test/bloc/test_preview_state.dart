@@ -9,9 +9,9 @@ enum TestPreviewStatus {
   resume,    // «Продолжить»
   locked,    // «Откроется DD MMM в HH:mm» (startedAt > now)
   expired,   // «Дедлайн истёк» (finishedAt < now и нет завершённого attempt)
-  grading,   // «Ответы проверяются…» (AttemptStatus.grading)
-  graded,    // «Результаты недоступны» (AttemptStatus.graded — оценено, но не опубликовано)
-  completed, // «Посмотреть результат» (AttemptStatus.completed)
+  grading,   // «Проверяется ИИ» (AttemptStatus.grading)
+  graded,    // «Ожидайте: учитель проверяет» (AttemptStatus.graded OR completed — не опубликовано)
+  published, // «Посмотреть результат» (AttemptStatus.published)
 }
 
 /// Чистая функция — покрыта unit-тестом.
@@ -21,13 +21,14 @@ TestPreviewStatus derivePreviewStatus({
   required AttemptStatus? latestAttemptStatus,
   required DateTime now,
 }) {
-  if (latestAttemptStatus == AttemptStatus.completed) {
-    return TestPreviewStatus.completed;
+  if (latestAttemptStatus == AttemptStatus.published) {
+    return TestPreviewStatus.published;
   }
   if (latestAttemptStatus == AttemptStatus.grading) {
     return TestPreviewStatus.grading;
   }
-  if (latestAttemptStatus == AttemptStatus.graded) {
+  if (latestAttemptStatus == AttemptStatus.graded ||
+      latestAttemptStatus == AttemptStatus.completed) {
     return TestPreviewStatus.graded;
   }
   if (meta.finishedAt != null && now.isAfter(meta.finishedAt!)) {
