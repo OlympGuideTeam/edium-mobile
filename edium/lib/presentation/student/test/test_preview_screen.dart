@@ -19,11 +19,13 @@ import 'package:intl/intl.dart';
 class TestPreviewScreen extends StatelessWidget {
   final String sessionId;
   final CourseItem? courseItem;
+  final String? quizTitle;
 
   const TestPreviewScreen({
     super.key,
     required this.sessionId,
     this.courseItem,
+    this.quizTitle,
   });
 
   TestSessionMeta _buildMeta() {
@@ -32,7 +34,7 @@ class TestPreviewScreen extends StatelessWidget {
     return TestSessionMeta(
       sessionId: sessionId,
       quizId: quizId,
-      title: item?.title ?? 'Тест',
+      title: item?.title ?? quizTitle ?? 'Тест',
       description: null,
       questionCount: 0,
       needEvaluation: item?.needEvaluation ?? false,
