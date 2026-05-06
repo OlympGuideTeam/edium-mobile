@@ -17,6 +17,7 @@ import 'package:edium/domain/entities/quiz.dart';
 import 'package:edium/domain/repositories/quiz_repository.dart';
 import 'package:edium/presentation/shared/widgets/edium_notification.dart';
 import 'package:edium/presentation/shared/widgets/edium_refresh_indicator.dart';
+import 'package:edium/presentation/shared/widgets/search_bar_widget.dart';
 import 'package:edium/presentation/teacher/course_detail/bloc/course_detail_bloc.dart';
 import 'package:edium/presentation/teacher/course_detail/bloc/course_detail_event.dart';
 import 'package:edium/presentation/teacher/course_detail/bloc/course_detail_state.dart';
@@ -831,7 +832,10 @@ class _TemplatePickerContentState extends State<_TemplatePickerContent> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Column(
       children: [
         const SizedBox(height: 14),
         Center(
@@ -866,50 +870,11 @@ class _TemplatePickerContentState extends State<_TemplatePickerContent> {
           padding: const EdgeInsets.symmetric(
             horizontal: AppDimens.screenPaddingH,
           ),
-          child: Container(
-            height: AppDimens.inputH,
-            decoration: BoxDecoration(
-              color: AppColors.mono100,
-              borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-            ),
-            child: TextField(
-              controller: _searchController,
-              cursorColor: AppColors.mono900,
-              style: AppTextStyles.fieldText,
-              onChanged: (v) => context.read<TemplateSearchCubit>().search(v),
-              decoration: InputDecoration(
-                hintText: 'Поиск шаблонов…',
-                hintStyle: AppTextStyles.fieldHint,
-                prefixIcon: const Icon(
-                  Icons.search,
-                  size: 20,
-                  color: AppColors.mono400,
-                ),
-                suffixIcon: ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _searchController,
-                  builder: (_, value, __) => value.text.isNotEmpty
-                      ? GestureDetector(
-                          onTap: () {
-                            _searchController.clear();
-                            context.read<TemplateSearchCubit>().search('');
-                          },
-                          child: const Icon(
-                            Icons.close,
-                            size: 18,
-                            color: AppColors.mono400,
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 14,
-                ),
-              ),
-            ),
+          child: SearchBarWidget(
+            controller: _searchController,
+            hint: 'Поиск шаблонов…',
+            onChanged: (v) => context.read<TemplateSearchCubit>().search(v),
+            onClear: () => context.read<TemplateSearchCubit>().search(''),
           ),
         ),
         const SizedBox(height: 14),
@@ -989,6 +954,7 @@ class _TemplatePickerContentState extends State<_TemplatePickerContent> {
           ),
         ),
       ],
+      ),
     );
   }
 }

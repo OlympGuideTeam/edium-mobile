@@ -27,6 +27,7 @@ import 'package:edium/presentation/profile/notifications/notifications_screen.da
 import 'package:edium/presentation/shared/widgets/legal_document_screen.dart';
 import 'package:edium/presentation/shared/test/attempt_review_screen.dart';
 import 'package:edium/presentation/teacher/grade_attempt/teacher_grade_attempt_screen.dart';
+import 'package:edium/presentation/teacher/review_session/review_session_screen.dart';
 import 'package:edium/presentation/shared/invite/invite_screen.dart';
 import 'package:edium/presentation/student/home/student_home_screen.dart';
 import 'package:edium/presentation/student/test/test_preview_screen.dart';
@@ -190,7 +191,8 @@ GoRouter buildRouter() {
           final sid = state.pathParameters['sessionId']!;
           final extra = state.extra as Map<String, dynamic>?;
           final courseItem = extra?['courseItem'] as CourseItem?;
-          return TestPreviewScreen(sessionId: sid, courseItem: courseItem);
+          final quizTitle = extra?['quizTitle'] as String?;
+          return TestPreviewScreen(sessionId: sid, courseItem: courseItem, quizTitle: quizTitle);
         },
       ),
       GoRoute(
@@ -223,6 +225,15 @@ GoRouter buildRouter() {
             classId: classId,
             courseItem: courseItem,
           );
+        },
+      ),
+      GoRoute(
+        path: '/teacher/review/:sessionId',
+        builder: (_, state) {
+          final sid = state.pathParameters['sessionId']!;
+          final extra = state.extra as Map<String, dynamic>?;
+          final title = extra?['quizTitle'] as String? ?? 'Проверка';
+          return ReviewSessionScreen(sessionId: sid, quizTitle: title);
         },
       ),
       GoRoute(
