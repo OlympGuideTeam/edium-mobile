@@ -93,11 +93,11 @@ class LiveRosterMember {
         name: json['name'] as String? ?? '',
       );
 
-  /// Caesar `MemberShort` в GET `/caesar/v1/modules/{moduleId}/roster`.
+  /// Caesar [MemberShort]: `id`, `name`, `surname` (GET `/caesar/v1/modules/{moduleId}/roster`).
   factory LiveRosterMember.fromModuleRosterMemberJson(
     Map<String, dynamic> json,
   ) {
-    final userId = json['user_id'] as String? ?? json['id'] as String? ?? '';
+    final userId = json['id'] as String? ?? json['user_id'] as String? ?? '';
     final name = json['name'] as String? ?? '';
     final surname = json['surname'] as String? ?? '';
     final parts = [name, surname].where((s) => s.isNotEmpty).toList();

@@ -49,9 +49,13 @@ class LiveDatasourceImpl extends BaseApiService implements ILiveDatasource {
         'caesar/v1/modules/$moduleId/roster',
         method: HttpMethod.get,
         parser: (data) {
-          final members =
-              (data as Map<String, dynamic>)['members'] as List<dynamic>? ?? [];
-          return members
+          final List<dynamic> raw = switch (data) {
+            final List<dynamic> list => list,
+            final Map<String, dynamic> map =>
+              map['members'] as List<dynamic>? ?? const [],
+            _ => const [],
+          };
+          return raw
               .map((e) => LiveRosterMember.fromModuleRosterMemberJson(
                     e as Map<String, dynamic>,
                   ))

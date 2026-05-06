@@ -1,4 +1,5 @@
 import 'package:edium/domain/entities/course_detail.dart';
+import 'package:edium/domain/entities/session_status_item.dart';
 
 abstract class ICourseRepository {
   Future<String> createCourse({required String title, required String classId});
@@ -13,4 +14,8 @@ abstract class ICourseRepository {
   });
 
   Future<CourseSheet> getCourseSheet({required String courseId});
+
+  Future<Map<String, SessionStatusItem>> getSessionStatuses(
+    List<String> sessionIds,
+  );
 }

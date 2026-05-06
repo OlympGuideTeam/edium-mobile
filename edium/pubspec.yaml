@@ -48,6 +48,10 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   # Screen protection
   no_screenshot: ^1.1.0
+  # Image picker
+  image_picker: ^1.1.2
+  # EXIF normalization before upload
+  image: ^4.3.0
 
 dev_dependencies:
   flutter_test:

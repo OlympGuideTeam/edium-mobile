@@ -9,6 +9,7 @@ import 'package:edium/domain/repositories/live_repository.dart';
 import 'package:edium/presentation/live/teacher/bloc/live_teacher_event.dart';
 import 'package:edium/presentation/live/teacher/bloc/live_teacher_state.dart';
 import 'package:edium/services/live_ws/live_ws_service.dart';
+import 'package:edium/services/network/api_exception.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
@@ -16,6 +17,7 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
   final LiveWsService _ws;
 
   String? _sessionId;
+  String? _moduleId;
   String _quizTitle = '';
   int _questionCount = 0;
   String? _joinCode;
@@ -52,6 +54,7 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
     Emitter<LiveTeacherState> emit,
   ) async {
     _sessionId = event.sessionId;
+    _moduleId = event.moduleId;
     _quizTitle = event.quizTitle;
     _questionCount = event.questionCount;
     _questionTotal = event.questionCount;
@@ -83,6 +86,13 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
           add(LiveTeacherWsEvent(wsEvent));
         },
       );
+    } on ApiException catch (e, st) {
+      debugPrint('[LiveTeacherBloc] connect error: $e\n$st');
+      if (e.code == 'SESSION_COMPLETED') {
+        emit(LiveTeacherCompleted());
+        return;
+      }
+      emit(LiveTeacherError('Ошибка подключения: ${e.message}'));
     } catch (e, st) {
       debugPrint('[LiveTeacherBloc] connect error: $e\n$st');
       emit(LiveTeacherError('Ошибка подключения: $e'));
@@ -217,6 +227,21 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
     return wsName.isNotEmpty ? wsName : userId ?? '?';
   }
 
+  /// Roster для имён в итогах — если сразу перешли к результатам, до WS roster мог не подгрузиться.
+  Future<void> _ensureRosterBeforeResults() async {
+    final mid = _moduleId;
+    if (_roster.isNotEmpty || mid == null || mid.isEmpty) return;
+    try {
+      final members = await _repo.getModuleRoster(mid);
+      _roster = {for (final m in members) m.userId: m.name};
+      debugPrint(
+        '[LiveTeacherBloc] roster loaded before results: ${_roster.length}',
+      );
+    } catch (e) {
+      debugPrint('[LiveTeacherBloc] roster before results unavailable: $e');
+    }
+  }
+
   /// Доля прошедшего времени вопроса по дедлайну (для полоски прогресса).
   double _timerFillFraction(DateTime deadlineAt, int timeLimitSec) {
     if (timeLimitSec <= 0) return 1.0;
@@ -326,6 +351,7 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
     if (sid == null) return;
     emit(LiveTeacherResultsLoading());
     try {
+      await _ensureRosterBeforeResults();
       final results = await _repo.getLiveResultsTeacher(sid);
       final leaderboard = results.leaderboard.map((row) {
         final resolved = row.userId != null ? _roster[row.userId!] : null;
