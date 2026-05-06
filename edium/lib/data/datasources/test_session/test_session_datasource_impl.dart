@@ -115,4 +115,13 @@ class TestSessionDatasourceImpl extends BaseApiService
       parser: (_) {},
     );
   }
+
+  @override
+  Future<void> publishSession(String sessionId) {
+    return request(
+      'riddler/v1/attempts/session/$sessionId/publish',
+      method: HttpMethod.post,
+      parser: (_) {},
+    );
+  }
 }

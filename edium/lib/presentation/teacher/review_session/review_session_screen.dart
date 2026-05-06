@@ -5,6 +5,7 @@ import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/attempt_summary.dart';
 import 'package:edium/domain/entities/quiz_attempt.dart' show AttemptStatus;
 import 'package:edium/domain/usecases/test_session/list_session_attempts_usecase.dart';
+import 'package:edium/domain/usecases/test_session/publish_session_usecase.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -24,9 +25,32 @@ class _Loading extends _State {
 
 class _Loaded extends _State {
   final List<AttemptSummary> attempts;
-  const _Loaded(this.attempts);
+  final bool isPublishing;
+  final String? publishError;
+
+  const _Loaded(
+    this.attempts, {
+    this.isPublishing = false,
+    this.publishError,
+  });
+
   @override
-  List<Object?> get props => [attempts];
+  List<Object?> get props => [attempts, isPublishing, publishError];
+
+  _Loaded copyWith({
+    List<AttemptSummary>? attempts,
+    bool? isPublishing,
+    String? publishError,
+  }) =>
+      _Loaded(
+        attempts ?? this.attempts,
+        isPublishing: isPublishing ?? this.isPublishing,
+        publishError: publishError,
+      );
+}
+
+class _Published extends _State {
+  const _Published();
 }
 
 class _Error extends _State {
@@ -38,9 +62,11 @@ class _Error extends _State {
 
 class _Cubit extends Cubit<_State> {
   final ListSessionAttemptsUsecase _usecase;
+  final PublishSessionUsecase _publish;
   final String sessionId;
 
-  _Cubit(this._usecase, this.sessionId) : super(const _Loading()) {
+  _Cubit(this._usecase, this._publish, this.sessionId)
+      : super(const _Loading()) {
     _load();
   }
 
@@ -53,7 +79,8 @@ class _Cubit extends Cubit<_State> {
       final reviewable = all
           .where((a) =>
               a.status == AttemptStatus.graded ||
-              a.status == AttemptStatus.grading)
+              a.status == AttemptStatus.grading ||
+              a.status == AttemptStatus.completed)
           .toList()
         ..sort((a, b) => _statusOrder(a.status) - _statusOrder(b.status));
       emit(_Loaded(reviewable));
@@ -62,9 +89,24 @@ class _Cubit extends Cubit<_State> {
     }
   }
 
-  // graded (ждут учителя) первыми, grading (у ИИ) — после
-  static int _statusOrder(AttemptStatus s) =>
-      s == AttemptStatus.graded ? 0 : 1;
+  Future<void> publish() async {
+    final current = state;
+    if (current is! _Loaded) return;
+    emit(current.copyWith(isPublishing: true, publishError: null));
+    try {
+      await _publish(sessionId);
+      emit(const _Published());
+    } catch (e) {
+      emit(current.copyWith(isPublishing: false, publishError: e.toString()));
+    }
+  }
+
+  // graded (ждут учителя) первыми, затем grading (у ИИ), затем completed
+  static int _statusOrder(AttemptStatus s) {
+    if (s == AttemptStatus.graded) return 0;
+    if (s == AttemptStatus.grading) return 1;
+    return 2; // completed
+  }
 }
 
 // ─── Экран ────────────────────────────────────────────────────────────────────
@@ -82,7 +124,11 @@ class ReviewSessionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => _Cubit(getIt<ListSessionAttemptsUsecase>(), sessionId),
+      create: (_) => _Cubit(
+        getIt<ListSessionAttemptsUsecase>(),
+        getIt<PublishSessionUsecase>(),
+        sessionId,
+      ),
       child: _View(sessionId: sessionId, quizTitle: quizTitle),
     );
   }
@@ -93,6 +139,35 @@ class _View extends StatelessWidget {
   final String quizTitle;
 
   const _View({required this.sessionId, required this.quizTitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<_Cubit, _State>(
+      listener: (context, state) {
+        if (state is _Published) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Результаты опубликованы')),
+          );
+          context.pop();
+        }
+        if (state is _Loaded && state.publishError != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Ошибка публикации: ${state.publishError}'),
+            ),
+          );
+        }
+      },
+      child: _ViewBody(sessionId: sessionId, quizTitle: quizTitle),
+    );
+  }
+}
+
+class _ViewBody extends StatelessWidget {
+  final String sessionId;
+  final String quizTitle;
+
+  const _ViewBody({required this.sessionId, required this.quizTitle});
 
   @override
   Widget build(BuildContext context) {
@@ -116,10 +191,16 @@ class _View extends StatelessWidget {
                       message: message,
                       onRetry: () => context.read<_Cubit>().refresh(),
                     ),
-                  _Loaded(:final attempts) => _LoadedBody(
-                      attempts: attempts,
+                  _Published() => const Center(child: SizedBox.shrink()),
+                  _Loaded(:final attempts, :final isPublishing, :final publishError) =>
+                    _LoadedBody(
                       sessionId: sessionId,
                       onRefresh: () => context.read<_Cubit>().refresh(),
+                      state: _Loaded(
+                        attempts,
+                        isPublishing: isPublishing,
+                        publishError: publishError,
+                      ),
                     ),
                 },
               ),
@@ -212,18 +293,20 @@ class _ErrorBody extends StatelessWidget {
 // ─── Загруженное тело ─────────────────────────────────────────────────────────
 
 class _LoadedBody extends StatelessWidget {
-  final List<AttemptSummary> attempts;
   final String sessionId;
   final Future<void> Function() onRefresh;
+  final _Loaded state;
 
   const _LoadedBody({
-    required this.attempts,
     required this.sessionId,
     required this.onRefresh,
+    required this.state,
   });
 
   @override
   Widget build(BuildContext context) {
+    final attempts = state.attempts;
+
     if (attempts.isEmpty) {
       return Center(
         child: Text(
@@ -237,34 +320,103 @@ class _LoadedBody extends StatelessWidget {
         attempts.where((a) => a.status == AttemptStatus.graded).length;
     final gradingCount =
         attempts.where((a) => a.status == AttemptStatus.grading).length;
+    final completedCount =
+        attempts.where((a) => a.status == AttemptStatus.completed).length;
+    final canPublish = attempts.isNotEmpty &&
+        attempts.every((a) => a.status == AttemptStatus.completed);
+    final remainingCount = attempts.length - completedCount;
 
-    return RefreshIndicator(
-      color: AppColors.mono700,
-      onRefresh: onRefresh,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(
-          AppDimens.screenPaddingH,
-          8,
-          AppDimens.screenPaddingH,
-          24,
-        ),
-        children: [
-          _SummaryStrip(gradedCount: gradedCount, gradingCount: gradingCount),
-          const SizedBox(height: 20),
-          ...attempts.map(
-            (a) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _AttemptTile(
-                attempt: a,
-                onTap: () => context.push(
-                  '/test/$sessionId/attempts/${a.attemptId}/grade',
-                ),
+    return Column(
+      children: [
+        Expanded(
+          child: RefreshIndicator(
+            color: AppColors.mono700,
+            onRefresh: onRefresh,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(
+                AppDimens.screenPaddingH,
+                8,
+                AppDimens.screenPaddingH,
+                24,
               ),
+              children: [
+                _SummaryStrip(
+                  gradedCount: gradedCount,
+                  gradingCount: gradingCount,
+                  completedCount: completedCount,
+                ),
+                const SizedBox(height: 20),
+                ...attempts.map(
+                  (a) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _AttemptTile(
+                      attempt: a,
+                      onTap: a.status == AttemptStatus.graded
+                          ? () => context.push(
+                                '/test/$sessionId/attempts/${a.attemptId}/grade',
+                              )
+                          : null,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppDimens.screenPaddingH,
+            8,
+            AppDimens.screenPaddingH,
+            16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: double.infinity,
+                height: AppDimens.buttonH,
+                child: ElevatedButton(
+                  onPressed: (canPublish && !state.isPublishing)
+                      ? () => context.read<_Cubit>().publish()
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.mono900,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: AppColors.mono200,
+                    disabledForegroundColor: AppColors.mono400,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                    ),
+                    textStyle: AppTextStyles.primaryButton,
+                  ),
+                  child: state.isPublishing
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text('Опубликовать результаты'),
+                ),
+              ),
+              if (!canPublish && remainingCount > 0) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'Осталось проверить: $remainingCount',
+                  style:
+                      AppTextStyles.caption.copyWith(color: AppColors.mono400),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -274,10 +426,12 @@ class _LoadedBody extends StatelessWidget {
 class _SummaryStrip extends StatelessWidget {
   final int gradedCount;
   final int gradingCount;
+  final int completedCount;
 
   const _SummaryStrip({
     required this.gradedCount,
     required this.gradingCount,
+    required this.completedCount,
   });
 
   @override
@@ -302,6 +456,12 @@ class _SummaryStrip extends StatelessWidget {
           _Cell(
             value: '$gradingCount',
             label: 'Проверяет ИИ',
+            highlight: false,
+          ),
+          _Divider(),
+          _Cell(
+            value: '$completedCount',
+            label: 'Проверено',
             highlight: false,
           ),
         ],
@@ -363,9 +523,34 @@ class _AttemptTile extends StatelessWidget {
 
   const _AttemptTile({required this.attempt, required this.onTap});
 
+  Widget _trailingIcon(AttemptStatus status) {
+    if (status == AttemptStatus.graded) {
+      return const Icon(Icons.chevron_right, color: AppColors.mono400);
+    }
+    if (status == AttemptStatus.grading) {
+      return const SizedBox(
+        width: 16,
+        height: 16,
+        child: CircularProgressIndicator(
+          color: AppColors.mono300,
+          strokeWidth: 2,
+        ),
+      );
+    }
+    if (status == AttemptStatus.completed) {
+      return const Icon(
+        Icons.check_circle_outline,
+        color: AppColors.mono400,
+        size: 20,
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isGraded = attempt.status == AttemptStatus.graded;
+    final isCompleted = attempt.status == AttemptStatus.completed;
     final name = attempt.userName?.isNotEmpty == true
         ? attempt.userName!
         : attempt.userId;
@@ -399,21 +584,23 @@ class _AttemptTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      isGraded ? 'Ждёт проверки учителя' : 'Проверяет ИИ',
+                      isGraded
+                          ? 'Ждёт проверки учителя'
+                          : isCompleted
+                              ? 'Проверено'
+                              : 'Проверяет ИИ',
                       style: AppTextStyles.helperText.copyWith(
                         color: isGraded
                             ? AppColors.mono600
-                            : AppColors.mono300,
+                            : isCompleted
+                                ? AppColors.mono400
+                                : AppColors.mono300,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
-                Icons.chevron_right,
-                color: AppColors.mono300,
-                size: 20,
-              ),
+              _trailingIcon(attempt.status),
             ],
           ),
         ),
