@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:edium/core/di/injection.dart';
@@ -5,9 +6,12 @@ import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/presentation/shared/widgets/edium_button.dart';
+import 'package:edium/presentation/shared/widgets/question_image_widget.dart';
+import 'package:edium/services/louvre_service/louvre_service.dart';
 import 'package:edium/services/navigation_block_service/navigation_block_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 
 // ─── Question types ───────────────────────────────────────────────────────────
 
@@ -52,6 +56,12 @@ extension _QTypeX on _QType {
         _QType.connection => 50, // Для соответствия - 50 символов
         _ => 100, // Для всех остальных типов - 100 символов
       };
+
+  /// Картинка к тексту вопроса — только для вариантов с выбором / данным ответом.
+  bool get allowsQuestionImage => switch (this) {
+        _QType.withFreeAnswer || _QType.drag || _QType.connection => false,
+        _ => true,
+      };
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -72,6 +82,8 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
 
   final _textCtrl = TextEditingController();
   String? _error;
+  String? _imageId;
+  bool _uploadingImage = false;
 
   late final List<_OptionDraft> _options;
   late final List<TextEditingController> _correctAnswers;
@@ -99,6 +111,7 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
     );
     _displayed = _type;
     _textCtrl.text = q['text'] as String? ?? '';
+    _imageId = _type.allowsQuestionImage ? (q['image_id'] as String?) : null;
 
     final rawOpts = q['answer_options'] as List? ?? [];
     _options = rawOpts.isNotEmpty
@@ -148,6 +161,27 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+    if (picked == null) return;
+    setState(() => _uploadingImage = true);
+    try {
+      final id = await getIt<LouvreService>().uploadImage(File(picked.path));
+      setState(() => _imageId = id);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = 'Не удалось загрузить изображение');
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingImage = false);
+    }
+  }
+
+  void _removeImage() => setState(() => _imageId = null);
+
   void _changeType(_QType t) {
     if (_type == t || _switching) return;
     setState(() {
@@ -155,6 +189,10 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
       _switching = true;
       _error = null;
       _formOpacity = 0.0;
+      if (!t.allowsQuestionImage) {
+        _imageId = null;
+        _uploadingImage = false;
+      }
     });
     // Phase 1 done → swap form while invisible so AnimatedSize animates the height change
     Future.delayed(const Duration(milliseconds: 140), () {
@@ -205,6 +243,7 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
           'type': _type.apiValue,
           'text': text,
           'max_score': 10,
+          if (_imageId != null) 'image_id': _imageId,
           'answer_options': _options
               .map((o) => {'text': o.ctrl.text.trim(), 'is_correct': o.isCorrect})
               .toList(),
@@ -222,6 +261,7 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
           'type': _type.apiValue,
           'text': text,
           'max_score': 10,
+          if (_imageId != null) 'image_id': _imageId,
           'answer_options': [],
           'metadata': {'correct_answers': answers},
         };
@@ -319,6 +359,15 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _QuestionTextField(controller: _textCtrl),
+                          if (_type.allowsQuestionImage) ...[
+                            const SizedBox(height: 16),
+                            _ImageSection(
+                              imageId: _imageId,
+                              uploading: _uploadingImage,
+                              onPick: _pickImage,
+                              onRemove: _removeImage,
+                            ),
+                          ],
                           const SizedBox(height: 24),
                           AnimatedSize(
                             duration: const Duration(milliseconds: 200),
@@ -1657,4 +1706,95 @@ class _ConnectionPair {
   final id = UniqueKey();
   final leftCtrl = TextEditingController();
   final rightCtrl = TextEditingController();
+}
+
+// ─── Image section ────────────────────────────────────────────────────────────
+
+class _ImageSection extends StatelessWidget {
+  final String? imageId;
+  final bool uploading;
+  final VoidCallback onPick;
+  final VoidCallback onRemove;
+
+  const _ImageSection({
+    required this.imageId,
+    required this.uploading,
+    required this.onPick,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (uploading) {
+      return Container(
+        height: 180,
+        decoration: BoxDecoration(
+          color: AppColors.mono25,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.mono150),
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: AppColors.mono700, strokeWidth: 2),
+              SizedBox(height: 12),
+              Text('Загрузка изображения...', style: AppTextStyles.helperText),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (imageId != null) {
+      return Stack(
+        children: [
+          QuestionImageWidget(imageId: imageId!),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: onRemove,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.close, color: Colors.white, size: 16),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return GestureDetector(
+      onTap: onPick,
+      child: CustomPaint(
+        painter: _DashedBorderPainter(
+          color: AppColors.mono300,
+          radius: AppDimens.radiusLg,
+          strokeWidth: AppDimens.borderWidth,
+        ),
+        child: Container(
+          width: double.infinity,
+          height: AppDimens.buttonHSm,
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.image_outlined, size: 16, color: AppColors.mono400),
+              const SizedBox(width: 6),
+              Text(
+                'Добавить изображение',
+                style: AppTextStyles.fieldText.copyWith(color: AppColors.mono400),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

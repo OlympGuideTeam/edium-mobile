@@ -18,7 +18,7 @@ class QuizQuestionForStudent {
   final String id;
   final QuizQuestionType type;
   final String text;
-  final String? imageLink;
+  final String? imageId;
   final int maxScore;
   final List<QuestionOptionForStudent>? options;
   final Map<String, dynamic>? metadata;
@@ -27,7 +27,7 @@ class QuizQuestionForStudent {
     required this.id,
     required this.type,
     required this.text,
-    this.imageLink,
+    this.imageId,
     required this.maxScore,
     this.options,
     this.metadata,

@@ -7,7 +7,9 @@ import 'package:share_plus/share_plus.dart';
 import 'package:edium/domain/usecases/course/get_course_sheet_usecase.dart';
 import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
+import 'package:edium/domain/entities/session_status_item.dart';
 import 'package:edium/domain/usecases/course/get_module_detail_usecase.dart';
+import 'package:edium/domain/usecases/course/get_session_statuses_usecase.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/course_detail.dart';
@@ -28,6 +30,8 @@ import 'package:edium/domain/usecases/quiz/create_session_usecase.dart';
 import 'package:edium/domain/usecases/quiz/get_quizzes_usecase.dart';
 import 'package:edium/presentation/teacher/quiz_library/quiz_detail_screen.dart';
 import 'package:edium/domain/repositories/live_repository.dart';
+import 'package:edium/presentation/live/live_session_completed_navigation.dart';
+import 'package:edium/services/network/api_exception.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -1305,6 +1309,7 @@ class _ModuleSectionState extends State<_ModuleSection>
 
   List<CourseItem>? _loadedItems;
   bool _itemsLoading = false;
+  Map<String, SessionStatusItem> _statuses = const {};
 
   @override
   void initState() {
@@ -1356,11 +1361,23 @@ class _ModuleSectionState extends State<_ModuleSection>
       final detail = await getIt<GetModuleDetailUsecase>()(
         moduleId: widget.module.id,
       );
-      if (mounted) {
-        setState(() {
-          _loadedItems = detail.items;
-          _itemsLoading = false;
-        });
+      if (!mounted) return;
+      setState(() {
+        _loadedItems = detail.items;
+        _itemsLoading = false;
+      });
+
+      final ids = detail.items
+          .where((i) => i.refId.isNotEmpty)
+          .map((i) => i.refId)
+          .toList();
+      if (ids.isEmpty) return;
+      try {
+        final statuses = await getIt<GetSessionStatusesUsecase>()(ids)
+            .timeout(const Duration(seconds: 1));
+        if (mounted) setState(() => _statuses = statuses);
+      } catch (_) {
+        // таймаут или ошибка — показываем без статусов
       }
     } catch (_) {
       if (mounted) setState(() => _itemsLoading = false);
@@ -1485,6 +1502,7 @@ class _ModuleSectionState extends State<_ModuleSection>
                               .map((item) => _QuizItemTile(
                                     item: item,
                                     isTeacher: widget.isTeacher,
+                                    sessionStatus: _statuses[item.refId],
                                     onTap: item.isTestQuiz
                                         ? () {
                                             if (widget.isTeacher) {
@@ -1599,9 +1617,21 @@ class _ModuleSectionState extends State<_ModuleSection>
     } catch (e) {
       if (!mounted) return;
       nav.pop();
-      messenger.showSnackBar(
-        SnackBar(content: Text('Ошибка входа: $e')),
-      );
+      if (!ctx.mounted) return;
+      if (tryNavigateLiveStudentAfterJoinSessionCompleted(
+            e,
+            context: ctx,
+            sessionId: item.refId,
+            quizTitle: item.title ?? '',
+            questionCount: 0,
+            moduleId: moduleId,
+          )) {
+        return;
+      }
+      final msg = e is ApiException && e.code == 'SESSION_COMPLETED'
+          ? e.message
+          : 'Ошибка входа: $e';
+      messenger.showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 
@@ -1625,12 +1655,14 @@ class _ModuleSectionState extends State<_ModuleSection>
 class _QuizItemTile extends StatelessWidget {
   final CourseItem item;
   final bool isTeacher;
+  final SessionStatusItem? sessionStatus;
   final VoidCallback? onTap;
 
   const _QuizItemTile({
     required this.item,
     required this.isTeacher,
     required this.onTap,
+    this.sessionStatus,
   });
 
   @override
@@ -1649,73 +1681,148 @@ class _QuizItemTile extends StatelessWidget {
               width: AppDimens.borderWidth,
             ),
           ),
-          child: Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: item.quizType == 'live'
-                        ? AppColors.mono900
-                        : AppColors.mono100,
-                    borderRadius: BorderRadius.circular(AppDimens.radiusXs),
-                  ),
-                  child: Text(
-                    item.quizType == 'live' ? 'ЛАЙВ' : 'ТЕСТ',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: item.quizType == 'live'
-                          ? Colors.white
-                          : AppColors.mono400,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-              ),
-              if (isTeacher && item.needEvaluation) ...[
-                const SizedBox(width: 6),
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
-                      color: AppColors.mono900,
-                      borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+                      color: item.quizType == 'live'
+                          ? AppColors.mono900
+                          : AppColors.mono100,
+                      borderRadius:
+                          BorderRadius.circular(AppDimens.radiusXs),
                     ),
-                    child: const Text(
-                      'ИИ',
+                    child: Text(
+                      item.quizType == 'live' ? 'ЛАЙВ' : 'ТЕСТ',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: item.quizType == 'live'
+                            ? Colors.white
+                            : AppColors.mono400,
                         letterSpacing: 0.5,
                       ),
                     ),
                   ),
-                ),
-              ],
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  item.title ?? 'Квиз ${item.orderIndex + 1}',
-                  style: AppTextStyles.fieldText.copyWith(
-                    fontWeight: FontWeight.w600,
+                  if (isTeacher && item.needEvaluation) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.mono900,
+                        borderRadius:
+                            BorderRadius.circular(AppDimens.radiusXs),
+                      ),
+                      child: const Text(
+                        'ИИ',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const Spacer(),
+                  _TrailingBadge(
+                    item: item,
+                    isTeacher: isTeacher,
+                    sessionStatus: sessionStatus,
                   ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                item.title ?? 'Квиз ${item.orderIndex + 1}',
+                style: AppTextStyles.fieldText.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(width: 8),
-              Padding(
-                padding: const EdgeInsets.only(top: 1),
-                child: _TrailingBadge(item: item, isTeacher: isTeacher),
-              ),
+              ..._buildMetaChips(item.payload),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  List<Widget> _buildMetaChips(CourseItemPayload? p) {
+    if (p == null) return const [];
+    final chips = <Widget>[];
+
+    if (p.totalTimeLimitSec != null) {
+      final min = (p.totalTimeLimitSec! / 60).round();
+      chips.add(_MetaChip(icon: Icons.timer_outlined, label: '$min мин'));
+    } else if (p.questionTimeLimitSec != null) {
+      chips.add(_MetaChip(
+        icon: Icons.timer_outlined,
+        label: '${p.questionTimeLimitSec} с/вопр.',
+      ));
+    }
+
+    const months = [
+      'янв', 'фев', 'мар', 'апр', 'май', 'июн',
+      'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
+    ];
+    if (p.startedAt != null || p.finishedAt != null) {
+      final parts = <String>[];
+      if (p.startedAt != null) {
+        final d = p.startedAt!.toLocal();
+        parts.add('с ${d.day} ${months[d.month - 1]}');
+      }
+      if (p.finishedAt != null) {
+        final d = p.finishedAt!.toLocal();
+        parts.add('до ${d.day} ${months[d.month - 1]}');
+      }
+      chips.add(_MetaChip(
+        icon: Icons.calendar_today_outlined,
+        label: parts.join(' '),
+      ));
+    }
+
+    if (chips.isEmpty) return const [];
+    return [
+      const SizedBox(height: 6),
+      Wrap(spacing: 6, runSpacing: 4, children: chips),
+    ];
+  }
+}
+
+class _MetaChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _MetaChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.mono100,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: AppColors.mono400),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: AppColors.mono600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1724,7 +1831,12 @@ class _QuizItemTile extends StatelessWidget {
 class _TrailingBadge extends StatelessWidget {
   final CourseItem item;
   final bool isTeacher;
-  const _TrailingBadge({required this.item, required this.isTeacher});
+  final SessionStatusItem? sessionStatus;
+  const _TrailingBadge({
+    required this.item,
+    required this.isTeacher,
+    this.sessionStatus,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1757,10 +1869,31 @@ class _TrailingBadge extends StatelessWidget {
     }
 
     if (!isTeacher) {
-      final label = studentTestActionLabel(item);
-      final isActionable = item.state == 'in_progress' ||
-          item.state == null ||
-          item.state == 'not_started';
+      // Для ученика: используем Riddler-статус если есть, иначе item.state
+      final String label;
+      final bool isActionable;
+      if (sessionStatus != null) {
+        final s = sessionStatus!;
+        if (s.status == 'finished') {
+          label = 'Завершён';
+          isActionable = false;
+        } else if (s.status == 'not_started') {
+          label = 'Ожидает';
+          isActionable = false;
+        } else if (s.mode == 'live') {
+          label = s.phase == 'lobby' ? 'Войти →' : 'Идёт';
+          isActionable = s.phase == 'lobby';
+        } else {
+          // active
+          label = item.attemptId != null ? 'Продолжить →' : 'Начать →';
+          isActionable = true;
+        }
+      } else {
+        label = studentTestActionLabel(item);
+        isActionable = item.state == 'in_progress' ||
+            item.state == null ||
+            item.state == 'not_started';
+      }
       return Text(
         label,
         style: TextStyle(
@@ -1771,29 +1904,41 @@ class _TrailingBadge extends StatelessWidget {
       );
     }
 
-    final now = DateTime.now();
-    final payload = item.payload;
-    final String sessionState;
-    if (payload == null) {
-      sessionState = 'not_started';
+    // Для учителя: используем Riddler-статус если есть, иначе вычисляем из payload
+    final String label;
+    if (sessionStatus != null) {
+      final s = sessionStatus!;
+      label = switch (s.status) {
+        'active' => 'Идёт',
+        'running' => s.phase == 'lobby' ? 'Лобби' : 'Идёт',
+        'finished' => 'Завершён',
+        'not_started' => 'Не начат',
+        _ => 'Ожидает',
+      };
     } else {
-      final end = payload.finishedAt;
-      final start = payload.startedAt;
-      if (end != null && now.isAfter(end)) {
-        sessionState = 'completed';
-      } else if (start == null || !now.isBefore(start)) {
-        sessionState = 'in_progress';
+      final now = DateTime.now();
+      final payload = item.payload;
+      final String sessionState;
+      if (payload == null) {
+        sessionState = 'not_started';
       } else {
-        sessionState = 'waiting';
+        final end = payload.finishedAt;
+        final start = payload.startedAt;
+        if (end != null && now.isAfter(end)) {
+          sessionState = 'completed';
+        } else if (start == null || !now.isBefore(start)) {
+          sessionState = 'in_progress';
+        } else {
+          sessionState = 'waiting';
+        }
       }
+      label = switch (sessionState) {
+        'in_progress' => 'Идёт',
+        'waiting' => 'Ожидает',
+        'completed' => 'Завершён',
+        _ => 'Не начат',
+      };
     }
-
-    final label = switch (sessionState) {
-      'in_progress' => 'Идёт',
-      'waiting' => 'Ожидает',
-      'completed' => 'Завершён',
-      _ => 'Не начат',
-    };
     return Text(
       label,
       style: const TextStyle(
@@ -1803,43 +1948,6 @@ class _TrailingBadge extends StatelessWidget {
     );
   }
 
-  String _buildMeta(CourseItemPayload? p) {
-    if (p == null) return '';
-    final parts = <String>[];
-    const months = [
-      'янв',
-      'фев',
-      'мар',
-      'апр',
-      'май',
-      'июн',
-      'июл',
-      'авг',
-      'сен',
-      'окт',
-      'ноя',
-      'дек'
-    ];
-
-    if (p.startedAt != null) {
-      final d = p.startedAt!.toLocal();
-      parts.add('с ${d.day} ${months[d.month - 1]}');
-    }
-
-    if (p.finishedAt != null) {
-      final d = p.finishedAt!.toLocal();
-      parts.add('до ${d.day} ${months[d.month - 1]}');
-    }
-
-    if (p.totalTimeLimitSec != null) {
-      final min = (p.totalTimeLimitSec! / 60).round();
-      parts.add('$min мин');
-    } else if (p.questionTimeLimitSec != null) {
-      parts.add('${p.questionTimeLimitSec} с/вопр.');
-    }
-
-    return parts.join('  ·  ');
-  }
 }
 
 // ─── Черновики ────────────────────────────────────────────────────────────────

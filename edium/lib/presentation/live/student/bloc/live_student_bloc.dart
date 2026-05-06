@@ -17,6 +17,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
 
   String? _sessionId;
   String? _attemptId;
+  String? _moduleId;
   String _quizTitle = '';
   int _questionCount = 0;
   int? _classmatesTotal;
@@ -49,6 +50,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
   ) async {
     _sessionId = event.sessionId;
     _attemptId = event.attemptId;
+    _moduleId = null;
     _quizTitle = event.quizTitle;
     _questionCount = event.questionCount;
     _classmatesTotal = null;
@@ -56,21 +58,24 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
     emit(LiveStudentConnecting());
 
     try {
-      var moduleId = event.moduleId;
-      if (moduleId == null || moduleId.isEmpty) {
-        try {
-          final meta = await _repo.getLiveSession(event.sessionId);
-          moduleId = meta.moduleId;
-          if (_quizTitle.isEmpty && meta.quizTitle.isNotEmpty) {
-            _quizTitle = meta.quizTitle;
-          }
-          if (_questionCount <= 0 && meta.questionCount > 0) {
-            _questionCount = meta.questionCount;
-          }
-        } catch (e) {
-          debugPrint('[LiveStudentBloc] getLiveSession (module_id): $e');
+      LiveSessionMeta? metaFromApi;
+      try {
+        metaFromApi = await _repo.getLiveSession(event.sessionId);
+        if (_quizTitle.isEmpty && metaFromApi.quizTitle.isNotEmpty) {
+          _quizTitle = metaFromApi.quizTitle;
         }
+        if (_questionCount <= 0 && metaFromApi.questionCount > 0) {
+          _questionCount = metaFromApi.questionCount;
+        }
+      } catch (e) {
+        debugPrint('[LiveStudentBloc] getLiveSession: $e');
       }
+
+      var moduleId = event.moduleId;
+      if ((moduleId == null || moduleId.isEmpty) && metaFromApi != null) {
+        moduleId = metaFromApi.moduleId;
+      }
+      _moduleId = (moduleId != null && moduleId.isNotEmpty) ? moduleId : null;
 
       if (moduleId != null && moduleId.isNotEmpty) {
         try {
@@ -89,6 +94,22 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
         );
       }
 
+      if (metaFromApi != null &&
+          metaFromApi.phase == LivePhase.completed &&
+          event.attemptId.isNotEmpty) {
+        emit(LiveStudentCompleted());
+        return;
+      }
+
+      if (event.wsToken.isEmpty) {
+        if (event.attemptId.isNotEmpty) {
+          emit(LiveStudentCompleted());
+          return;
+        }
+        emit(LiveStudentError('Не удалось подключиться к квизу'));
+        return;
+      }
+
       await _ws.connect(event.sessionId, event.wsToken);
       _wsSub = _ws.events.listen(
         (wsEvent) => add(LiveStudentWsEvent(wsEvent)),
@@ -104,6 +125,22 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
       if (rosterName != null && rosterName.isNotEmpty) return rosterName;
     }
     return wsName.isNotEmpty ? wsName : userId ?? '?';
+  }
+
+  /// Если сразу на результаты (без лобби/WS), roster в [_onStart] мог не заполниться — добираем перед API итогов.
+  Future<void> _ensureRosterBeforeResults() async {
+    final mid = _moduleId;
+    if (_roster.isNotEmpty || mid == null || mid.isEmpty) return;
+    try {
+      final members = await _repo.getModuleRoster(mid);
+      _roster = {for (final m in members) m.userId: m.name};
+      _classmatesTotal = members.length;
+      debugPrint(
+        '[LiveStudentBloc] roster loaded before results: ${_roster.length}',
+      );
+    } catch (e) {
+      debugPrint('[LiveStudentBloc] roster before results unavailable: $e');
+    }
   }
 
   List<LiveLobbyParticipant> _resolveParticipants(
@@ -291,6 +328,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
     if (sid == null || aid == null) return;
     emit(LiveStudentResultsLoading());
     try {
+      await _ensureRosterBeforeResults();
       final resultsF = _repo.getLiveResultsStudent(sid, aid);
       final reviewF = _repo.getAttemptReview(aid);
 
