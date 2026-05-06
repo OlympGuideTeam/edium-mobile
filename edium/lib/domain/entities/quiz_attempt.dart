@@ -44,7 +44,7 @@ class QuizAttempt {
       questions.fold(0, (sum, q) => sum + q.maxScore);
 }
 
-enum AttemptStatus { inProgress, grading, graded, completed }
+enum AttemptStatus { inProgress, grading, graded, completed, published }
 
 class AnswerSubmissionResult {
   final String questionId;

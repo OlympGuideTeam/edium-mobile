@@ -216,6 +216,8 @@ class LibraryQuizDatasourceMock implements ILibraryQuizDatasource {
 
   // ── seed data ────────────────────────────────────────────────────────────
 
+  static final _now = DateTime(2026, 4, 20, 14, 0);
+
   static List<LibraryQuizModel> _buildQuizzes() => [
         LibraryQuizModel(
           id: 'quiz-001',
@@ -231,6 +233,17 @@ class LibraryQuizDatasourceMock implements ILibraryQuizDatasource {
           needEvaluation: false,
           questionCount: 4,
           libraryTestSessionId: 'lib-session-001',
+          attempts: [
+            QuizAttemptSummaryModel(
+              id: 'attempt-001',
+              sessionId: 'lib-session-001',
+              sessionType: 'test',
+              status: 'published',
+              score: 7.5,
+              startedAt: _now.subtract(const Duration(days: 5)).toIso8601String(),
+              finishedAt: _now.subtract(const Duration(days: 5, minutes: -4)).toIso8601String(),
+            ),
+          ],
         ),
         LibraryQuizModel(
           id: 'quiz-002',
@@ -244,6 +257,17 @@ class LibraryQuizDatasourceMock implements ILibraryQuizDatasource {
           needEvaluation: false,
           questionCount: 3,
           libraryTestSessionId: 'lib-session-002',
+          attempts: [
+            QuizAttemptSummaryModel(
+              id: 'attempt-002',
+              sessionId: 'lib-session-002',
+              sessionType: 'test',
+              status: 'published',
+              score: 10.0,
+              startedAt: _now.subtract(const Duration(days: 2)).toIso8601String(),
+              finishedAt: _now.subtract(const Duration(days: 2, minutes: -3)).toIso8601String(),
+            ),
+          ],
         ),
         LibraryQuizModel(
           id: 'quiz-003',

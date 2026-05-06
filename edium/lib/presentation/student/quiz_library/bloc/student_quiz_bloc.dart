@@ -1,3 +1,4 @@
+import 'package:edium/domain/entities/library_quiz.dart';
 import 'package:edium/domain/usecases/library_quiz/get_public_quizzes_usecase.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/student_quiz_event.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/student_quiz_state.dart';
@@ -20,7 +21,13 @@ class StudentQuizBloc extends Bloc<StudentQuizEvent, StudentQuizState> {
     emit(const StudentQuizLoading());
     try {
       final quizzes = await _getPublicQuizzes();
-      emit(StudentQuizLoaded(quizzes: quizzes, filtered: quizzes));
+      final passed = _filterPassed(quizzes);
+      emit(StudentQuizLoaded(
+        quizzes: quizzes,
+        filtered: quizzes,
+        passedQuizzes: passed,
+        filteredPassed: passed,
+      ));
     } catch (e) {
       emit(StudentQuizError(e.toString()));
     }
@@ -38,6 +45,8 @@ class StudentQuizBloc extends Bloc<StudentQuizEvent, StudentQuizState> {
       emit(StudentQuizLoaded(
         quizzes: current.quizzes,
         filtered: current.quizzes,
+        passedQuizzes: current.passedQuizzes,
+        filteredPassed: current.passedQuizzes,
       ));
       return;
     }
@@ -45,10 +54,18 @@ class StudentQuizBloc extends Bloc<StudentQuizEvent, StudentQuizState> {
     final filtered = current.quizzes
         .where((q) => q.title.toLowerCase().contains(query))
         .toList();
+    final filteredPassed = current.passedQuizzes
+        .where((q) => q.title.toLowerCase().contains(query))
+        .toList();
     emit(StudentQuizLoaded(
       quizzes: current.quizzes,
       filtered: filtered,
+      passedQuizzes: current.passedQuizzes,
+      filteredPassed: filteredPassed,
       searchQuery: event.query,
     ));
   }
+
+  static List<LibraryQuiz> _filterPassed(List<LibraryQuiz> quizzes) =>
+      quizzes.where((q) => q.attempts.isNotEmpty).toList();
 }

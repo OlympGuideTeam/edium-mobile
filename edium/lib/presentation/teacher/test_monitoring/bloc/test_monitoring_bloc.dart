@@ -102,5 +102,6 @@ class TestMonitoringBloc
         null => 2,
         AttemptStatus.grading => 3,
         AttemptStatus.completed => 4,
+        AttemptStatus.published => 4,
       };
 }
