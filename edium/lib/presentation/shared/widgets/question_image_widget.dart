@@ -7,6 +7,7 @@ import 'package:edium/services/network/dio_handler.dart';
 import 'package:flutter/material.dart';
 
 const double _kMaxImageHeight = 280.0;
+const double _kShimmerHeight = 180.0;
 
 /// Отображает изображение вопроса по его UUID из сервиса Louvre.
 /// [dark] — тёмный фон (для live-экранов).
@@ -18,6 +19,101 @@ class QuestionImageWidget extends StatefulWidget {
 
   @override
   State<QuestionImageWidget> createState() => _QuestionImageWidgetState();
+}
+
+class _ImageShimmer extends StatefulWidget {
+  final bool dark;
+  const _ImageShimmer({this.dark = false});
+
+  @override
+  State<_ImageShimmer> createState() => _ImageShimmerState();
+}
+
+class _ImageShimmerState extends State<_ImageShimmer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat();
+    _anim = _ctrl;
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final base = widget.dark ? const Color(0xFF1A1A2A) : const Color(0xFFE8E8E8);
+    final highlight = widget.dark ? const Color(0xFF3A3A5A) : const Color(0xFFFFFFFF);
+
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) => ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          height: _kShimmerHeight,
+          child: CustomPaint(
+            painter: _ShimmerPainter(
+              progress: _anim.value,
+              base: base,
+              highlight: highlight,
+            ),
+            child: const SizedBox.expand(),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShimmerPainter extends CustomPainter {
+  final double progress;
+  final Color base;
+  final Color highlight;
+
+  const _ShimmerPainter({
+    required this.progress,
+    required this.base,
+    required this.highlight,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Заливаем базовым цветом
+    canvas.drawRect(Offset.zero & size, Paint()..color = base);
+
+    // Узкая яркая полоса (~30% ширины) скользит от -30% до 130%
+    const stripeFraction = 0.30;
+    final stripeW = size.width * stripeFraction;
+    final startX = -stripeW + (size.width + stripeW) * progress;
+
+    final gradient = LinearGradient(
+      colors: [
+        base.withAlpha(0),
+        highlight.withAlpha(230),
+        base.withAlpha(0),
+      ],
+      stops: const [0.0, 0.5, 1.0],
+    ).createShader(Rect.fromLTWH(startX, 0, stripeW, size.height));
+
+    canvas.drawRect(
+      Rect.fromLTWH(startX, 0, stripeW, size.height),
+      Paint()..shader = gradient,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ShimmerPainter old) =>
+      old.progress != progress || old.base != base || old.highlight != highlight;
 }
 
 class _QuestionImageWidgetState extends State<QuestionImageWidget> {
@@ -77,19 +173,7 @@ class _QuestionImageWidgetState extends State<QuestionImageWidget> {
     if (ApiConfig.useMock) return const SizedBox.shrink();
 
     if (_loading) {
-      return Container(
-        height: 180,
-        decoration: BoxDecoration(
-          color: widget.dark ? const Color(0xFF1E1E2E) : const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Center(
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: widget.dark ? Colors.white38 : Colors.black26,
-          ),
-        ),
-      );
+      return _ImageShimmer(dark: widget.dark);
     }
 
     if (_error || _bytes == null || _aspectRatio == null) return const SizedBox.shrink();

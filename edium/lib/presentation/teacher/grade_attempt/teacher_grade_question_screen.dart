@@ -4,6 +4,7 @@ import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/attempt_review.dart';
 import 'package:edium/domain/usecases/test_session/grade_submission_usecase.dart';
+import 'package:edium/presentation/shared/widgets/question_image_widget.dart';
 import 'package:flutter/material.dart';
 
 class TeacherGradeQuestionScreen extends StatefulWidget {
@@ -120,6 +121,10 @@ class _TeacherGradeQuestionScreenState
                       ),
                     ],
                   ),
+                  if (widget.answer.imageId != null) ...[
+                    const SizedBox(height: 10),
+                    QuestionImageWidget(imageId: widget.answer.imageId!),
+                  ],
                   const SizedBox(height: 14),
 
                   // Ответ студента
