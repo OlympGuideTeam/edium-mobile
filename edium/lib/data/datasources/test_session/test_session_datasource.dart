@@ -48,4 +48,7 @@ abstract class ITestSessionDatasource {
 
   /// `POST /attempts/:attemptId/complete`
   Future<void> completeAttempt(String attemptId);
+
+  /// `POST /attempts/session/:sessionId/publish`
+  Future<void> publishSession(String sessionId);
 }
