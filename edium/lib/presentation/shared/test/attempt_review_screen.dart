@@ -25,6 +25,74 @@ class AttemptReviewScreen extends StatelessWidget {
   }
 }
 
+/// Встраиваемая версия разбора попытки — без Scaffold и кнопки «Назад».
+/// Используется внутри TabBarView (например, в live-результатах ученика).
+class AttemptReviewBody extends StatelessWidget {
+  final String attemptId;
+  const AttemptReviewBody({super.key, required this.attemptId});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => AttemptReviewBloc(getIt())
+        ..add(LoadAttemptReviewEvent(attemptId)),
+      child: BlocBuilder<AttemptReviewBloc, AttemptReviewBlocState>(
+        builder: (context, state) {
+          if (state is AttemptReviewLoading || state is AttemptReviewInitial) {
+            return const Center(
+              child: CircularProgressIndicator(
+                  color: AppColors.mono700, strokeWidth: 2),
+            );
+          }
+          if (state is AttemptReviewError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Text(state.message,
+                    style: AppTextStyles.screenSubtitle,
+                    textAlign: TextAlign.center),
+              ),
+            );
+          }
+          if (state is AttemptReviewLoaded) {
+            return _body(state.review);
+          }
+          return const SizedBox.shrink();
+        },
+      ),
+    );
+  }
+
+  Widget _body(AttemptReview review) {
+    return Container(
+      color: Colors.white,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(
+            AppDimens.screenPaddingH, 0, AppDimens.screenPaddingH, 32),
+        children: [
+          const SizedBox(height: 8),
+          Text('Разбор попытки',
+              style: AppTextStyles.screenTitle.copyWith(fontSize: 22)),
+          const SizedBox(height: 6),
+          Text(
+            review.score != null
+                ? 'Итоговый балл: ${review.score!.toStringAsFixed(0)}'
+                : 'Балл ещё не выставлен',
+            style: AppTextStyles.screenSubtitle,
+          ),
+          const SizedBox(height: 20),
+          ...review.answers.asMap().entries.map((e) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _QuestionCard(index: e.key + 1, answer: e.value),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
 class _View extends StatelessWidget {
   const _View();
 

@@ -2,6 +2,7 @@ import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
+import 'package:edium/domain/entities/awaiting_review_session.dart';
 import 'package:edium/domain/repositories/quiz_repository.dart';
 import 'package:edium/domain/usecases/quiz/create_session_usecase.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
@@ -11,6 +12,7 @@ import 'package:edium/presentation/teacher/classes/classes_screen.dart';
 import 'package:edium/presentation/teacher/create_quiz/bloc/create_quiz_bloc.dart';
 import 'package:edium/presentation/teacher/create_quiz/create_quiz_screen.dart';
 import 'package:edium/domain/repositories/live_repository.dart';
+import 'package:edium/presentation/teacher/home/bloc/awaiting_review_cubit.dart';
 import 'package:edium/presentation/teacher/quiz_library/bloc/live_library_cubit.dart';
 import 'package:edium/presentation/teacher/quiz_library/bloc/quiz_library_bloc.dart';
 import 'package:edium/presentation/teacher/quiz_library/bloc/quiz_library_event.dart';
@@ -61,6 +63,9 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
         BlocProvider(
           create: (_) => LiveLibraryCubit(getIt<ILiveRepository>()),
         ),
+        BlocProvider(
+          create: (_) => AwaitingReviewCubit(getIt())..load(),
+        ),
       ],
       child: Scaffold(
         body: IndexedStack(
@@ -103,6 +108,10 @@ class _TeacherDashboardPage extends StatelessWidget {
 
   const _TeacherDashboardPage({required this.onNavigateToTab});
 
+  Future<void> _refresh(BuildContext context) async {
+    await context.read<AwaitingReviewCubit>().load();
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
@@ -112,72 +121,215 @@ class _TeacherDashboardPage extends StatelessWidget {
           return Scaffold(
             backgroundColor: Colors.white,
             body: SafeArea(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppDimens.screenPaddingH),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 32),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.mono900,
-                          borderRadius:
-                              BorderRadius.circular(AppDimens.radiusXs),
+              child: RefreshIndicator(
+                color: AppColors.mono900,
+                onRefresh: () => _refresh(context),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppDimens.screenPaddingH),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 32),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.mono900,
+                            borderRadius:
+                                BorderRadius.circular(AppDimens.radiusXs),
+                          ),
+                          child: const Text('УЧИТЕЛЬ',
+                              style: AppTextStyles.badgeText),
                         ),
-                        child: const Text('УЧИТЕЛЬ',
-                            style: AppTextStyles.badgeText),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text('Edium', style: AppTextStyles.screenTitle),
-                      const SizedBox(height: 16),
-                      const SizedBox(height: 24),
-                      const Text('БЫСТРЫЕ ДЕЙСТВИЯ',
-                          style: AppTextStyles.sectionTag),
-                      const SizedBox(height: 16),
-                      _QuickActionTile(
-                        icon: CupertinoIcons.add,
-                        label: 'Создать новый квиз',
-                        subtitle: 'Добавьте вопросы и запустите тест',
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => BlocProvider(
-                              create: (_) => CreateQuizBloc(
-                                getIt(),
-                                getIt<CreateSessionUsecase>(),
-                                getIt<IQuizRepository>(),
+                        const SizedBox(height: 12),
+                        const Text('Edium', style: AppTextStyles.screenTitle),
+                        const SizedBox(height: 16),
+                        const _AwaitingReviewSection(),
+                        const SizedBox(height: 24),
+                        const Text('БЫСТРЫЕ ДЕЙСТВИЯ',
+                            style: AppTextStyles.sectionTag),
+                        const SizedBox(height: 16),
+                        _QuickActionTile(
+                          icon: CupertinoIcons.add,
+                          label: 'Создать новый квиз',
+                          subtitle: 'Добавьте вопросы и запустите тест',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => BlocProvider(
+                                create: (_) => CreateQuizBloc(
+                                  getIt(),
+                                  getIt<CreateSessionUsecase>(),
+                                  getIt<IQuizRepository>(),
+                                ),
+                                child: const CreateQuizScreen(),
                               ),
-                              child: const CreateQuizScreen(),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      _QuickActionTile(
-                        icon: CupertinoIcons.book,
-                        label: 'Библиотека квизов',
-                        subtitle: 'Просматривайте и управляйте квизами',
-                        onTap: () => onNavigateToTab(1),
-                      ),
-                      const SizedBox(height: 10),
-                      _QuickActionTile(
-                        icon: CupertinoIcons.person_2,
-                        label: 'Классы',
-                        subtitle: 'Управляйте группами студентов',
-                        onTap: () => onNavigateToTab(2),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
+                        const SizedBox(height: 10),
+                        _QuickActionTile(
+                          icon: CupertinoIcons.book,
+                          label: 'Библиотека квизов',
+                          subtitle: 'Просматривайте и управляйте квизами',
+                          onTap: () => onNavigateToTab(1),
+                        ),
+                        const SizedBox(height: 10),
+                        _QuickActionTile(
+                          icon: CupertinoIcons.person_2,
+                          label: 'Классы',
+                          subtitle: 'Управляйте группами студентов',
+                          onTap: () => onNavigateToTab(2),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _AwaitingReviewSection extends StatelessWidget {
+  const _AwaitingReviewSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<AwaitingReviewCubit, AwaitingReviewState>(
+      builder: (context, state) {
+        if (state is AwaitingReviewLoaded && state.sessions.isNotEmpty) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('ОЖИДАЮТ ПРОВЕРКИ', style: AppTextStyles.sectionTag),
+              const SizedBox(height: 12),
+              ...state.sessions.map((s) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _AwaitingReviewCard(session: s),
+                  )),
+              const SizedBox(height: 14),
+            ],
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+}
+
+class _AwaitingReviewCard extends StatelessWidget {
+  final AwaitingReviewSession session;
+
+  const _AwaitingReviewCard({required this.session});
+
+  @override
+  Widget build(BuildContext context) {
+    final total = session.gradingCount + session.gradedCount + session.completedCount;
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+      child: InkWell(
+        onTap: () => context.push(
+          '/teacher/review/${session.sessionId}',
+          extra: {'quizTitle': session.quizTitle},
+        ),
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+            border: Border.all(
+              color: AppColors.mono150,
+              width: AppDimens.borderWidth,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                session.quizTitle,
+                style: AppTextStyles.fieldText.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _StatusChip(
+                    label: 'учит.',
+                    count: session.gradedCount,
+                    active: session.gradedCount > 0,
+                  ),
+                  const SizedBox(width: 6),
+                  _StatusChip(
+                    label: 'ИИ',
+                    count: session.gradingCount,
+                    active: false,
+                  ),
+                  const SizedBox(width: 6),
+                  _StatusChip(
+                    label: 'готово',
+                    count: session.completedCount,
+                    active: false,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LinearProgressIndicator(
+                  value: total > 0 ? session.completedCount / total : 0,
+                  minHeight: 3,
+                  backgroundColor: AppColors.mono100,
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    AppColors.mono700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  final String label;
+  final int count;
+  final bool active;
+
+  const _StatusChip({
+    required this.label,
+    required this.count,
+    required this.active,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: active ? AppColors.mono900 : AppColors.mono50,
+        borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+      ),
+      child: Text(
+        '$count $label',
+        style: AppTextStyles.helperText.copyWith(
+          color: active ? Colors.white : AppColors.mono400,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }

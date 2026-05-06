@@ -1,12 +1,25 @@
 import 'package:edium/core/config/api_config.dart';
 import 'package:edium/core/router/app_router.dart' show resetAppRouterAfterGetItClear;
 import 'package:edium/core/storage/profile_storage.dart';
+import 'package:edium/data/datasources/awaiting_review/awaiting_review_datasource.dart';
+import 'package:edium/data/datasources/awaiting_review/awaiting_review_datasource_impl.dart';
+import 'package:edium/data/datasources/awaiting_review/awaiting_review_datasource_mock.dart';
+import 'package:edium/data/repositories/awaiting_review_repository_impl.dart';
+import 'package:edium/domain/repositories/awaiting_review_repository.dart';
+import 'package:edium/domain/usecases/test_session/get_awaiting_review_usecase.dart';
+import 'package:edium/data/datasources/student_dashboard/student_dashboard_datasource.dart';
+import 'package:edium/data/datasources/student_dashboard/student_dashboard_datasource_impl.dart';
+import 'package:edium/data/datasources/student_dashboard/student_dashboard_datasource_mock.dart';
+import 'package:edium/data/repositories/student_dashboard_repository_impl.dart';
+import 'package:edium/domain/repositories/student_dashboard_repository.dart';
+import 'package:edium/domain/usecases/student_dashboard/get_student_dashboard_usecase.dart';
 import 'package:edium/data/datasources/live/live_datasource.dart';
 import 'package:edium/data/datasources/live/live_datasource_impl.dart';
 import 'package:edium/data/datasources/live/live_datasource_mock.dart';
 import 'package:edium/data/repositories/live_repository_impl.dart';
 import 'package:edium/domain/repositories/live_repository.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
+import 'package:edium/services/course_live_notify/course_live_notify_service.dart';
 import 'package:edium/services/live_ws/live_ws_service.dart';
 import 'package:edium/data/datasources/attempt_cache/attempt_cache_datasource.dart';
 import 'package:edium/data/datasources/attempt_cache/attempt_cache_datasource_hive.dart';
@@ -175,6 +188,10 @@ Future<void> initializeDependencies({
         () => CourseDatasourceMock(getIt<ProfileStorage>()));
     getIt.registerLazySingleton<ITestSessionDatasource>(
         () => TestSessionDatasourceMock());
+    getIt.registerLazySingleton<IAwaitingReviewDatasource>(
+        () => AwaitingReviewDatasourceMock());
+    getIt.registerLazySingleton<IStudentDashboardDatasource>(
+        () => StudentDashboardDatasourceMock());
   } else {
     getIt.registerLazySingleton<IUserDatasource>(
         () => UserDatasourceImpl(getIt<DioHandler>().dio));
@@ -192,6 +209,10 @@ Future<void> initializeDependencies({
         () => CourseDatasourceImpl(getIt<DioHandler>().dio));
     getIt.registerLazySingleton<ITestSessionDatasource>(
         () => TestSessionDatasourceImpl(getIt<DioHandler>().dio));
+    getIt.registerLazySingleton<IAwaitingReviewDatasource>(
+        () => AwaitingReviewDatasourceImpl(getIt<DioHandler>().dio));
+    getIt.registerLazySingleton<IStudentDashboardDatasource>(
+        () => StudentDashboardDatasourceImpl(getIt<DioHandler>().dio));
   }
 
   getIt.registerLazySingleton<IAttemptCacheDatasource>(
@@ -234,6 +255,12 @@ Future<void> initializeDependencies({
       datasource: getIt(),
       cache: getIt(),
     ),
+  );
+  getIt.registerLazySingleton<IAwaitingReviewRepository>(
+    () => AwaitingReviewRepositoryImpl(getIt()),
+  );
+  getIt.registerLazySingleton<IStudentDashboardRepository>(
+    () => StudentDashboardRepositoryImpl(getIt()),
   );
 
   getIt.registerLazySingleton(() => SendOtpUsecase(getIt()));
@@ -284,6 +311,8 @@ Future<void> initializeDependencies({
   getIt.registerLazySingleton(() => GetAttemptReviewUsecase(getIt()));
   getIt.registerLazySingleton(() => GradeSubmissionUsecase(getIt()));
   getIt.registerLazySingleton(() => CompleteAttemptUsecase(getIt()));
+  getIt.registerLazySingleton(() => GetAwaitingReviewUsecase(getIt()));
+  getIt.registerFactory(() => GetStudentDashboardUsecase(getIt()));
 
   // Live quiz
   if (ApiConfig.useMock) {
@@ -299,6 +328,9 @@ Future<void> initializeDependencies({
     () => LiveRepositoryImpl(getIt()),
   );
   getIt.registerFactory<LiveWsService>(() => LiveWsService());
+  getIt.registerLazySingleton<CourseLiveNotifyService>(
+    () => CourseLiveNotifyService(),
+  );
   getIt.registerLazySingleton(() => GetActiveLobbyUsecase(
     classRepo: getIt(),
     courseRepo: getIt(),
