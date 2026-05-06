@@ -30,6 +30,7 @@ class AnswerReviewModel {
   final String questionId;
   final String questionType;
   final String questionText;
+  final String? imageId;
   final Map<String, dynamic> answerData;
   final double? finalScore;
   final String? finalSource;
@@ -42,6 +43,7 @@ class AnswerReviewModel {
     required this.questionId,
     required this.questionType,
     required this.questionText,
+    this.imageId,
     required this.answerData,
     this.finalScore,
     this.finalSource,
@@ -56,6 +58,7 @@ class AnswerReviewModel {
       questionId: json['question_id'] as String,
       questionType: json['question_type'] as String? ?? 'single_choice',
       questionText: json['question_text'] as String? ?? '',
+      imageId: json['image_id'] as String?,
       answerData:
           (json['answer_data'] as Map<String, dynamic>?) ?? const {},
       finalScore: (json['final_score'] as num?)?.toDouble(),
@@ -74,6 +77,7 @@ class AnswerReviewModel {
         questionId: questionId,
         questionType: _parseQuestionType(questionType),
         questionText: questionText,
+        imageId: imageId,
         answerData: answerData,
         finalScore: finalScore,
         finalSource: finalSource,

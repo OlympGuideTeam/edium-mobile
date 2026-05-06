@@ -18,6 +18,7 @@ class AnswerReview {
   final String questionId;
   final QuizQuestionType questionType;
   final String questionText;
+  final String? imageId;
   final Map<String, dynamic> answerData;
   final double? finalScore;
   final String? finalSource; // auto | llm | teacher
@@ -30,6 +31,7 @@ class AnswerReview {
     required this.questionId,
     required this.questionType,
     required this.questionText,
+    this.imageId,
     required this.answerData,
     this.finalScore,
     this.finalSource,

@@ -4,6 +4,7 @@ import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/attempt_review.dart';
 import 'package:edium/domain/entities/quiz_attempt.dart' show QuizQuestionType;
+import 'package:edium/presentation/shared/widgets/question_image_widget.dart';
 import 'package:edium/presentation/teacher/grade_attempt/bloc/teacher_grade_bloc.dart';
 import 'package:edium/presentation/teacher/grade_attempt/bloc/teacher_grade_event.dart';
 import 'package:edium/presentation/teacher/grade_attempt/bloc/teacher_grade_state.dart';
@@ -253,6 +254,10 @@ class _FreeAnswerSummaryCard extends StatelessWidget {
                       size: 18, color: AppColors.mono300),
               ],
             ),
+            if (answer.imageId != null) ...[
+              const SizedBox(height: 10),
+              QuestionImageWidget(imageId: answer.imageId!),
+            ],
             const SizedBox(height: 10),
             Container(
               width: double.infinity,
@@ -368,6 +373,10 @@ class _ReadonlyAnswerCard extends StatelessWidget {
                     style: TextStyle(fontSize: 14, color: AppColors.mono300)),
             ],
           ),
+          if (answer.imageId != null) ...[
+            const SizedBox(height: 10),
+            QuestionImageWidget(imageId: answer.imageId!),
+          ],
           const SizedBox(height: 10),
           _answerPreview(answer),
         ],
