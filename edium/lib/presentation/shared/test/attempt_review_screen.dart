@@ -7,6 +7,7 @@ import 'package:edium/domain/entities/quiz_attempt.dart' show QuizQuestionType;
 import 'package:edium/presentation/shared/test/bloc/attempt_review_bloc.dart';
 import 'package:edium/presentation/shared/test/bloc/attempt_review_event.dart';
 import 'package:edium/presentation/shared/test/bloc/attempt_review_state.dart';
+import 'package:edium/presentation/shared/widgets/question_image_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -236,6 +237,10 @@ class _QuestionCard extends StatelessWidget {
                     style: TextStyle(fontSize: 14, color: AppColors.mono300)),
             ],
           ),
+          if (answer.imageId != null) ...[
+            const SizedBox(height: 10),
+            QuestionImageWidget(imageId: answer.imageId!),
+          ],
           const SizedBox(height: 10),
           _answerBlock(answer),
           if (answer.finalFeedback != null &&

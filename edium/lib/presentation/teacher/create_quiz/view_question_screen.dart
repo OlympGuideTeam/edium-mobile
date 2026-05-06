@@ -1,6 +1,7 @@
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/question.dart';
+import 'package:edium/presentation/shared/widgets/question_image_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -41,6 +42,10 @@ class ViewQuestionScreen extends StatelessWidget {
             children: [
               const SizedBox(height: 16),
               _QuestionTextView(text: question.text, type: question.type),
+              if (question.imageId != null) ...[
+                const SizedBox(height: 12),
+                QuestionImageWidget(imageId: question.imageId!),
+              ],
               const SizedBox(height: 24),
               _buildAnswerSection(question),
               const SizedBox(height: 40),
