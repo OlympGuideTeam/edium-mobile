@@ -69,6 +69,7 @@ import 'package:edium/domain/usecases/test_session/persist_answer_locally_usecas
 import 'package:edium/domain/usecases/test_session/start_or_resume_attempt_usecase.dart';
 import 'package:edium/domain/usecases/test_session/grade_submission_usecase.dart';
 import 'package:edium/domain/usecases/test_session/complete_attempt_usecase.dart';
+import 'package:edium/domain/usecases/test_session/publish_session_usecase.dart';
 import 'package:edium/domain/usecases/library_quiz/create_attempt_usecase.dart';
 import 'package:edium/domain/usecases/library_quiz/finish_attempt_usecase.dart';
 import 'package:edium/domain/usecases/library_quiz/get_attempt_result_usecase.dart';
@@ -315,6 +316,7 @@ Future<void> initializeDependencies({
   getIt.registerLazySingleton(() => GetAttemptReviewUsecase(getIt()));
   getIt.registerLazySingleton(() => GradeSubmissionUsecase(getIt()));
   getIt.registerLazySingleton(() => CompleteAttemptUsecase(getIt()));
+  getIt.registerLazySingleton(() => PublishSessionUsecase(getIt()));
   getIt.registerLazySingleton(() => GetAwaitingReviewUsecase(getIt()));
   getIt.registerFactory(() => GetStudentDashboardUsecase(getIt()));
 
