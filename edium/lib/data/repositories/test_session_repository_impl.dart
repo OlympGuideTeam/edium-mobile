@@ -153,4 +153,8 @@ class TestSessionRepositoryImpl implements ITestSessionRepository {
   @override
   Future<void> publishSession(String sessionId) =>
       _ds.publishSession(sessionId);
+
+  @override
+  Future<void> finishSession(String sessionId) =>
+      _ds.finishSession(sessionId);
 }

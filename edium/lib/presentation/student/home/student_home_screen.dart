@@ -16,6 +16,7 @@ import 'package:edium/presentation/student/quiz_library/bloc/student_quiz_event.
 import 'package:edium/presentation/student/quiz_library/student_quiz_library_screen.dart';
 import 'package:edium/presentation/teacher/classes/classes_screen.dart';
 import 'package:edium/presentation/shared/widgets/edium_tab_bar.dart';
+import 'package:edium/presentation/shared/widgets/edium_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -119,8 +120,7 @@ class _StudentDashboardPage extends StatelessWidget {
           return Scaffold(
             backgroundColor: Colors.white,
             body: SafeArea(
-              child: RefreshIndicator(
-                color: AppColors.mono900,
+              child: EdiumRefreshIndicator(
                 onRefresh: () => _refresh(context),
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),

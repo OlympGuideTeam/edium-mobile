@@ -2197,6 +2197,8 @@ class _TeacherResultsPhase extends StatelessWidget {
               labelColor: AppColors.mono900,
               unselectedLabelColor: AppColors.mono400,
               indicatorColor: AppColors.mono900,
+              splashFactory: NoSplash.splashFactory,
+              overlayColor: WidgetStatePropertyAll(Colors.transparent),
               tabs: [
                 Tab(text: 'Лидерборд'),
                 Tab(text: 'По вопросам'),

@@ -49,4 +49,7 @@ abstract class ITestSessionDatasource {
 
   /// `POST /attempts/session/:sessionId/publish`
   Future<void> publishSession(String sessionId);
+
+  /// `POST /sessions/:sessionId/finish` — досрочное завершение учителем.
+  Future<void> finishSession(String sessionId);
 }
