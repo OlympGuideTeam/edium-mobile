@@ -7,14 +7,15 @@ import 'package:flutter/material.dart';
 class QuizCard extends StatelessWidget {
   final Quiz quiz;
   final VoidCallback? onTap;
-
   final bool showPublicBadge;
+  final bool showTopQuestionBadge;
 
   const QuizCard({
     super.key,
     required this.quiz,
     this.onTap,
     this.showPublicBadge = true,
+    this.showTopQuestionBadge = false,
   });
 
   @override
@@ -39,19 +40,28 @@ class QuizCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        if (quiz.subject.trim().isNotEmpty) ...[
-                          _SubjectChip(subject: quiz.subject),
-                          const SizedBox(width: 6),
+                    if (showTopQuestionBadge ||
+                        quiz.subject.trim().isNotEmpty ||
+                        (showPublicBadge && quiz.isPublic)) ...[
+                      Row(
+                        children: [
+                          if (showTopQuestionBadge)
+                            _QuestionCountBadge(count: quiz.questionsCount),
+                          if (quiz.subject.trim().isNotEmpty) ...[
+                            if (showTopQuestionBadge)
+                              const SizedBox(width: 6),
+                            _SubjectChip(subject: quiz.subject),
+                          ],
+                          if (showPublicBadge && quiz.isPublic) ...[
+                            if (showTopQuestionBadge ||
+                                quiz.subject.trim().isNotEmpty)
+                              const SizedBox(width: 6),
+                            _PublicBadge(),
+                          ],
                         ],
-                        if (showPublicBadge && quiz.isPublic)
-                          _PublicBadge(),
-                      ],
-                    ),
-                    if (quiz.subject.trim().isNotEmpty ||
-                        (showPublicBadge && quiz.isPublic))
+                      ),
                       const SizedBox(height: 8),
+                    ],
                     Text(
                       quiz.title,
                       style: AppTextStyles.subtitle.copyWith(
@@ -64,10 +74,11 @@ class QuizCard extends StatelessWidget {
                       spacing: 6,
                       runSpacing: 6,
                       children: [
-                        _InfoChip(
-                          icon: Icons.quiz_outlined,
-                          label: '${quiz.questionsCount}',
-                        ),
+                        if (!showTopQuestionBadge)
+                          _InfoChip(
+                            icon: Icons.quiz_outlined,
+                            label: '${quiz.questionsCount}',
+                          ),
                         if (quiz.settings.totalTimeLimitSec != null &&
                             quiz.settings.totalTimeLimitSec! > 0)
                           _InfoChip(
@@ -181,6 +192,32 @@ class _PublicBadge extends StatelessWidget {
       child: const Text(
         'ПУБЛИЧНЫЙ',
         style: AppTextStyles.badgeText,
+      ),
+    );
+  }
+}
+
+class _QuestionCountBadge extends StatelessWidget {
+  final int count;
+  const _QuestionCountBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = count == 1 ? '1 ВОПРОС' : '$count ВОПРОСОВ';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.mono50,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: AppColors.mono400,
+          letterSpacing: 0.8,
+        ),
       ),
     );
   }

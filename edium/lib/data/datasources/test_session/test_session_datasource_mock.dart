@@ -121,6 +121,11 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
     await Future.delayed(const Duration(milliseconds: 150));
   }
 
+  @override
+  Future<void> finishSession(String sessionId) async {
+    await Future.delayed(const Duration(milliseconds: 150));
+  }
+
   // ── Seed data ──────────────────────────────────────────────────────────
 
   static Map<String, TestSessionMetaModel> _buildSessions() => {

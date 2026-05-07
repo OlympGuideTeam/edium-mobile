@@ -17,6 +17,7 @@ class QuizResultScreen extends StatefulWidget {
   final int maxPossibleScore;
   final String quizTitle;
   final List<QuizQuestionForStudent> questions;
+  final bool showBottomCta;
 
   const QuizResultScreen({
     super.key,
@@ -24,6 +25,7 @@ class QuizResultScreen extends StatefulWidget {
     required this.maxPossibleScore,
     required this.quizTitle,
     required this.questions,
+    this.showBottomCta = true,
   });
 
   @override
@@ -71,12 +73,17 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final grade = _current.score;
+    final showGrade = !_isPending && grade != null;
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
-            _TopBar(onBack: () => Navigator.pop(context)),
+            _TopBar(
+              onBack: () => Navigator.pop(context),
+              trailing: showGrade ? _GradeBadge(grade: grade) : null,
+            ),
             Expanded(
               child: _isPending
                   ? const _PendingBody()
@@ -90,7 +97,8 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
                       ),
                     ),
             ),
-            _BottomCta(onPressed: () => Navigator.pop(context)),
+            if (widget.showBottomCta)
+              _BottomCta(onPressed: () => Navigator.pop(context)),
           ],
         ),
       ),
@@ -102,7 +110,8 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
 
 class _TopBar extends StatelessWidget {
   final VoidCallback onBack;
-  const _TopBar({required this.onBack});
+  final Widget? trailing;
+  const _TopBar({required this.onBack, this.trailing});
 
   @override
   Widget build(BuildContext context) {
@@ -117,6 +126,70 @@ class _TopBar extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           const Text('Результаты', style: AppTextStyles.screenTitle),
+          const Spacer(),
+          if (trailing != null) trailing!,
+        ],
+      ),
+    );
+  }
+}
+
+// ── Grade badge (10-point scale) ───────────────────────────────────────────
+
+class _GradeBadge extends StatelessWidget {
+  final double grade;
+  const _GradeBadge({required this.grade});
+
+  String _fmt(double v) =>
+      v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(1);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.mono900,
+        borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Text(
+            'ОЦЕНКА',
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              color: AppColors.mono300,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: _fmt(grade),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    height: 1.0,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const TextSpan(
+                  text: ' / 10',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.mono300,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -186,9 +259,15 @@ class _ResultBody extends StatelessWidget {
   static const _amber = Color(0xFFD97706);
   static const _amberBg = Color(0xFFFEF3C7);
 
+  /// Сумма набранных баллов по всем оценённым ответам.
+  /// `result.score` приходит как оценка по 10-балльной шкале — она показывается
+  /// бейджем сверху и не равна сумме баллов за вопросы.
+  double get _earnedScore => result.answers
+      .fold<double>(0, (sum, a) => sum + (a.finalScore ?? 0));
+
   double get _progress {
     if (maxPossibleScore <= 0) return 0;
-    return ((result.score ?? 0) / maxPossibleScore).clamp(0.0, 1.0);
+    return (_earnedScore / maxPossibleScore).clamp(0.0, 1.0);
   }
 
   int get _pct => (_progress * 100).round();
@@ -291,7 +370,7 @@ class _ResultBody extends StatelessWidget {
         const SizedBox(height: 20),
         // Big score + pct
         _BigScore(
-          score: (result.score ?? 0),
+          score: _earnedScore,
           max: maxPossibleScore.toDouble(),
           pct: _pct,
         ),

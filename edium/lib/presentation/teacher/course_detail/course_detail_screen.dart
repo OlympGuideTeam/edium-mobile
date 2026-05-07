@@ -1061,7 +1061,7 @@ class _TemplateCard extends StatelessWidget {
 
 // ─── Список модулей + черновиков ─────────────────────────────────────────────
 
-class _CourseContentList extends StatelessWidget {
+class _CourseContentList extends StatefulWidget {
   final CourseDetail course;
   final void Function(CourseDraft draft) onDraftTap;
   final void Function(CourseDraft draft) onDraftDelete;
@@ -1077,7 +1077,22 @@ class _CourseContentList extends StatelessWidget {
   });
 
   @override
+  State<_CourseContentList> createState() => _CourseContentListState();
+}
+
+class _CourseContentListState extends State<_CourseContentList> {
+  /// Увеличивается после pull-to-refresh курса — раскрытые модули подтягивают список заново.
+  int _moduleListReloadToken = 0;
+
+  Future<void> _onPullRefresh() async {
+    if (widget.onRefresh == null) return;
+    await widget.onRefresh!();
+    if (mounted) setState(() => _moduleListReloadToken++);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final course = widget.course;
     final modules = course.modules;
     final drafts = course.drafts;
     final canReorder = course.isTeacher && modules.length > 1;
@@ -1106,7 +1121,7 @@ class _CourseContentList extends StatelessWidget {
                     final ids = modules.map((m) => m.id).toList();
                     final moved = ids.removeAt(oldIndex);
                     ids.insert(newIndex, moved);
-                    onModulesReorder(ids);
+                    widget.onModulesReorder(ids);
                   },
                   itemBuilder: (context, i) {
                     final module = modules[i];
@@ -1115,6 +1130,7 @@ class _CourseContentList extends StatelessWidget {
                       module: module,
                       index: i,
                       isTeacher: course.isTeacher,
+                      moduleListReloadToken: _moduleListReloadToken,
                     );
                   },
                 )
@@ -1128,6 +1144,7 @@ class _CourseContentList extends StatelessWidget {
                         child: _ModuleSection(
                           module: module,
                           isTeacher: course.isTeacher,
+                          moduleListReloadToken: _moduleListReloadToken,
                         ),
                       );
                     },
@@ -1161,8 +1178,8 @@ class _CourseContentList extends StatelessWidget {
                     child: _DismissibleDraftTile(
                       key: ValueKey(draft.id),
                       draft: draft,
-                      onTap: () => onDraftTap(draft),
-                      onDelete: () => onDraftDelete(draft),
+                      onTap: () => widget.onDraftTap(draft),
+                      onDelete: () => widget.onDraftDelete(draft),
                     ),
                   );
                 },
@@ -1177,8 +1194,11 @@ class _CourseContentList extends StatelessWidget {
           ),
       ],
     );
-    if (onRefresh != null) {
-      return EdiumRefreshIndicator(onRefresh: onRefresh!, child: scrollView);
+    if (widget.onRefresh != null) {
+      return EdiumRefreshIndicator(
+        onRefresh: _onPullRefresh,
+        child: scrollView,
+      );
     }
     return scrollView;
   }
@@ -1190,12 +1210,14 @@ class _ReorderableModuleItem extends StatelessWidget {
   final ModuleDetail module;
   final int index;
   final bool isTeacher;
+  final int moduleListReloadToken;
 
   const _ReorderableModuleItem({
     super.key,
     required this.module,
     required this.index,
     required this.isTeacher,
+    this.moduleListReloadToken = 0,
   });
 
   @override
@@ -1204,7 +1226,11 @@ class _ReorderableModuleItem extends StatelessWidget {
       index: index,
       child: Padding(
         padding: const EdgeInsets.only(top: 12),
-        child: _ModuleSection(module: module, isTeacher: isTeacher),
+        child: _ModuleSection(
+          module: module,
+          isTeacher: isTeacher,
+          moduleListReloadToken: moduleListReloadToken,
+        ),
       ),
     );
   }
@@ -1226,20 +1252,23 @@ class _DismissibleDraftTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dismissible(
-      key: ValueKey(draft.id),
-      direction: DismissDirection.endToStart,
-      onDismissed: (_) => onDelete(),
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        decoration: BoxDecoration(
-          color: AppColors.error,
-          borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+      child: Container(
+        color: AppColors.error,
+        child: Dismissible(
+          key: ValueKey(draft.id),
+          direction: DismissDirection.endToStart,
+          onDismissed: (_) => onDelete(),
+          background: Container(
+            color: AppColors.error,
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
+            child: const Icon(Icons.delete_outline, color: Colors.white, size: 20),
+          ),
+          child: _DraftTile(draft: draft, onTap: onTap),
         ),
-        child: const Icon(Icons.delete_outline, color: Colors.white, size: 20),
       ),
-      child: _DraftTile(draft: draft, onTap: onTap),
     );
   }
 }
@@ -1250,11 +1279,14 @@ class _ModuleSection extends StatefulWidget {
   final ModuleDetail module;
   final bool isTeacher;
   final String? classId;
+  /// Совпадает с токеном списка после refresh курса — перезагрузка раскрытого модуля.
+  final int moduleListReloadToken;
 
   const _ModuleSection({
     required this.module,
     required this.isTeacher,
     this.classId,
+    this.moduleListReloadToken = 0,
   });
 
   @override
@@ -1312,16 +1344,16 @@ class _ModuleSectionState extends State<_ModuleSection>
     super.dispose();
   }
 
-  Future<void> _toggle() async {
-    if (_expanded) {
-      _ctrl.reverse();
-      setState(() => _expanded = false);
-      return;
+  @override
+  void didUpdateWidget(covariant _ModuleSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.moduleListReloadToken != oldWidget.moduleListReloadToken &&
+        _expanded) {
+      _loadModuleItems();
     }
-    _ctrl.forward();
-    setState(() => _expanded = true);
+  }
 
-    if (_loadedItems != null || _itemsLoading) return;
+  Future<void> _loadModuleItems() async {
     setState(() => _itemsLoading = true);
     try {
       final detail = await getIt<GetModuleDetailUsecase>()(
@@ -1337,17 +1369,34 @@ class _ModuleSectionState extends State<_ModuleSection>
           .where((i) => i.refId.isNotEmpty)
           .map((i) => i.refId)
           .toList();
-      if (ids.isEmpty) return;
+      if (ids.isEmpty) {
+        if (mounted) setState(() => _statuses = const {});
+        return;
+      }
       try {
         final statuses = await getIt<GetSessionStatusesUsecase>()(ids)
             .timeout(const Duration(seconds: 1));
         if (mounted) setState(() => _statuses = statuses);
       } catch (_) {
         // таймаут или ошибка — показываем без статусов
+        if (mounted) setState(() => _statuses = const {});
       }
     } catch (_) {
       if (mounted) setState(() => _itemsLoading = false);
     }
+  }
+
+  Future<void> _toggle() async {
+    if (_expanded) {
+      _ctrl.reverse();
+      setState(() => _expanded = false);
+      return;
+    }
+    _ctrl.forward();
+    setState(() => _expanded = true);
+
+    if (_loadedItems != null || _itemsLoading) return;
+    await _loadModuleItems();
   }
 
   @override
@@ -1465,6 +1514,7 @@ class _ModuleSectionState extends State<_ModuleSection>
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         child: Column(
                           children: (_loadedItems ?? [])
+                              .reversed
                               .map((item) => _QuizItemTile(
                                     item: item,
                                     isTeacher: widget.isTeacher,
@@ -1501,13 +1551,25 @@ class _ModuleSectionState extends State<_ModuleSection>
                                                 );
                                               }
                                             } else {
-                                              context.push(
-                                                '/test/${item.refId}',
-                                                extra: {
-                                                  'courseItem': item,
-                                                  'isTeacher': false,
-                                                },
-                                              );
+                                              // Результат опубликован (score != null) →
+                                              // сразу на quiz_result_screen, без превью.
+                                              if (item.isPassed) {
+                                                context.push(
+                                                  '/test/${item.refId}/results',
+                                                  extra: {
+                                                    'courseItem': item,
+                                                    'isTeacher': false,
+                                                  },
+                                                );
+                                              } else {
+                                                context.push(
+                                                  '/test/${item.refId}',
+                                                  extra: {
+                                                    'courseItem': item,
+                                                    'isTeacher': false,
+                                                  },
+                                                );
+                                              }
                                             }
                                           }
                                         : item.quizType == 'live'
@@ -2023,6 +2085,7 @@ class _DraftTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
+          color: Colors.white,
           borderRadius: BorderRadius.circular(AppDimens.radiusLg),
           border: Border.all(
             color: AppColors.mono150,
