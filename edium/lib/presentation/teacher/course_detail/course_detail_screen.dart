@@ -1630,11 +1630,20 @@ class _ModuleSectionState extends State<_ModuleSection>
         },
       );
     } else {
-      if (item.attemptId != null &&
-          (item.isPassed ||
-              sessionStatus?.status == 'finished' ||
-              item.state == 'completed')) {
-        context.push('/test/${item.refId}/attempts/${item.attemptId}');
+      final isFinished = sessionStatus?.status == 'finished' ||
+          item.isPassed ||
+          item.state == 'completed';
+      if (isFinished) {
+        if (item.attemptId != null) {
+          context.push('/test/${item.refId}/attempts/${item.attemptId}');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Результаты пока недоступны'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
         return;
       }
       _joinLiveAsStudent(context, item, moduleId);
