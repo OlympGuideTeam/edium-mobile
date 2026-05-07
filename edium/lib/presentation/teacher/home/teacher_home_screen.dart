@@ -11,13 +11,10 @@ import 'package:edium/presentation/profile/profile_screen.dart';
 import 'package:edium/presentation/teacher/classes/classes_screen.dart';
 import 'package:edium/presentation/teacher/create_quiz/bloc/create_quiz_bloc.dart';
 import 'package:edium/presentation/teacher/create_quiz/create_quiz_screen.dart';
-import 'package:edium/domain/repositories/live_repository.dart';
 import 'package:edium/presentation/teacher/home/bloc/awaiting_review_cubit.dart';
-import 'package:edium/presentation/teacher/quiz_library/bloc/live_library_cubit.dart';
-import 'package:edium/presentation/teacher/quiz_library/bloc/quiz_library_bloc.dart';
-import 'package:edium/presentation/teacher/quiz_library/bloc/quiz_library_event.dart';
 import 'package:edium/presentation/teacher/quiz_library/quiz_library_screen.dart';
 import 'package:edium/presentation/shared/widgets/edium_tab_bar.dart';
+import 'package:edium/presentation/shared/widgets/edium_refresh_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -47,21 +44,11 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (_) => QuizLibraryBloc(
-            getQuizzes: getIt(),
-            likeQuiz: getIt(),
-            quizRepository: getIt<IQuizRepository>(),
-          )..add(const LoadQuizzesEvent()),
-        ),
-        BlocProvider(
           create: (_) => CreateQuizBloc(
                 getIt(),
                 getIt<CreateSessionUsecase>(),
                 getIt<IQuizRepository>(),
               ),
-        ),
-        BlocProvider(
-          create: (_) => LiveLibraryCubit(getIt<ILiveRepository>()),
         ),
         BlocProvider(
           create: (_) => AwaitingReviewCubit(getIt())..load(),
@@ -121,8 +108,7 @@ class _TeacherDashboardPage extends StatelessWidget {
           return Scaffold(
             backgroundColor: Colors.white,
             body: SafeArea(
-              child: RefreshIndicator(
-                color: AppColors.mono900,
+              child: EdiumRefreshIndicator(
                 onRefresh: () => _refresh(context),
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),

@@ -4,8 +4,12 @@ import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
+import 'package:edium/domain/entities/attempt_review.dart';
 import 'package:edium/domain/entities/course_detail.dart';
-import 'package:edium/domain/entities/quiz_attempt.dart' show AttemptStatus;
+import 'package:edium/domain/entities/quiz_attempt.dart'
+    show AttemptStatus, QuizQuestionForStudent, AnswerSubmissionResult, AttemptResult;
+import 'package:edium/domain/usecases/test_session/get_attempt_review_usecase.dart';
+import 'package:edium/presentation/student/quiz_library/quiz_result_screen.dart';
 import 'package:edium/presentation/teacher/test_session/bloc/test_session_results_bloc.dart';
 import 'package:edium/presentation/teacher/test_session/bloc/test_session_results_event.dart';
 import 'package:edium/presentation/teacher/test_session/bloc/test_session_results_state.dart';
@@ -30,7 +34,15 @@ class TestSessionResultsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Студент с уже существующей попыткой → показываем результат
     if (!isTeacher) {
+      final attemptId = courseItem?.attemptId;
+      if (attemptId != null) {
+        return _StudentResultScreen(
+          attemptId: attemptId,
+          quizTitle: courseItem?.title ?? 'Тест',
+        );
+      }
       return Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
@@ -47,21 +59,129 @@ class TestSessionResultsScreen extends StatelessWidget {
         ),
       );
     }
+
     final title = courseItem?.title ?? 'Тест';
     return BlocProvider(
       create: (_) => TestSessionResultsBloc(
         listAttempts: getIt(),
-        repo: getIt(),
         liveRepo: getIt(),
+        courseRepo: getIt(),
+        testSessionRepo: getIt(),
       )..add(LoadSessionResultsEvent(
           sessionId: sessionId,
           title: title,
           moduleId: moduleId,
+          courseItemId: courseItem?.id,
+          startedAt: courseItem?.startTime ?? courseItem?.payload?.startedAt,
+          finishedAt: courseItem?.endTime ?? courseItem?.payload?.finishedAt,
         )),
       child: _View(sessionId: sessionId, courseItem: courseItem),
     );
   }
 }
+
+// ─── Экран результата для студента ───────────────────────────────────────────
+
+class _StudentResultScreen extends StatefulWidget {
+  final String attemptId;
+  final String quizTitle;
+
+  const _StudentResultScreen({
+    required this.attemptId,
+    required this.quizTitle,
+  });
+
+  @override
+  State<_StudentResultScreen> createState() => _StudentResultScreenState();
+}
+
+class _StudentResultScreenState extends State<_StudentResultScreen> {
+  late Future<AttemptReview> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = getIt<GetAttemptReviewUsecase>()(widget.attemptId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: FutureBuilder<AttemptReview>(
+          future: _future,
+          builder: (context, snap) {
+            if (snap.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(
+                    color: AppColors.mono700, strokeWidth: 2),
+              );
+            }
+            if (snap.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Text(
+                    snap.error.toString(),
+                    style: AppTextStyles.screenSubtitle,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              );
+            }
+            final review = snap.data!;
+            return _buildResultFromReview(context, review);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResultFromReview(BuildContext context, AttemptReview review) {
+    // Конвертируем AttemptReview → AttemptResult + QuizQuestionForStudent
+    const defaultMaxScore = 10;
+
+    final questions = review.answers
+        .map((a) => QuizQuestionForStudent(
+              id: a.questionId,
+              type: a.questionType,
+              text: a.questionText,
+              maxScore: defaultMaxScore,
+            ))
+        .toList();
+
+    final answers = review.answers
+        .map((a) => AnswerSubmissionResult(
+              questionId: a.questionId,
+              answerData: a.answerData,
+              finalScore: a.finalScore,
+              finalFeedback: a.finalFeedback,
+            ))
+        .toList();
+
+    final result = AttemptResult(
+      attemptId: review.attemptId,
+      status: review.status,
+      score: review.score,
+      startedAt: review.startedAt,
+      finishedAt: review.finishedAt,
+      answers: answers,
+    );
+
+    final maxPossibleScore = questions.length * defaultMaxScore;
+
+    return QuizResultScreen(
+      result: result,
+      maxPossibleScore: maxPossibleScore,
+      quizTitle: widget.quizTitle,
+      questions: questions,
+      showBottomCta: false,
+    );
+  }
+}
+
+// ─── Основной вид ────────────────────────────────────────────────────────────
 
 class _View extends StatelessWidget {
   final String sessionId;
@@ -112,11 +232,6 @@ class _View extends StatelessWidget {
       );
     }
     if (state is TestSessionResultsLoaded) {
-      final startTime = courseItem?.startTime;
-      final isScheduled = courseItem?.state == 'waiting' &&
-          startTime != null &&
-          startTime.isAfter(DateTime.now());
-
       return RefreshIndicator(
         color: AppColors.mono700,
         onRefresh: () async {
@@ -132,14 +247,9 @@ class _View extends StatelessWidget {
             const SizedBox(height: 4),
             Text(state.title, style: AppTextStyles.heading2),
             const SizedBox(height: 20),
-            _StatusHero(
-              state: state,
-              isScheduled: isScheduled,
-              startTime: startTime,
-              durationSec: courseItem?.payload?.totalTimeLimitSec,
-            ),
+            _StatusHero(state: state),
             const SizedBox(height: 20),
-            _DetailsSection(courseItem: courseItem),
+            _DetailsSection(state: state),
             const SizedBox(height: 24),
             _SectionHeader(
               label: 'Участники',
@@ -151,7 +261,7 @@ class _View extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 32),
                 child: Center(
                   child: Text(
-                    isScheduled
+                    state.sessionStatus == 'not_started'
                         ? 'Тест ещё не открыт для прохождения'
                         : 'Пока никто не начинал тест',
                     style: AppTextStyles.screenSubtitle,
@@ -167,20 +277,18 @@ class _View extends StatelessWidget {
                             if (status == AttemptStatus.graded ||
                                 status == AttemptStatus.grading) {
                               context.push(
-                                '/test/$sessionId/attempts/${r.attempt!.attemptId}/grade',
+                                '/test/${state.sessionId}/attempts/${r.attempt!.attemptId}/grade',
                               );
                             } else {
                               context.push(
-                                '/test/$sessionId/attempts/${r.attempt!.attemptId}',
+                                '/test/${state.sessionId}/attempts/${r.attempt!.attemptId}',
                               );
                             }
                           }
                         : null,
                   )),
-            if (state.canDelete) ...[
-              const SizedBox(height: 20),
-              _DeleteButton(isDeleting: state.isDeleting),
-            ],
+            const SizedBox(height: 20),
+            _ActionButtons(state: state),
           ],
         ),
       );
@@ -215,23 +323,38 @@ class _TopBar extends StatelessWidget {
 
 class _StatusHero extends StatelessWidget {
   final TestSessionResultsLoaded state;
-  final bool isScheduled;
-  final DateTime? startTime;
-  final int? durationSec;
 
-  const _StatusHero({
-    required this.state,
-    required this.isScheduled,
-    this.startTime,
-    this.durationSec,
-  });
+  const _StatusHero({required this.state});
 
   @override
   Widget build(BuildContext context) {
-    if (isScheduled && startTime != null) {
-      return _ScheduledBanner(startTime: startTime!, durationSec: durationSec);
+    final status = state.sessionStatus;
+    final startedAt = state.startedAt;
+    final finishedAt = state.finishedAt;
+    final now = DateTime.now();
+
+    // Ещё не начат: таймер до старта
+    if ((status == null || status == 'not_started' || status == 'waiting') &&
+        startedAt != null &&
+        startedAt.isAfter(now)) {
+      return _CountdownBanner(
+        label: 'СТАРТ ЧЕРЕЗ',
+        target: startedAt,
+      );
     }
 
+    // Активен: таймер до дедлайна (если есть)
+    if (status == 'active' &&
+        finishedAt != null &&
+        finishedAt.isAfter(now)) {
+      return _CountdownBanner(
+        label: 'ОСТАЛОСЬ',
+        target: finishedAt,
+        subtitle: _deadlineSubtitle(finishedAt),
+      );
+    }
+
+    // Завершён или активен без дедлайна: показываем прогресс/результат
     final (:tag, :title, :subtitle) = _heroContent();
 
     return Container(
@@ -279,16 +402,38 @@ class _StatusHero extends StatelessWidget {
     );
   }
 
+  String _deadlineSubtitle(DateTime finishedAt) {
+    final fmt = DateFormat('d MMM, HH:mm', 'ru');
+    return 'Дедлайн: ${fmt.format(finishedAt.toLocal())}';
+  }
+
   ({String tag, String title, String? subtitle}) _heroContent() {
     final total = state.totalCount;
     final avg = state.averageScorePct;
-    final nobodyStarted = state.rows.every((r) => r.attempt == null);
+    final sessionStatus = state.sessionStatus;
 
+    if (sessionStatus == 'finished') {
+      if (avg != null && total > 0) {
+        return (
+          tag: 'СРЕДНИЙ БАЛЛ',
+          title: avg.toStringAsFixed(0),
+          subtitle: 'из 100 · ${_pluralStudents(total)}',
+        );
+      }
+      return (
+        tag: 'СТАТУС',
+        title: 'Завершён',
+        subtitle: total > 0 ? '${_pluralStudents(total)} прошли' : 'Никто не прошёл',
+      );
+    }
+
+    final nobodyStarted = state.rows.every((r) => r.attempt == null);
     final finishedCount = state.rows.where((r) {
       final s = r.attempt?.status;
       return s == AttemptStatus.grading ||
           s == AttemptStatus.graded ||
-          s == AttemptStatus.completed;
+          s == AttemptStatus.completed ||
+          s == AttemptStatus.published;
     }).length;
 
     if (nobodyStarted) {
@@ -331,44 +476,197 @@ class _StatusHero extends StatelessWidget {
     }
     return '$n участников';
   }
+
+}
+
+// ─── Таймер обратного отсчёта ─────────────────────────────────────────────────
+
+class _CountdownBanner extends StatefulWidget {
+  final String label;
+  final DateTime target;
+  final String? subtitle;
+
+  const _CountdownBanner({
+    required this.label,
+    required this.target,
+    this.subtitle,
+  });
+
+  @override
+  State<_CountdownBanner> createState() => _CountdownBannerState();
+}
+
+class _CountdownBannerState extends State<_CountdownBanner> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    final remaining = widget.target.toLocal().difference(DateTime.now());
+    if (remaining.isNegative) return;
+
+    if (remaining.inSeconds < 60) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    } else {
+      _timer = Timer.periodic(const Duration(minutes: 1), (_) {
+        if (!mounted) return;
+        setState(() {});
+        final r = widget.target.toLocal().difference(DateTime.now());
+        if (r.inSeconds < 60) _startTimer();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final diff = widget.target.toLocal().difference(now);
+    if (diff.isNegative) return const SizedBox.shrink();
+
+    final isUnderMinute = diff.inSeconds < 60;
+    final days = diff.inDays;
+    final hours = diff.inHours % 24;
+    final minutes = diff.inMinutes % 60;
+    final seconds = diff.inSeconds % 60;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      decoration: BoxDecoration(
+        color: AppColors.mono900,
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Color(0x80FFFFFF),
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              if (isUnderMinute) ...[
+                _CountUnit(
+                  value: seconds.toString().padLeft(2, '0'),
+                  unit: 'сек',
+                ),
+              ] else ...[
+                if (days > 0) ...[
+                  _CountUnit(
+                    value: days.toString().padLeft(2, '0'),
+                    unit: 'дн',
+                  ),
+                  const SizedBox(width: 14),
+                ],
+                _CountUnit(
+                  value: hours.toString().padLeft(2, '0'),
+                  unit: 'ч',
+                ),
+                const SizedBox(width: 14),
+                _CountUnit(
+                  value: minutes.toString().padLeft(2, '0'),
+                  unit: 'мин',
+                ),
+              ],
+            ],
+          ),
+          if (widget.subtitle != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              widget.subtitle!,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0x80FFFFFF),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CountUnit extends StatelessWidget {
+  final String value;
+  final String unit;
+
+  const _CountUnit({required this.value, required this.unit});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 44,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+            height: 1.0,
+          ),
+        ),
+        const SizedBox(width: 3),
+        Text(
+          unit,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 // ─── Секция деталей ─────────────────────────────────────────────────────────
 
 class _DetailsSection extends StatelessWidget {
-  final CourseItem? courseItem;
-  const _DetailsSection({required this.courseItem});
+  final TestSessionResultsLoaded state;
+  const _DetailsSection({required this.state});
 
   static final _dateFmt = DateFormat('d MMM, HH:mm', 'ru');
 
   @override
   Widget build(BuildContext context) {
-    final payload = courseItem?.payload;
     final rows = <_DetailRow>[];
 
-    final hasTimeLimit =
-        payload?.totalTimeLimitSec != null && payload!.totalTimeLimitSec! > 0;
-    rows.add(_DetailRow(
-      icon: Icons.timer_outlined,
-      label: 'Время',
-      value: hasTimeLimit
-          ? '${(payload.totalTimeLimitSec! / 60).round()} мин'
-          : 'Без ограничений',
-    ));
-
-    if (courseItem?.endTime != null) {
+    if (state.finishedAt != null) {
       rows.add(_DetailRow(
         icon: Icons.event_outlined,
         label: 'Дедлайн',
-        value: _dateFmt.format(courseItem!.endTime!.toLocal()),
+        value: _dateFmt.format(state.finishedAt!.toLocal()),
       ));
     }
 
-    if (payload?.shuffleQuestions == true) {
-      rows.add(const _DetailRow(
-        icon: Icons.shuffle_rounded,
-        label: 'Порядок вопросов',
-        value: 'Случайный',
+    if (state.startedAt != null) {
+      rows.add(_DetailRow(
+        icon: Icons.schedule_outlined,
+        label: 'Открывается',
+        value: _dateFmt.format(state.startedAt!.toLocal()),
       ));
     }
 
@@ -496,7 +794,7 @@ class _StudentRowTile extends StatelessWidget {
     final attempt = row.attempt;
     final status = attempt?.status;
     final scoreText = attempt?.score != null
-        ? '${attempt!.score!.toStringAsFixed(0)}%'
+        ? attempt!.score!.toStringAsFixed(0)
         : null;
     final tappable = onTap != null;
     final needsAction = status == AttemptStatus.graded;
@@ -585,20 +883,27 @@ class _StatusBadge extends StatelessWidget {
         );
       case AttemptStatus.grading:
         return const _Chip(
-          label: 'Проверка ИИ',
+          label: 'ИИ проверяет',
           textColor: AppColors.mono400,
           bgColor: AppColors.mono50,
           borderColor: AppColors.mono150,
         );
       case AttemptStatus.graded:
         return const _Chip(
-          label: 'К проверке',
+          label: 'ИИ проверило',
           textColor: Colors.white,
           bgColor: AppColors.mono900,
           borderColor: AppColors.mono900,
           icon: Icons.edit_outlined,
         );
       case AttemptStatus.completed:
+        return const _Chip(
+          label: 'Учитель проверил',
+          textColor: AppColors.mono600,
+          bgColor: AppColors.mono50,
+          borderColor: AppColors.mono150,
+          icon: Icons.check_outlined,
+        );
       case AttemptStatus.published:
         return const SizedBox.shrink();
     }
@@ -650,7 +955,200 @@ class _Chip extends StatelessWidget {
   }
 }
 
-// ─── Кнопка удаления ─────────────────────────────────────────────────────────
+// ─── Кнопки действий ─────────────────────────────────────────────────────────
+
+class _ActionButtons extends StatelessWidget {
+  final TestSessionResultsLoaded state;
+  const _ActionButtons({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final buttons = <Widget>[];
+
+    // Завершить тест (только если сессия активна)
+    if (state.sessionStatus == 'active') {
+      buttons.add(_FinishButton(isFinishing: state.isFinishing));
+      buttons.add(const SizedBox(height: 10));
+    }
+
+    // Опубликовать результаты
+    if (state.canPublish) {
+      buttons.add(_PublishButton(isPublishing: state.isPublishing));
+      buttons.add(const SizedBox(height: 10));
+    }
+
+    // Удалить тест
+    if (state.canDelete) {
+      buttons.add(_DeleteButton(isDeleting: state.isDeleting));
+    }
+
+    if (buttons.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: buttons,
+    );
+  }
+}
+
+class _FinishButton extends StatelessWidget {
+  final bool isFinishing;
+  const _FinishButton({required this.isFinishing});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: AppDimens.buttonH,
+      child: ElevatedButton(
+        onPressed: isFinishing
+            ? null
+            : () async {
+                final confirmed = await _confirm(context);
+                if (!context.mounted || !confirmed) return;
+                context
+                    .read<TestSessionResultsBloc>()
+                    .add(const FinishSessionEvent());
+              },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.mono900,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+          ),
+          textStyle: AppTextStyles.primaryButton,
+        ),
+        child: isFinishing
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              )
+            : const Text('Завершить тест'),
+      ),
+    );
+  }
+
+  Future<bool> _confirm(BuildContext context) async {
+    final res = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Завершить тест?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mono900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Студенты, не успевшие ответить, завершат попытку принудительно.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.mono600,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: AppDimens.buttonHSm,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.mono900,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Завершить',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: AppDimens.buttonHSm,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.mono150),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+                    ),
+                  ),
+                  child: const Text(
+                    'Отмена',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.mono700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return res ?? false;
+  }
+}
+
+class _PublishButton extends StatelessWidget {
+  final bool isPublishing;
+  const _PublishButton({required this.isPublishing});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: AppDimens.buttonH,
+      child: ElevatedButton(
+        onPressed: isPublishing
+            ? null
+            : () {
+                context
+                    .read<TestSessionResultsBloc>()
+                    .add(const PublishSessionEvent());
+              },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.mono900,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+          ),
+          textStyle: AppTextStyles.primaryButton,
+        ),
+        child: isPublishing
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              )
+            : const Text('Опубликовать результаты'),
+      ),
+    );
+  }
+}
 
 class _DeleteButton extends StatelessWidget {
   final bool isDeleting;
@@ -767,199 +1265,5 @@ class _DeleteButton extends StatelessWidget {
       ),
     );
     return res ?? false;
-  }
-}
-
-// ─── Баннер обратного отсчёта ────────────────────────────────────────────────
-
-class _ScheduledBanner extends StatefulWidget {
-  final DateTime startTime;
-  final int? durationSec;
-
-  const _ScheduledBanner({required this.startTime, this.durationSec});
-
-  @override
-  State<_ScheduledBanner> createState() => _ScheduledBannerState();
-}
-
-class _ScheduledBannerState extends State<_ScheduledBanner> {
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _startTimer();
-  }
-
-  void _startTimer() {
-    _timer?.cancel();
-    final remaining = widget.startTime.toLocal().difference(DateTime.now());
-    if (remaining.isNegative) return;
-
-    if (remaining.inSeconds < 60) {
-      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (mounted) setState(() {});
-      });
-    } else {
-      _timer = Timer.periodic(const Duration(minutes: 1), (_) {
-        if (!mounted) return;
-        setState(() {});
-        final r = widget.startTime.toLocal().difference(DateTime.now());
-        if (r.inSeconds < 60) _startTimer();
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final diff = widget.startTime.toLocal().difference(now);
-    if (diff.isNegative) return const SizedBox.shrink();
-
-    final isUnderMinute = diff.inSeconds < 60;
-    final days = diff.inDays;
-    final hours = diff.inHours % 24;
-    final minutes = diff.inMinutes % 60;
-    final seconds = diff.inSeconds % 60;
-
-    final start = widget.startTime.toLocal();
-    const ruWeekdays = [
-      '',
-      'Понедельник',
-      'Вторник',
-      'Среда',
-      'Четверг',
-      'Пятница',
-      'Суббота',
-      'Воскресенье',
-    ];
-    const ruMonths = [
-      '',
-      'янв',
-      'фев',
-      'мар',
-      'апр',
-      'май',
-      'июн',
-      'июл',
-      'авг',
-      'сен',
-      'окт',
-      'ноя',
-      'дек',
-    ];
-
-    final weekday = ruWeekdays[start.weekday];
-    final dateStr = '${start.day} ${ruMonths[start.month]}';
-    final timeStr =
-        '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
-
-    final subParts = ['$weekday, $dateStr · $timeStr'];
-    if (widget.durationSec != null && widget.durationSec! > 0) {
-      final min = (widget.durationSec! / 60).round();
-      subParts.add('длительность ≈ $min мин');
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-      decoration: BoxDecoration(
-        color: AppColors.mono900,
-        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'СТАРТ ЧЕРЕЗ',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: Color(0x80FFFFFF),
-              letterSpacing: 0.8,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              if (isUnderMinute) ...[
-                _CountUnit(
-                  value: seconds.toString().padLeft(2, '0'),
-                  unit: 'сек',
-                ),
-              ] else ...[
-                if (days > 0) ...[
-                  _CountUnit(
-                    value: days.toString().padLeft(2, '0'),
-                    unit: 'дн',
-                  ),
-                  const SizedBox(width: 14),
-                ],
-                _CountUnit(
-                  value: hours.toString().padLeft(2, '0'),
-                  unit: 'ч',
-                ),
-                const SizedBox(width: 14),
-                _CountUnit(
-                  value: minutes.toString().padLeft(2, '0'),
-                  unit: 'мин',
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            subParts.join(' · '),
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0x80FFFFFF),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CountUnit extends StatelessWidget {
-  final String value;
-  final String unit;
-
-  const _CountUnit({required this.value, required this.unit});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 44,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-            height: 1.0,
-          ),
-        ),
-        const SizedBox(width: 3),
-        Text(
-          unit,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.white,
-          ),
-        ),
-      ],
-    );
   }
 }

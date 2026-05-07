@@ -191,6 +191,7 @@ class _TakeQuizScreenState extends State<TakeQuizScreen>
                 quizTitle: state.quizTitle,
                 questions: state.questions,
                 courseId: widget.courseId,
+                showBottomCta: false,
               ),
             ),
           );

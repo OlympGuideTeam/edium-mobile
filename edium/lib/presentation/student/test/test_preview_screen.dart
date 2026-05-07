@@ -4,9 +4,13 @@ import 'package:edium/core/di/injection.dart';
 import 'package:edium/core/theme/app_colors.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
+import 'package:edium/domain/entities/attempt_review.dart';
 import 'package:edium/domain/entities/course_detail.dart';
+import 'package:edium/domain/entities/quiz_attempt.dart'
+    show AttemptResult, AnswerSubmissionResult, QuizQuestionForStudent;
 import 'package:edium/domain/entities/test_session_meta.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/take_quiz_bloc.dart';
+import 'package:edium/presentation/student/quiz_library/quiz_result_screen.dart';
 import 'package:edium/presentation/student/quiz_library/take_quiz_screen.dart';
 import 'package:edium/presentation/student/test/bloc/test_preview_bloc.dart';
 import 'package:edium/presentation/student/test/bloc/test_preview_event.dart';
@@ -77,7 +81,26 @@ class _TestPreviewView extends StatelessWidget {
           children: [
             _BackRow(onBack: () => context.pop()),
             Expanded(
-              child: BlocBuilder<TestPreviewBloc, TestPreviewState>(
+              child: BlocConsumer<TestPreviewBloc, TestPreviewState>(
+                // Когда результаты опубликованы — сразу заменяем экран на QuizResultScreen
+                listener: (context, state) {
+                  if (state is TestPreviewLoaded &&
+                      state.status == TestPreviewStatus.published &&
+                      state.review != null) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!context.mounted) return;
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => _buildResultScreen(
+                            state.review!,
+                            state.meta.title,
+                          ),
+                        ),
+                      );
+                    });
+                  }
+                },
                 builder: (context, state) {
                   if (state is TestPreviewLoading ||
                       state is TestPreviewInitial) {
@@ -92,6 +115,15 @@ class _TestPreviewView extends StatelessWidget {
                     return _ErrorBody(message: state.message);
                   }
                   if (state is TestPreviewLoaded) {
+                    // Пока ждём навигации — показываем loader
+                    if (state.status == TestPreviewStatus.published) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.mono700,
+                          strokeWidth: 2,
+                        ),
+                      );
+                    }
                     return _LoadedBody(
                       state: state,
                       sessionId: sessionId,
@@ -105,6 +137,45 @@ class _TestPreviewView extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  static Widget _buildResultScreen(AttemptReview review, String quizTitle) {
+    const defaultMaxScore = 10;
+
+    final questions = review.answers
+        .map((a) => QuizQuestionForStudent(
+              id: a.questionId,
+              type: a.questionType,
+              text: a.questionText,
+              maxScore: defaultMaxScore,
+            ))
+        .toList();
+
+    final answers = review.answers
+        .map((a) => AnswerSubmissionResult(
+              questionId: a.questionId,
+              answerData: a.answerData,
+              finalScore: a.finalScore,
+              finalFeedback: a.finalFeedback,
+            ))
+        .toList();
+
+    final result = AttemptResult(
+      attemptId: review.attemptId,
+      status: review.status,
+      score: review.score,
+      startedAt: review.startedAt,
+      finishedAt: review.finishedAt,
+      answers: answers,
+    );
+
+    return QuizResultScreen(
+      result: result,
+      maxPossibleScore: questions.length * defaultMaxScore,
+      quizTitle: quizTitle,
+      questions: questions,
+      showBottomCta: false,
     );
   }
 }
@@ -368,17 +439,6 @@ class _DetailsSection extends StatelessWidget {
         value: 'Случайный',
       ));
     }
-
-    final attemptUsed = status == TestPreviewStatus.resume ||
-        status == TestPreviewStatus.published ||
-        status == TestPreviewStatus.grading ||
-        status == TestPreviewStatus.graded;
-
-    rows.add(_DetailRow(
-      icon: Icons.replay_outlined,
-      label: 'Попытки',
-      value: attemptUsed ? 'Закончились' : '1 доступна',
-    ));
 
     return Container(
       decoration: BoxDecoration(
@@ -702,12 +762,11 @@ class _BottomCta extends StatelessWidget {
       TestPreviewStatus.expired => 'Дедлайн истёк',
       TestPreviewStatus.grading => 'Ответы проверяются',
       TestPreviewStatus.graded => 'Результаты недоступны',
-      TestPreviewStatus.published => 'Посмотреть результат',
+      TestPreviewStatus.published => 'Загрузка...', // не должно показываться
     };
 
     final enabled = status == TestPreviewStatus.start ||
-        status == TestPreviewStatus.resume ||
-        status == TestPreviewStatus.published;
+        status == TestPreviewStatus.resume;
 
     return SizedBox(
       width: double.infinity,
@@ -734,13 +793,6 @@ class _BottomCta extends StatelessWidget {
     TestSessionMeta meta,
     TestPreviewStatus status,
   ) {
-    if (status == TestPreviewStatus.published) {
-      final review = state.review;
-      if (review != null) {
-        context.push('/test/$sessionId/attempts/${review.attemptId}');
-      }
-      return;
-    }
     Navigator.push(
       context,
       MaterialPageRoute(

@@ -66,10 +66,15 @@ class CourseDetailBloc extends Bloc<CourseDetailEvent, CourseDetailState> {
     SilentReloadCourseDetailEvent event,
     Emitter<CourseDetailState> emit,
   ) async {
+    final previous = _currentCourse;
     try {
       final course = await _getCourseDetail(courseId: event.courseId);
-      emit(CourseDetailLoaded(course));
-    } catch (_) {}
+      emit(CourseDetailLoaded(_applyRoleGuard(course)));
+    } catch (_) {
+      if (previous != null) {
+        emit(CourseDetailLoaded(previous));
+      }
+    }
   }
 
   Future<void> _onCreateModule(
