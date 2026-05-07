@@ -168,6 +168,25 @@ class QuizRepositoryImpl implements IQuizRepository {
   }
 
   @override
+  Future<String> createLiveSessionInline({
+    required String title,
+    String? description,
+    required String courseId,
+    required String moduleId,
+    required List<Map<String, dynamic>> questions,
+    int? questionTimeLimitSec,
+  }) {
+    return _datasource.createLiveSessionInline(
+      title: title,
+      description: description,
+      courseId: courseId,
+      moduleId: moduleId,
+      questions: questions,
+      questionTimeLimitSec: questionTimeLimitSec,
+    );
+  }
+
+  @override
   Future<void> deleteSession(String sessionId) {
     return _datasource.deleteSession(sessionId);
   }

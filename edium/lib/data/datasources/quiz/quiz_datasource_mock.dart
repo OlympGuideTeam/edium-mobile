@@ -411,6 +411,25 @@ class QuizDatasourceMock implements IQuizDatasource {
   }
 
   @override
+  Future<String> createLiveSessionInline({
+    required String title,
+    String? description,
+    required String courseId,
+    required String moduleId,
+    required List<Map<String, dynamic>> questions,
+    int? questionTimeLimitSec,
+  }) async {
+    await createQuiz(
+      title: title,
+      description: description,
+      mode: 'live',
+      questionTimeLimitSec: questionTimeLimitSec,
+      questions: questions,
+    );
+    return 'session-live-inline-${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  @override
   Future<void> deleteSession(String sessionId) async {
     await Future.delayed(const Duration(milliseconds: 200));
   }
