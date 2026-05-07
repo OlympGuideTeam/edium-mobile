@@ -686,11 +686,16 @@ class _CourseDetailBody extends StatelessWidget {
         finishedAt: result.finishedAt,
       ));
       // Silent reload after Caesar processes the event-bus message.
-      Future.delayed(const Duration(seconds: 3), () {
-        if (context.mounted) {
-          bloc.add(SilentReloadCourseDetailEvent(course.id));
-        }
-      });
+      // Skip for saveOnly: the draft is already shown optimistically, and
+      // reloading too early races against the Caesar event-bus processing
+      // (typically 3-5 s), which would wipe the optimistic draft from the list.
+      if (result.submittedModuleId != null) {
+        Future.delayed(const Duration(seconds: 3), () {
+          if (context.mounted) {
+            bloc.add(SilentReloadCourseDetailEvent(course.id));
+          }
+        });
+      }
     }
   }
 
@@ -1115,6 +1120,7 @@ class _CourseContentList extends StatelessWidget {
                       module: module,
                       index: i,
                       isTeacher: course.isTeacher,
+                      courseId: course.id,
                     );
                   },
                 )
@@ -1128,6 +1134,7 @@ class _CourseContentList extends StatelessWidget {
                         child: _ModuleSection(
                           module: module,
                           isTeacher: course.isTeacher,
+                          courseId: course.id,
                         ),
                       );
                     },
@@ -1190,12 +1197,14 @@ class _ReorderableModuleItem extends StatelessWidget {
   final ModuleDetail module;
   final int index;
   final bool isTeacher;
+  final String courseId;
 
   const _ReorderableModuleItem({
     super.key,
     required this.module,
     required this.index,
     required this.isTeacher,
+    required this.courseId,
   });
 
   @override
@@ -1204,7 +1213,11 @@ class _ReorderableModuleItem extends StatelessWidget {
       index: index,
       child: Padding(
         padding: const EdgeInsets.only(top: 12),
-        child: _ModuleSection(module: module, isTeacher: isTeacher),
+        child: _ModuleSection(
+          module: module,
+          isTeacher: isTeacher,
+          courseId: courseId,
+        ),
       ),
     );
   }
@@ -1250,10 +1263,12 @@ class _ModuleSection extends StatefulWidget {
   final ModuleDetail module;
   final bool isTeacher;
   final String? classId;
+  final String courseId;
 
   const _ModuleSection({
     required this.module,
     required this.isTeacher,
+    required this.courseId,
     this.classId,
   });
 
@@ -1506,6 +1521,7 @@ class _ModuleSectionState extends State<_ModuleSection>
                                                 extra: {
                                                   'courseItem': item,
                                                   'isTeacher': false,
+                                                  'courseId': widget.courseId,
                                                 },
                                               );
                                             }
@@ -1515,6 +1531,7 @@ class _ModuleSectionState extends State<_ModuleSection>
                                                   context,
                                                   item,
                                                   widget.module.id,
+                                                  _statuses[item.refId],
                                                 )
                                             : null,
                                   ))
@@ -1535,6 +1552,7 @@ class _ModuleSectionState extends State<_ModuleSection>
     BuildContext context,
     CourseItem item,
     String moduleId,
+    SessionStatusItem? sessionStatus,
   ) {
     if (widget.isTeacher) {
       context.push(
@@ -1546,8 +1564,13 @@ class _ModuleSectionState extends State<_ModuleSection>
         },
       );
     } else {
-      // Caesar does not return a live-session state in CourseItemDetail —
-      // let the backend reject the join if the session isn't in lobby phase.
+      if (item.attemptId != null &&
+          (item.isPassed ||
+              sessionStatus?.status == 'finished' ||
+              item.state == 'completed')) {
+        context.push('/test/${item.refId}/attempts/${item.attemptId}');
+        return;
+      }
       _joinLiveAsStudent(context, item, moduleId);
     }
   }

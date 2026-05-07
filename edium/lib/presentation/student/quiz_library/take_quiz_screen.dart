@@ -13,6 +13,7 @@ import 'package:edium/presentation/student/quiz_library/bloc/take_quiz_state.dar
 import 'package:edium/presentation/student/quiz_library/quiz_result_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 class TakeQuizScreen extends StatefulWidget {
   final String sessionId;
@@ -20,12 +21,17 @@ class TakeQuizScreen extends StatefulWidget {
   final int? totalTimeLimitSec;
   final bool useCache;
 
+  /// Если передан — после завершения теста уводим на `/course/<courseId>`
+  /// (с обновлением данных курса), а не просто закрываем экран.
+  final String? courseId;
+
   const TakeQuizScreen({
     super.key,
     required this.sessionId,
     required this.quizTitle,
     this.totalTimeLimitSec,
     this.useCache = false,
+    this.courseId,
   });
 
   @override
@@ -55,6 +61,18 @@ class _TakeQuizScreenState extends State<TakeQuizScreen>
     getIt<NavigationBlockService>().unblock();
     _pageController.dispose();
     super.dispose();
+  }
+
+  /// Выходит с экрана прохождения теста: если знаем `courseId` —
+  /// возвращаемся на экран курса (и он перезагрузит детали в `LoadCourseDetailEvent`),
+  /// иначе просто закрываем экран.
+  void _exitToCourseOrPop(BuildContext context) {
+    final cid = widget.courseId;
+    if (cid != null) {
+      context.go('/course/$cid');
+    } else {
+      Navigator.pop(context);
+    }
   }
 
   void _handleClose(BuildContext context, TakeQuizInProgress state) {
@@ -172,6 +190,7 @@ class _TakeQuizScreenState extends State<TakeQuizScreen>
                 maxPossibleScore: state.maxPossibleScore,
                 quizTitle: state.quizTitle,
                 questions: state.questions,
+                courseId: widget.courseId,
               ),
             ),
           );
@@ -266,7 +285,7 @@ class _TakeQuizScreenState extends State<TakeQuizScreen>
                       width: double.infinity,
                       height: 52,
                       child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => _exitToCourseOrPop(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.mono900,
                           foregroundColor: Colors.white,
@@ -274,9 +293,11 @@ class _TakeQuizScreenState extends State<TakeQuizScreen>
                               borderRadius: BorderRadius.circular(14)),
                           elevation: 0,
                         ),
-                        child: const Text(
-                          'Вернуться к квизам',
-                          style: TextStyle(
+                        child: Text(
+                          widget.courseId != null
+                              ? 'Вернуться к курсу'
+                              : 'Вернуться к квизам',
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                           ),

@@ -10,6 +10,7 @@ import 'package:edium/presentation/shared/widgets/edium_button.dart';
 import 'package:edium/presentation/shared/widgets/edium_refresh_indicator.dart';
 import 'package:edium/presentation/student/quiz_library/student_question_review_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 class QuizResultScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class QuizResultScreen extends StatefulWidget {
   final int maxPossibleScore;
   final String quizTitle;
   final List<QuizQuestionForStudent> questions;
+  final String? courseId;
 
   const QuizResultScreen({
     super.key,
@@ -24,6 +26,7 @@ class QuizResultScreen extends StatefulWidget {
     required this.maxPossibleScore,
     required this.quizTitle,
     required this.questions,
+    this.courseId,
   });
 
   @override
@@ -58,6 +61,15 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
     _pollTimer = Timer.periodic(const Duration(seconds: 8), (_) => _refresh());
   }
 
+  void _exit(BuildContext context) {
+    final cid = widget.courseId;
+    if (cid != null) {
+      context.go('/course/$cid');
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
   Future<void> _refresh() async {
     try {
       final fresh = await getIt<GetAttemptResultUsecase>()(_current.attemptId);
@@ -76,7 +88,7 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _TopBar(onBack: () => Navigator.pop(context)),
+            _TopBar(onBack: () => _exit(context)),
             Expanded(
               child: _isPending
                   ? const _PendingBody()
@@ -90,7 +102,7 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
                       ),
                     ),
             ),
-            _BottomCta(onPressed: () => Navigator.pop(context)),
+            _BottomCta(onPressed: () => _exit(context)),
           ],
         ),
       ),

@@ -140,18 +140,11 @@ class TestSessionRepositoryImpl implements ITestSessionRepository {
   }
 
   @override
-  Future<void> gradeSubmission({
+  Future<void> gradeAttempt({
     required String attemptId,
-    required String submissionId,
-    required double score,
-    String? feedback,
+    required List<({String submissionId, double score, String? feedback})> grades,
   }) =>
-      _ds.gradeSubmission(
-        attemptId: attemptId,
-        submissionId: submissionId,
-        score: score,
-        feedback: feedback,
-      );
+      _ds.gradeAttempt(attemptId: attemptId, grades: grades);
 
   @override
   Future<void> completeAttempt(String attemptId) =>

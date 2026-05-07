@@ -2990,7 +2990,7 @@ class _ResultsPhase extends StatelessWidget {
                 child: TabBarView(
                   children: [
                     _LeaderboardTabContent(top: r.top),
-                    AttemptReviewBody(attemptId: attemptId),
+                    AttemptReviewBody(attemptId: attemptId, dark: true),
                   ],
                 ),
               ),

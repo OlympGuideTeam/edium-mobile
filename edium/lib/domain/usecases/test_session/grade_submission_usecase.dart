@@ -6,14 +6,7 @@ class GradeSubmissionUsecase {
 
   Future<void> call({
     required String attemptId,
-    required String submissionId,
-    required double score,
-    String? feedback,
+    required List<({String submissionId, double score, String? feedback})> grades,
   }) =>
-      _repo.gradeSubmission(
-        attemptId: attemptId,
-        submissionId: submissionId,
-        score: score,
-        feedback: feedback,
-      );
+      _repo.gradeAttempt(attemptId: attemptId, grades: grades);
 }

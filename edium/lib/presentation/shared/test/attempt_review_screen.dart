@@ -30,7 +30,8 @@ class AttemptReviewScreen extends StatelessWidget {
 /// Используется внутри TabBarView (например, в live-результатах ученика).
 class AttemptReviewBody extends StatelessWidget {
   final String attemptId;
-  const AttemptReviewBody({super.key, required this.attemptId});
+  final bool dark;
+  const AttemptReviewBody({super.key, required this.attemptId, this.dark = false});
 
   @override
   Widget build(BuildContext context) {
@@ -40,9 +41,10 @@ class AttemptReviewBody extends StatelessWidget {
       child: BlocBuilder<AttemptReviewBloc, AttemptReviewBlocState>(
         builder: (context, state) {
           if (state is AttemptReviewLoading || state is AttemptReviewInitial) {
-            return const Center(
+            return Center(
               child: CircularProgressIndicator(
-                  color: AppColors.mono700, strokeWidth: 2),
+                  color: dark ? Colors.white54 : AppColors.mono700,
+                  strokeWidth: 2),
             );
           }
           if (state is AttemptReviewError) {
@@ -50,7 +52,8 @@ class AttemptReviewBody extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(32),
                 child: Text(state.message,
-                    style: AppTextStyles.screenSubtitle,
+                    style: AppTextStyles.screenSubtitle.copyWith(
+                        color: dark ? Colors.white60 : null),
                     textAlign: TextAlign.center),
               ),
             );
@@ -65,31 +68,31 @@ class AttemptReviewBody extends StatelessWidget {
   }
 
   Widget _body(AttemptReview review) {
-    return Container(
-      color: Colors.white,
-      child: ListView(
+    return ListView(
         padding: const EdgeInsets.fromLTRB(
             AppDimens.screenPaddingH, 0, AppDimens.screenPaddingH, 32),
         children: [
           const SizedBox(height: 8),
           Text('Разбор попытки',
-              style: AppTextStyles.screenTitle.copyWith(fontSize: 22)),
+              style: AppTextStyles.screenTitle.copyWith(
+                  fontSize: 22,
+                  color: dark ? Colors.white : null)),
           const SizedBox(height: 6),
           Text(
             review.score != null
                 ? 'Итоговый балл: ${review.score!.toStringAsFixed(0)}'
                 : 'Балл ещё не выставлен',
-            style: AppTextStyles.screenSubtitle,
+            style: AppTextStyles.screenSubtitle.copyWith(
+                color: dark ? Colors.white60 : null),
           ),
           const SizedBox(height: 20),
           ...review.answers.asMap().entries.map((e) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: _QuestionCard(index: e.key + 1, answer: e.value),
+              child: _QuestionCard(index: e.key + 1, answer: e.value, dark: dark),
             );
           }),
         ],
-      ),
     );
   }
 }
@@ -179,16 +182,33 @@ class _View extends StatelessWidget {
 class _QuestionCard extends StatelessWidget {
   final int index;
   final AnswerReview answer;
-  const _QuestionCard({required this.index, required this.answer});
+  final bool dark;
+  const _QuestionCard({required this.index, required this.answer, this.dark = false});
 
   @override
   Widget build(BuildContext context) {
+    final cardColor = dark
+        ? Colors.white.withValues(alpha: 0.07)
+        : AppColors.mono25;
+    final borderColor = dark
+        ? Colors.white.withValues(alpha: 0.12)
+        : AppColors.mono150;
+    final numBg = dark
+        ? Colors.white.withValues(alpha: 0.12)
+        : AppColors.mono100;
+    final numTextColor = dark ? Colors.white70 : AppColors.mono600;
+    final titleColor = dark ? Colors.white : AppColors.mono900;
+    final scoreColor = dark ? Colors.white : AppColors.mono900;
+    final dashColor = dark ? Colors.white38 : AppColors.mono300;
+    final feedbackColor = dark ? Colors.white54 : AppColors.mono600;
+    final sourceColor = dark ? Colors.white38 : AppColors.mono300;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.mono25,
+        color: cardColor,
         borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-        border: Border.all(color: AppColors.mono150),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,15 +219,15 @@ class _QuestionCard extends StatelessWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: AppColors.mono100,
+                  color: numBg,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
                   child: Text('$index',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.mono600,
+                        color: numTextColor,
                       )),
                 ),
               ),
@@ -215,10 +235,10 @@ class _QuestionCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   answer.questionText,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.mono900,
+                    color: titleColor,
                     height: 1.3,
                   ),
                 ),
@@ -226,15 +246,15 @@ class _QuestionCard extends StatelessWidget {
               if (answer.finalScore != null)
                 Text(
                   answer.finalScore!.toStringAsFixed(0),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.mono900,
+                    color: scoreColor,
                   ),
                 )
               else
-                const Text('—',
-                    style: TextStyle(fontSize: 14, color: AppColors.mono300)),
+                Text('—',
+                    style: TextStyle(fontSize: 14, color: dashColor)),
             ],
           ),
           if (answer.imageId != null) ...[
@@ -248,9 +268,9 @@ class _QuestionCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               answer.finalFeedback!,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.mono600,
+                  color: feedbackColor,
                   fontStyle: FontStyle.italic),
             ),
           ],
@@ -258,7 +278,7 @@ class _QuestionCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               _sourceLabel(answer.finalSource!),
-              style: AppTextStyles.caption.copyWith(color: AppColors.mono300),
+              style: AppTextStyles.caption.copyWith(color: sourceColor),
             ),
           ],
         ],
@@ -357,11 +377,6 @@ class _QuestionCard extends StatelessWidget {
             fontSize: 13, color: AppColors.mono900, height: 1.4));
   }
 
-  static const _green = Color(0xFF22C55E);
-  static const _greenBg = Color(0xFFE8F5E9);
-  static const _red = Color(0xFFEF4444);
-  static const _redBg = Color(0xFFFEE2E2);
-
   Widget _dragBlock(AnswerReview a) {
     final studentOrder = (a.answerData['order'] as List<dynamic>? ?? const [])
         .map((e) => e.toString())
@@ -449,13 +464,14 @@ class _QuestionCard extends StatelessWidget {
     final studentPairs =
         (a.answerData['pairs'] as Map<String, dynamic>? ?? const {})
             .map((k, v) => MapEntry(k, v.toString()));
-    final correctPairs =
-        (a.metadata?['correct_pairs'] as Map<String, dynamic>? ?? const {})
-            .map((k, v) => MapEntry(k, v.toString()));
+    final correctPairsRaw =
+        a.metadata?['correct_pairs'] as Map<String, dynamic>?;
+    final correctPairs = correctPairsRaw?.map((k, v) => MapEntry(k, v.toString()));
+    final hasCorrect = correctPairs != null && correctPairs.isNotEmpty;
 
     if (studentPairs.isEmpty) return _emptyBlock();
 
-    final keys = correctPairs.isNotEmpty
+    final keys = hasCorrect
         ? correctPairs.keys.toList()
         : studentPairs.keys.toList();
 
@@ -463,66 +479,17 @@ class _QuestionCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: keys.map((left) {
         final studentRight = studentPairs[left];
-        final correctRight = correctPairs[left];
-        final isCorrect =
-            studentRight != null && studentRight == correctRight;
-        final color = isCorrect ? _green : _red;
-        final bgColor = isCorrect ? _greenBg : _redBg;
+        final correctRight = hasCorrect ? correctPairs[left] : null;
+        final isCorrect = hasCorrect
+            ? studentRight != null && studentRight == correctRight
+            : null; // null = unknown, no grading data
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 6),
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(AppDimens.radiusSm),
-            border: Border.all(color: color),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                left,
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: color),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(Icons.arrow_forward, size: 12, color: color),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      studentRight ?? '—',
-                      style: TextStyle(fontSize: 13, color: color),
-                    ),
-                  ),
-                  Icon(
-                    isCorrect ? Icons.check_circle : Icons.cancel,
-                    size: 14,
-                    color: color,
-                  ),
-                ],
-              ),
-              if (!isCorrect && correctRight != null) ...[
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.check, size: 12, color: _green),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        correctRight,
-                        style: const TextStyle(
-                            fontSize: 13, color: _green),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          ),
+        return _ConnectionPairRow(
+          left: left,
+          studentRight: studentRight ?? '—',
+          correctRight: isCorrect == false ? correctRight : null,
+          isCorrect: isCorrect,
+          dark: dark,
         );
       }).toList(),
     );
@@ -607,6 +574,118 @@ class _OrderItem extends StatelessWidget {
               isCorrect ? Icons.check : Icons.close,
               size: 12,
               color: color,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ConnectionPairRow extends StatelessWidget {
+  final String left;
+  final String studentRight;
+  final String? correctRight;
+  final bool? isCorrect; // null = no grading data
+  final bool dark;
+
+  static const _green = Color(0xFF22C55E);
+  static const _red = Color(0xFFEF4444);
+
+  const _ConnectionPairRow({
+    required this.left,
+    required this.studentRight,
+    this.correctRight,
+    required this.isCorrect,
+    this.dark = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color accentColor;
+    final Color bgColor;
+    final Color borderColor;
+
+    if (isCorrect == true) {
+      accentColor = _green;
+      bgColor = dark
+          ? const Color(0xFF22C55E).withValues(alpha: 0.08)
+          : const Color(0xFFE8F5E9);
+      borderColor = _green.withValues(alpha: 0.4);
+    } else if (isCorrect == false) {
+      accentColor = _red;
+      bgColor = dark
+          ? const Color(0xFFEF4444).withValues(alpha: 0.08)
+          : const Color(0xFFFEE2E2);
+      borderColor = _red.withValues(alpha: 0.4);
+    } else {
+      accentColor = dark ? Colors.white54 : AppColors.mono400;
+      bgColor = dark ? Colors.white.withValues(alpha: 0.05) : AppColors.mono50;
+      borderColor = dark ? Colors.white.withValues(alpha: 0.12) : AppColors.mono150;
+    }
+
+    final textColor = dark ? Colors.white : AppColors.mono900;
+    final arrowColor = dark ? Colors.white30 : AppColors.mono300;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  left,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isCorrect != null ? accentColor : textColor,
+                  ),
+                ),
+              ),
+              Icon(Icons.arrow_forward, size: 13, color: arrowColor),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  studentRight,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isCorrect != null ? accentColor : textColor,
+                  ),
+                ),
+              ),
+              if (isCorrect != null) ...[
+                const SizedBox(width: 6),
+                Icon(
+                  isCorrect! ? Icons.check_circle : Icons.cancel,
+                  size: 16,
+                  color: accentColor,
+                ),
+              ],
+            ],
+          ),
+          if (isCorrect == false && correctRight != null) ...[
+            const SizedBox(height: 5),
+            Row(
+              children: [
+                const Icon(Icons.subdirectory_arrow_right, size: 13, color: AppColors.mono300),
+                const SizedBox(width: 6),
+                Text(
+                  'Верно: $correctRight',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: _green,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ],
         ],

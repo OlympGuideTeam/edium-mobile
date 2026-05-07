@@ -20,12 +20,14 @@ class TestPreviewScreen extends StatelessWidget {
   final String sessionId;
   final CourseItem? courseItem;
   final String? quizTitle;
+  final String? courseId;
 
   const TestPreviewScreen({
     super.key,
     required this.sessionId,
     this.courseItem,
     this.quizTitle,
+    this.courseId,
   });
 
   TestSessionMeta _buildMeta() {
@@ -56,14 +58,15 @@ class TestPreviewScreen extends StatelessWidget {
           meta: meta,
           initialAttemptId: courseItem?.attemptId,
         )),
-      child: _TestPreviewView(sessionId: sessionId),
+      child: _TestPreviewView(sessionId: sessionId, courseId: courseId),
     );
   }
 }
 
 class _TestPreviewView extends StatelessWidget {
   final String sessionId;
-  const _TestPreviewView({required this.sessionId});
+  final String? courseId;
+  const _TestPreviewView({required this.sessionId, this.courseId});
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +95,7 @@ class _TestPreviewView extends StatelessWidget {
                     return _LoadedBody(
                       state: state,
                       sessionId: sessionId,
+                      courseId: courseId,
                     );
                   }
                   return const SizedBox.shrink();
@@ -146,7 +150,12 @@ class _ErrorBody extends StatelessWidget {
 class _LoadedBody extends StatelessWidget {
   final TestPreviewLoaded state;
   final String sessionId;
-  const _LoadedBody({required this.state, required this.sessionId});
+  final String? courseId;
+  const _LoadedBody({
+    required this.state,
+    required this.sessionId,
+    this.courseId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -193,7 +202,11 @@ class _LoadedBody extends StatelessWidget {
             AppDimens.screenPaddingH,
             24,
           ),
-          child: _BottomCta(state: state, sessionId: sessionId),
+          child: _BottomCta(
+            state: state,
+            sessionId: sessionId,
+            courseId: courseId,
+          ),
         ),
       ],
     );
@@ -670,7 +683,12 @@ class _WarningBlock extends StatelessWidget {
 class _BottomCta extends StatelessWidget {
   final TestPreviewLoaded state;
   final String sessionId;
-  const _BottomCta({required this.state, required this.sessionId});
+  final String? courseId;
+  const _BottomCta({
+    required this.state,
+    required this.sessionId,
+    this.courseId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -733,12 +751,14 @@ class _BottomCta extends StatelessWidget {
             finishAttempt: getIt(),
             getResult: getIt(),
             testSessionRepo: getIt(),
+            isFromCourse: true,
           ),
           child: TakeQuizScreen(
             sessionId: sessionId,
             quizTitle: meta.title,
             totalTimeLimitSec: meta.totalTimeLimitSec,
             useCache: true,
+            courseId: courseId,
           ),
         ),
       ),

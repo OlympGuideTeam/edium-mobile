@@ -61,11 +61,15 @@ class _TeacherGradeQuestionScreenState
     try {
       await getIt<GradeSubmissionUsecase>()(
         attemptId: widget.attemptId,
-        submissionId: widget.answer.submissionId,
-        score: score,
-        feedback: _feedbackCtrl.text.trim().isEmpty
-            ? null
-            : _feedbackCtrl.text.trim(),
+        grades: [
+          (
+            submissionId: widget.answer.submissionId,
+            score: score,
+            feedback: _feedbackCtrl.text.trim().isEmpty
+                ? null
+                : _feedbackCtrl.text.trim(),
+          ),
+        ],
       );
       if (mounted) Navigator.pop(context, true);
     } catch (e) {

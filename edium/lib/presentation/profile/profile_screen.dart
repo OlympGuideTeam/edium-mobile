@@ -110,7 +110,11 @@ class _ProfileContent extends StatelessWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           padding:
               const EdgeInsets.symmetric(horizontal: AppDimens.screenPaddingH),
-          child: Column(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.sizeOf(context).height,
+            ),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 32),
@@ -176,6 +180,7 @@ class _ProfileContent extends StatelessWidget {
               ),
               const SizedBox(height: 32),
             ],
+          ),
           ),
         ),
       ),

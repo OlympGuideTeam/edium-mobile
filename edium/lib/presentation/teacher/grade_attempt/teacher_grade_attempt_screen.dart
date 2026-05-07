@@ -8,7 +8,6 @@ import 'package:edium/presentation/shared/widgets/question_image_widget.dart';
 import 'package:edium/presentation/teacher/grade_attempt/bloc/teacher_grade_bloc.dart';
 import 'package:edium/presentation/teacher/grade_attempt/bloc/teacher_grade_event.dart';
 import 'package:edium/presentation/teacher/grade_attempt/bloc/teacher_grade_state.dart';
-import 'package:edium/presentation/teacher/grade_attempt/teacher_grade_question_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -24,7 +23,6 @@ class TeacherGradeAttemptScreen extends StatelessWidget {
       create: (_) => TeacherGradeBloc(
         getReview: getIt(),
         gradeSubmission: getIt(),
-        completeAttempt: getIt(),
       )..add(LoadTeacherGradeEvent(attemptId)),
       child: _View(attemptId: attemptId),
     );
@@ -92,6 +90,7 @@ class _View extends StatelessWidget {
         review: state.review,
         isSaving: state.isSaving,
         attemptId: attemptId,
+        localGrades: state.localGrades,
       );
     }
     return const SizedBox.shrink();
@@ -102,16 +101,18 @@ class _GradeBody extends StatelessWidget {
   final AttemptReview review;
   final bool isSaving;
   final String attemptId;
+  final LocalGrades localGrades;
 
   const _GradeBody({
     required this.review,
     required this.isSaving,
     required this.attemptId,
+    required this.localGrades,
   });
 
-  bool get _isReadyToSubmit => review.answers
+  bool _isReadyToSubmit(LocalGrades localGrades) => review.answers
       .where((a) => a.questionType == QuizQuestionType.withFreeAnswer)
-      .every((a) => a.finalScore != null);
+      .every((a) => localGrades.containsKey(a.submissionId));
 
   @override
   Widget build(BuildContext context) {
@@ -138,10 +139,20 @@ class _GradeBody extends StatelessWidget {
                 if (answer.questionType == QuizQuestionType.withFreeAnswer) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: _FreeAnswerSummaryCard(
+                    child: _FreeAnswerInlineCard(
                       index: e.key + 1,
                       answer: answer,
-                      onTap: () => _openGrading(context, answer, e.key + 1),
+                      initialScore: localGrades[answer.submissionId]?.score,
+                      initialFeedback: localGrades[answer.submissionId]?.feedback,
+                      onGradeChanged: (score, feedback) {
+                        context.read<TeacherGradeBloc>().add(
+                              UpdateLocalGradeEvent(
+                                submissionId: answer.submissionId,
+                                score: score,
+                                feedback: feedback,
+                              ),
+                            );
+                      },
                     ),
                   );
                 }
@@ -155,7 +166,7 @@ class _GradeBody extends StatelessWidget {
         ),
         _SubmitButton(
           isSaving: isSaving,
-          isReady: _isReadyToSubmit,
+          isReady: _isReadyToSubmit(localGrades),
           onTap: () {
             context
                 .read<TeacherGradeBloc>()
@@ -166,158 +177,209 @@ class _GradeBody extends StatelessWidget {
     );
   }
 
-  Future<void> _openGrading(
-      BuildContext context, AnswerReview answer, int index) async {
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => TeacherGradeQuestionScreen(
-          attemptId: attemptId,
-          answer: answer,
-          index: index,
-        ),
-      ),
-    );
-    if (result == true && context.mounted) {
-      context.read<TeacherGradeBloc>().add(LoadTeacherGradeEvent(attemptId));
-    }
-  }
 }
 
-// ── Tappable summary-карточка free-answer ───────────────────────────────────
+// ── Inline-карточка оценивания free-answer ───────────────────────────────────
 
-class _FreeAnswerSummaryCard extends StatelessWidget {
+class _FreeAnswerInlineCard extends StatefulWidget {
   final int index;
   final AnswerReview answer;
-  final VoidCallback onTap;
+  final double? initialScore;
+  final String? initialFeedback;
+  final void Function(double score, String? feedback) onGradeChanged;
 
-  const _FreeAnswerSummaryCard({
+  const _FreeAnswerInlineCard({
     required this.index,
     required this.answer,
-    required this.onTap,
+    required this.initialScore,
+    required this.initialFeedback,
+    required this.onGradeChanged,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final studentText = answer.answerData['text']?.toString() ?? '';
-    final hasScore = answer.finalScore != null;
+  State<_FreeAnswerInlineCard> createState() => _FreeAnswerInlineCardState();
+}
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.mono25,
-          borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-          border: Border.all(
-            color: hasScore ? AppColors.mono300 : AppColors.mono150,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _IndexBadge(index: index),
-                const SizedBox(width: 10),
-                Expanded(
+class _FreeAnswerInlineCardState extends State<_FreeAnswerInlineCard> {
+  late final TextEditingController _scoreCtrl;
+  late final TextEditingController _feedbackCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _scoreCtrl = TextEditingController(
+      text: widget.initialScore?.toStringAsFixed(0) ?? '',
+    );
+    _feedbackCtrl = TextEditingController(
+      text: widget.initialFeedback ?? '',
+    );
+    _scoreCtrl.addListener(_onScoreChanged);
+  }
+
+  void _onScoreChanged() {
+    final score = double.tryParse(_scoreCtrl.text.trim());
+    if (score != null) {
+      final feedback = _feedbackCtrl.text.trim();
+      widget.onGradeChanged(score, feedback.isEmpty ? null : feedback);
+    }
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _scoreCtrl.removeListener(_onScoreChanged);
+    _scoreCtrl.dispose();
+    _feedbackCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final studentText = widget.answer.answerData['text']?.toString() ?? '';
+    final hasScore = double.tryParse(_scoreCtrl.text.trim()) != null;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.mono25,
+        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+        border: Border.all(color: AppColors.mono150),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Шапка: номер + текст вопроса + балл если есть
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _IndexBadge(index: widget.index),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  widget.answer.questionText,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.mono900,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+              if (hasScore)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.mono900,
+                    borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+                  ),
                   child: Text(
-                    answer.questionText,
+                    _scoreCtrl.text,
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.mono900,
-                      height: 1.3,
+                      color: Colors.white,
                     ),
                   ),
                 ),
-                if (hasScore)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.mono900,
-                      borderRadius: BorderRadius.circular(AppDimens.radiusXs),
-                    ),
-                    child: Text(
-                      answer.finalScore!.toStringAsFixed(0),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  )
-                else
-                  const Icon(Icons.chevron_right,
-                      size: 18, color: AppColors.mono300),
-              ],
-            ),
-            if (answer.imageId != null) ...[
-              const SizedBox(height: 10),
-              QuestionImageWidget(imageId: answer.imageId!),
             ],
+          ),
+          if (widget.answer.imageId != null) ...[
             const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.mono100,
-                borderRadius: BorderRadius.circular(AppDimens.radiusSm),
-              ),
-              child: Text(
-                studentText.isEmpty ? '— нет ответа —' : studentText,
-                style: const TextStyle(
-                    fontSize: 13, color: AppColors.mono700, height: 1.4),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(height: 8),
-            if (!hasScore)
-              Row(
-                children: [
-                  const SizedBox(
-                    width: 12,
-                    height: 12,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 1.5,
-                      color: AppColors.mono400,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'ИИ проверяет · Нажмите, чтобы оценить самостоятельно',
-                      style: AppTextStyles.caption
-                          .copyWith(color: AppColors.mono400),
-                    ),
-                  ),
-                ],
-              )
-            else
-              Row(
-                children: [
-                  Icon(
-                    answer.finalSource == 'teacher'
-                        ? Icons.check_circle_outline
-                        : Icons.auto_awesome,
-                    size: 14,
-                    color: AppColors.mono400,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    answer.finalSource == 'teacher'
-                        ? 'Вы оценили · Нажмите, чтобы изменить'
-                        : 'Оценено ИИ · Нажмите, чтобы изменить',
-                    style:
-                        AppTextStyles.caption.copyWith(color: AppColors.mono400),
-                  ),
-                ],
-              ),
+            QuestionImageWidget(imageId: widget.answer.imageId!),
           ],
-        ),
+          const SizedBox(height: 14),
+          // Ответ ученика
+          Text('Ответ ученика', style: AppTextStyles.fieldLabel),
+          const SizedBox(height: 6),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.mono50,
+              borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+              border: Border.all(color: AppColors.mono150),
+            ),
+            child: Text(
+              studentText.isEmpty ? '— нет ответа —' : studentText,
+              style: const TextStyle(
+                  fontSize: 14, color: AppColors.mono700, height: 1.5),
+            ),
+          ),
+          const SizedBox(height: 6),
+          // ИИ-статус
+          if (!hasScore)
+            Row(
+              children: [
+                const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 1.5, color: AppColors.mono400),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'ИИ проверяет... Выставьте балл самостоятельно, чтобы не ждать',
+                    style: AppTextStyles.caption.copyWith(color: AppColors.mono400),
+                  ),
+                ),
+              ],
+            )
+          else if (widget.answer.finalSource == 'llm')
+            Text(
+              'ИИ предложил: ${widget.initialScore!.toStringAsFixed(0)} — можно изменить',
+              style: AppTextStyles.caption.copyWith(color: AppColors.mono400),
+            ),
+          const SizedBox(height: 16),
+          // Балл
+          Text('Балл', style: AppTextStyles.fieldLabel),
+          const SizedBox(height: 8),
+          _ScorePicker(
+            controller: _scoreCtrl,
+            onFeedbackChanged: () {
+              final score = double.tryParse(_scoreCtrl.text.trim());
+              if (score != null) {
+                final fb = _feedbackCtrl.text.trim();
+                widget.onGradeChanged(score, fb.isEmpty ? null : fb);
+              }
+            },
+          ),
+          const SizedBox(height: 16),
+          // Комментарий
+          Text('Комментарий', style: AppTextStyles.fieldLabel),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _feedbackCtrl,
+            maxLines: 4,
+            style: AppTextStyles.fieldText,
+            onChanged: (_) {
+              final score = double.tryParse(_scoreCtrl.text.trim());
+              if (score != null) {
+                final fb = _feedbackCtrl.text.trim();
+                widget.onGradeChanged(score, fb.isEmpty ? null : fb);
+              }
+            },
+            decoration: InputDecoration(
+              hintText: 'Необязательно',
+              hintStyle: AppTextStyles.fieldHint,
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 12),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                borderSide: const BorderSide(
+                    color: AppColors.mono150, width: AppDimens.borderWidth),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+                borderSide: const BorderSide(
+                    color: AppColors.mono600, width: AppDimens.borderWidth),
+              ),
+              filled: true,
+              fillColor: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -567,6 +629,111 @@ class _SubmitButton extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Score picker ─────────────────────────────────────────────────────────────
+
+class _ScorePicker extends StatelessWidget {
+  final TextEditingController controller;
+  final VoidCallback? onFeedbackChanged;
+  const _ScorePicker({required this.controller, this.onFeedbackChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = int.tryParse(controller.text.trim());
+    return Column(
+      children: [
+        _ScoreRow(
+            values: const [1, 2, 3, 4, 5],
+            selected: selected,
+            controller: controller,
+            onSelected: onFeedbackChanged),
+        const SizedBox(height: 6),
+        _ScoreRow(
+            values: const [6, 7, 8, 9, 10],
+            selected: selected,
+            controller: controller,
+            onSelected: onFeedbackChanged),
+      ],
+    );
+  }
+}
+
+class _ScoreRow extends StatelessWidget {
+  final List<int> values;
+  final int? selected;
+  final TextEditingController controller;
+  final VoidCallback? onSelected;
+
+  const _ScoreRow({
+    required this.values,
+    required this.selected,
+    required this.controller,
+    this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (int i = 0; i < values.length; i++) ...[
+          if (i > 0) const SizedBox(width: 6),
+          Expanded(
+              child: _ScoreChip(
+                  value: values[i],
+                  isSelected: selected == values[i],
+                  controller: controller,
+                  onSelected: onSelected)),
+        ],
+      ],
+    );
+  }
+}
+
+class _ScoreChip extends StatelessWidget {
+  final int value;
+  final bool isSelected;
+  final TextEditingController controller;
+  final VoidCallback? onSelected;
+
+  const _ScoreChip({
+    required this.value,
+    required this.isSelected,
+    required this.controller,
+    this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        controller.text = value.toString();
+        onSelected?.call();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        height: 44,
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.mono900 : Colors.white,
+          borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+          border: Border.all(
+            color: isSelected ? AppColors.mono900 : AppColors.mono150,
+            width: AppDimens.borderWidth,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 150),
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: isSelected ? Colors.white : AppColors.mono600,
+          ),
+          child: Text('$value'),
+        ),
       ),
     );
   }

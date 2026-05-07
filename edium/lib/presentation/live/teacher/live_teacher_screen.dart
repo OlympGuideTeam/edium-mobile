@@ -247,6 +247,20 @@ class _TeacherLobbyPhase extends StatelessWidget {
         backgroundColor: AppColors.mono50,
         elevation: 0,
         automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: AppColors.mono900),
+          onPressed: () async {
+            final confirm = await EdiumConfirmDialog.show(
+              context,
+              title: 'Закрыть лобби?',
+              body: 'Квиз ещё не начат. Участники будут отключены.',
+              confirmLabel: 'Закрыть',
+              cancelLabel: 'Отмена',
+              isDestructive: true,
+            );
+            if (confirm == true && context.mounted) context.pop();
+          },
+        ),
         title: Text(state.quizTitle, style: AppTextStyles.heading3),
       ),
       body: Column(
@@ -2169,6 +2183,10 @@ class _TeacherResultsPhase extends StatelessWidget {
         backgroundColor: AppColors.mono50,
         elevation: 0,
         automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: AppColors.mono900),
+          onPressed: () => context.pop(),
+        ),
         title: Text('Результаты квиза', style: AppTextStyles.heading3),
       ),
       body: DefaultTabController(
