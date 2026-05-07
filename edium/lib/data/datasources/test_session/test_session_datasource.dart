@@ -38,15 +38,13 @@ abstract class ITestSessionDatasource {
   /// `DELETE /sessions/:sessionId`. 409 если есть попытки.
   Future<void> deleteSession(String sessionId);
 
-  /// `POST /attempts/:attemptId/submissions/:submissionId/grade`
-  Future<void> gradeSubmission({
+  /// `POST /attempts/:attemptId/grade` — батч оценок за свободные ответы
+  Future<void> gradeAttempt({
     required String attemptId,
-    required String submissionId,
-    required double score,
-    String? feedback,
+    required List<({String submissionId, double score, String? feedback})> grades,
   });
 
-  /// `POST /attempts/:attemptId/complete`
+  /// `POST /attempts/:attemptId/finish` — завершение попытки
   Future<void> completeAttempt(String attemptId);
 
   /// `POST /attempts/session/:sessionId/publish`

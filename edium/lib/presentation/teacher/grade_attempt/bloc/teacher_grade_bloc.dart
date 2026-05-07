@@ -1,4 +1,3 @@
-import 'package:edium/domain/usecases/test_session/complete_attempt_usecase.dart';
 import 'package:edium/domain/usecases/test_session/get_attempt_review_usecase.dart';
 import 'package:edium/domain/usecases/test_session/grade_submission_usecase.dart';
 import 'package:edium/presentation/teacher/grade_attempt/bloc/teacher_grade_event.dart';
@@ -7,19 +6,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 class TeacherGradeBloc extends Bloc<TeacherGradeEvent, TeacherGradeState> {
   final GetAttemptReviewUsecase _getReview;
-  final GradeSubmissionUsecase _gradeSubmission;
-  final CompleteAttemptUsecase _completeAttempt;
+  final GradeSubmissionUsecase _gradeAttempt;
 
   TeacherGradeBloc({
     required GetAttemptReviewUsecase getReview,
     required GradeSubmissionUsecase gradeSubmission,
-    required CompleteAttemptUsecase completeAttempt,
   })  : _getReview = getReview,
-        _gradeSubmission = gradeSubmission,
-        _completeAttempt = completeAttempt,
+        _gradeAttempt = gradeSubmission,
         super(const TeacherGradeInitial()) {
     on<LoadTeacherGradeEvent>(_onLoad);
-    on<SubmitGradesEvent>(_onSubmit);
+    on<UpdateLocalGradeEvent>(_onUpdateLocal);
     on<CompleteGradingEvent>(_onComplete);
   }
 
@@ -30,33 +26,36 @@ class TeacherGradeBloc extends Bloc<TeacherGradeEvent, TeacherGradeState> {
     emit(const TeacherGradeLoading());
     try {
       final review = await _getReview(event.attemptId);
-      emit(TeacherGradeLoaded(review: review));
+      // Предзаполняем localGrades оценками из сервера (LLM/auto)
+      final initialGrades = <String, ({double score, String? feedback})>{};
+      for (final a in review.answers) {
+        if (a.finalScore != null) {
+          initialGrades[a.submissionId] = (
+            score: a.finalScore!,
+            feedback: a.finalFeedback,
+          );
+        }
+      }
+      emit(TeacherGradeLoaded(review: review, localGrades: initialGrades));
     } catch (e) {
       emit(TeacherGradeError(e.toString()));
     }
   }
 
-  Future<void> _onSubmit(
-    SubmitGradesEvent event,
+  void _onUpdateLocal(
+    UpdateLocalGradeEvent event,
     Emitter<TeacherGradeState> emit,
-  ) async {
+  ) {
     final current = state;
     if (current is! TeacherGradeLoaded) return;
-    emit(current.copyWith(isSaving: true));
-    try {
-      for (final grade in event.grades) {
-        await _gradeSubmission(
-          attemptId: event.attemptId,
-          submissionId: grade.submissionId,
-          score: grade.score,
-          feedback: grade.feedback,
-        );
-      }
-      await _completeAttempt(event.attemptId);
-      emit(const TeacherGradeCompleted());
-    } catch (e) {
-      emit(current.copyWith(isSaving: false, saveError: e.toString()));
-    }
+    final updated = Map<String, ({double score, String? feedback})>.from(
+      current.localGrades,
+    );
+    updated[event.submissionId] = (
+      score: event.score,
+      feedback: event.feedback,
+    );
+    emit(current.copyWith(localGrades: updated));
   }
 
   Future<void> _onComplete(
@@ -67,7 +66,16 @@ class TeacherGradeBloc extends Bloc<TeacherGradeEvent, TeacherGradeState> {
     if (current is! TeacherGradeLoaded) return;
     emit(current.copyWith(isSaving: true));
     try {
-      await _completeAttempt(event.attemptId);
+      await _gradeAttempt(
+        attemptId: event.attemptId,
+        grades: current.localGrades.entries
+            .map((e) => (
+                  submissionId: e.key,
+                  score: e.value.score,
+                  feedback: e.value.feedback,
+                ))
+            .toList(),
+      );
       emit(const TeacherGradeCompleted());
     } catch (e) {
       emit(current.copyWith(isSaving: false, saveError: e.toString()));

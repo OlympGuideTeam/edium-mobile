@@ -686,11 +686,16 @@ class _CourseDetailBody extends StatelessWidget {
         finishedAt: result.finishedAt,
       ));
       // Silent reload after Caesar processes the event-bus message.
-      Future.delayed(const Duration(seconds: 3), () {
-        if (context.mounted) {
-          bloc.add(SilentReloadCourseDetailEvent(course.id));
-        }
-      });
+      // Skip for saveOnly: the draft is already shown optimistically, and
+      // reloading too early races against the Caesar event-bus processing
+      // (typically 3-5 s), which would wipe the optimistic draft from the list.
+      if (result.submittedModuleId != null) {
+        Future.delayed(const Duration(seconds: 3), () {
+          if (context.mounted) {
+            bloc.add(SilentReloadCourseDetailEvent(course.id));
+          }
+        });
+      }
     }
   }
 
@@ -1130,6 +1135,7 @@ class _CourseContentListState extends State<_CourseContentList> {
                       module: module,
                       index: i,
                       isTeacher: course.isTeacher,
+                      courseId: course.id,
                       moduleListReloadToken: _moduleListReloadToken,
                     );
                   },
@@ -1144,6 +1150,7 @@ class _CourseContentListState extends State<_CourseContentList> {
                         child: _ModuleSection(
                           module: module,
                           isTeacher: course.isTeacher,
+                          courseId: course.id,
                           moduleListReloadToken: _moduleListReloadToken,
                         ),
                       );
@@ -1210,6 +1217,7 @@ class _ReorderableModuleItem extends StatelessWidget {
   final ModuleDetail module;
   final int index;
   final bool isTeacher;
+  final String courseId;
   final int moduleListReloadToken;
 
   const _ReorderableModuleItem({
@@ -1217,6 +1225,7 @@ class _ReorderableModuleItem extends StatelessWidget {
     required this.module,
     required this.index,
     required this.isTeacher,
+    required this.courseId,
     this.moduleListReloadToken = 0,
   });
 
@@ -1229,6 +1238,7 @@ class _ReorderableModuleItem extends StatelessWidget {
         child: _ModuleSection(
           module: module,
           isTeacher: isTeacher,
+          courseId: courseId,
           moduleListReloadToken: moduleListReloadToken,
         ),
       ),
@@ -1279,12 +1289,14 @@ class _ModuleSection extends StatefulWidget {
   final ModuleDetail module;
   final bool isTeacher;
   final String? classId;
+  final String courseId;
   /// Совпадает с токеном списка после refresh курса — перезагрузка раскрытого модуля.
   final int moduleListReloadToken;
 
   const _ModuleSection({
     required this.module,
     required this.isTeacher,
+    required this.courseId,
     this.classId,
     this.moduleListReloadToken = 0,
   });
@@ -1551,6 +1563,14 @@ class _ModuleSectionState extends State<_ModuleSection>
                                                 );
                                               }
                                             } else {
+                                              context.push(
+                                                '/test/${item.refId}',
+                                                extra: {
+                                                  'courseItem': item,
+                                                  'isTeacher': false,
+                                                  'courseId': widget.courseId,
+                                                },
+                                              );
                                               // Результат опубликован (score != null) →
                                               // сразу на quiz_result_screen, без превью.
                                               if (item.isPassed) {
@@ -1577,6 +1597,7 @@ class _ModuleSectionState extends State<_ModuleSection>
                                                   context,
                                                   item,
                                                   widget.module.id,
+                                                  _statuses[item.refId],
                                                 )
                                             : null,
                                   ))
@@ -1597,6 +1618,7 @@ class _ModuleSectionState extends State<_ModuleSection>
     BuildContext context,
     CourseItem item,
     String moduleId,
+    SessionStatusItem? sessionStatus,
   ) {
     if (widget.isTeacher) {
       context.push(
@@ -1608,8 +1630,13 @@ class _ModuleSectionState extends State<_ModuleSection>
         },
       );
     } else {
-      // Caesar does not return a live-session state in CourseItemDetail —
-      // let the backend reject the join if the session isn't in lobby phase.
+      if (item.attemptId != null &&
+          (item.isPassed ||
+              sessionStatus?.status == 'finished' ||
+              item.state == 'completed')) {
+        context.push('/test/${item.refId}/attempts/${item.attemptId}');
+        return;
+      }
       _joinLiveAsStudent(context, item, moduleId);
     }
   }

@@ -2,7 +2,6 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:edium/domain/entities/attempt_review.dart';
 import 'package:edium/domain/entities/quiz_attempt.dart' show AttemptStatus, QuizQuestionType;
 import 'package:edium/domain/repositories/test_session_repository.dart';
-import 'package:edium/domain/usecases/test_session/complete_attempt_usecase.dart';
 import 'package:edium/domain/usecases/test_session/get_attempt_review_usecase.dart';
 import 'package:edium/domain/usecases/test_session/grade_submission_usecase.dart';
 import 'package:edium/presentation/teacher/grade_attempt/bloc/teacher_grade_bloc.dart';
@@ -39,7 +38,6 @@ void main() {
     bloc = TeacherGradeBloc(
       getReview: GetAttemptReviewUsecase(mockRepo),
       gradeSubmission: GradeSubmissionUsecase(mockRepo),
-      completeAttempt: CompleteAttemptUsecase(mockRepo),
     );
   });
 
@@ -75,64 +73,49 @@ void main() {
     );
   });
 
-  group('SubmitGradesEvent', () {
+  group('CompleteGradingEvent', () {
     blocTest<TeacherGradeBloc, TeacherGradeState>(
-      'выставляет оценки и завершает попытку → эмитит Completed',
+      'отправляет батч оценок → эмитит Completed',
       build: () {
-        when(() => mockRepo.getAttemptReview('att-1'))
-            .thenAnswer((_) async => _fakeReview);
-        when(() => mockRepo.gradeSubmission(
+        when(() => mockRepo.gradeAttempt(
               attemptId: any(named: 'attemptId'),
-              submissionId: any(named: 'submissionId'),
-              score: any(named: 'score'),
-              feedback: any(named: 'feedback'),
+              grades: any(named: 'grades'),
             )).thenAnswer((_) async {});
-        when(() => mockRepo.completeAttempt(any()))
-            .thenAnswer((_) async {});
         return bloc;
       },
-      seed: () => TeacherGradeLoaded(review: _fakeReview),
-      act: (b) => b.add(SubmitGradesEvent(
-        attemptId: 'att-1',
-        grades: const [
-          SubmissionGrade(submissionId: 'sub-1', score: 15, feedback: 'Хорошо'),
-        ],
-      )),
+      seed: () => TeacherGradeLoaded(
+        review: _fakeReview,
+        localGrades: {'sub-1': (score: 15.0, feedback: 'Хорошо')},
+      ),
+      act: (b) => b.add(const CompleteGradingEvent('att-1')),
       expect: () => [
-        TeacherGradeLoaded(review: _fakeReview, isSaving: true),
+        isA<TeacherGradeLoaded>().having((s) => s.isSaving, 'isSaving', true),
         const TeacherGradeCompleted(),
       ],
       verify: (_) {
-        verify(() => mockRepo.gradeSubmission(
+        verify(() => mockRepo.gradeAttempt(
               attemptId: 'att-1',
-              submissionId: 'sub-1',
-              score: 15,
-              feedback: 'Хорошо',
+              grades: any(named: 'grades'),
             )).called(1);
-        verify(() => mockRepo.completeAttempt('att-1')).called(1);
       },
     );
 
     blocTest<TeacherGradeBloc, TeacherGradeState>(
       'при ошибке grade → остаётся в Loaded с saveError',
       build: () {
-        when(() => mockRepo.gradeSubmission(
+        when(() => mockRepo.gradeAttempt(
               attemptId: any(named: 'attemptId'),
-              submissionId: any(named: 'submissionId'),
-              score: any(named: 'score'),
-              feedback: any(named: 'feedback'),
+              grades: any(named: 'grades'),
             )).thenThrow(Exception('timeout'));
         return bloc;
       },
-      seed: () => TeacherGradeLoaded(review: _fakeReview),
-      act: (b) => b.add(SubmitGradesEvent(
-        attemptId: 'att-1',
-        grades: const [
-          SubmissionGrade(submissionId: 'sub-1', score: 15),
-        ],
-      )),
+      seed: () => TeacherGradeLoaded(
+        review: _fakeReview,
+        localGrades: {'sub-1': (score: 15.0, feedback: null)},
+      ),
+      act: (b) => b.add(const CompleteGradingEvent('att-1')),
       expect: () => [
-        TeacherGradeLoaded(review: _fakeReview, isSaving: true),
+        isA<TeacherGradeLoaded>().having((s) => s.isSaving, 'isSaving', true),
         isA<TeacherGradeLoaded>().having((s) => s.saveError, 'saveError', isNotNull),
       ],
     );
