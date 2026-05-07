@@ -100,15 +100,15 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
   }
 
   @override
-  Future<void> gradeSubmission({
+  Future<void> gradeAttempt({
     required String attemptId,
-    required String submissionId,
-    required double score,
-    String? feedback,
+    required List<({String submissionId, double score, String? feedback})> grades,
   }) async {
     await Future.delayed(const Duration(milliseconds: 100));
-    _teacherGrades.putIfAbsent(attemptId, () => {})[submissionId] =
-        _GradeEntry(score: score, feedback: feedback);
+    final bucket = _teacherGrades.putIfAbsent(attemptId, () => {});
+    for (final g in grades) {
+      bucket[g.submissionId] = _GradeEntry(score: g.score, feedback: g.feedback);
+    }
   }
 
   @override

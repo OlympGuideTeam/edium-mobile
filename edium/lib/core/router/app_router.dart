@@ -35,6 +35,7 @@ import 'package:edium/presentation/teacher/home/teacher_home_screen.dart';
 import 'package:edium/presentation/teacher/test_monitoring/test_monitoring_screen.dart';
 import 'package:edium/presentation/teacher/test_session/test_session_results_screen.dart';
 import 'package:edium/services/notification_service/deep_link_service.dart';
+import 'package:edium/core/router/navigation_logger.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -82,6 +83,7 @@ GoRouter buildRouter() {
       getIt<DeepLinkService>(),
     ]),
     redirect: _redirect,
+    observers: [NavigationLogger()],
     routes: [
       GoRoute(
         path: '/splash',
@@ -192,7 +194,13 @@ GoRouter buildRouter() {
           final extra = state.extra as Map<String, dynamic>?;
           final courseItem = extra?['courseItem'] as CourseItem?;
           final quizTitle = extra?['quizTitle'] as String?;
-          return TestPreviewScreen(sessionId: sid, courseItem: courseItem, quizTitle: quizTitle);
+          final courseId = extra?['courseId'] as String?;
+          return TestPreviewScreen(
+            sessionId: sid,
+            courseItem: courseItem,
+            quizTitle: quizTitle,
+            courseId: courseId,
+          );
         },
       ),
       GoRoute(

@@ -199,12 +199,8 @@ class CourseDetailBloc extends Bloc<CourseDetailEvent, CourseDetailState> {
         drafts: drafts,
       )));
     } else {
-      // "Начать" → session created in a module
-      var drafts = current.drafts;
-      if (event.existingTemplateId != null) {
-        // draft promoted to session → remove it from drafts
-        drafts = drafts.where((d) => d.quizTemplateId != event.existingTemplateId).toList();
-      }
+      // "Начать" → session created in a module; draft stays in the list
+      final drafts = current.drafts;
 
       final updatedModules = current.modules.map((m) {
         if (m.id != event.moduleId) return m;
