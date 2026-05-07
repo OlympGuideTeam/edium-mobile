@@ -75,6 +75,16 @@ abstract class IQuizDatasource {
     DateTime? finishedAt,
   });
 
+  /// Creates quiz template + live session atomically (inline endpoint).
+  Future<String> createLiveSessionInline({
+    required String title,
+    String? description,
+    required String courseId,
+    required String moduleId,
+    required List<Map<String, dynamic>> questions,
+    int? questionTimeLimitSec,
+  });
+
   Future<void> deleteSession(String sessionId);
 
   /// Запускает асинхерную генерацию вопросов по тексту (уведомление по готовности).
