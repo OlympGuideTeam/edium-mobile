@@ -4,6 +4,7 @@ import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/live_session.dart';
 import 'package:edium/domain/entities/quiz.dart';
+import 'package:edium/domain/repositories/live_repository.dart';
 import 'package:edium/domain/repositories/quiz_repository.dart';
 import 'package:edium/domain/usecases/quiz/create_session_usecase.dart';
 import 'package:edium/presentation/live/teacher/live_teacher_screen.dart';
@@ -21,81 +22,50 @@ import 'package:edium/presentation/teacher/quiz_library/quiz_detail_screen.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class QuizLibraryScreen extends StatefulWidget {
+// ─── Entry point ──────────────────────────────────────────────────────────────
+
+class QuizLibraryScreen extends StatelessWidget {
   const QuizLibraryScreen({super.key});
 
   @override
-  State<QuizLibraryScreen> createState() => _QuizLibraryScreenState();
+  Widget build(BuildContext context) {
+    return const DefaultTabController(
+      length: 3,
+      child: _QuizLibraryScaffold(),
+    );
+  }
 }
 
-class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
-  final _searchCtrl = TextEditingController();
-  int _tabIndex = 0;
+// ─── Scaffold ─────────────────────────────────────────────────────────────────
+
+class _QuizLibraryScaffold extends StatefulWidget {
+  const _QuizLibraryScaffold();
 
   @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
-  }
+  State<_QuizLibraryScaffold> createState() => _QuizLibraryScaffoldState();
+}
 
-  void _switchTab(int index) {
-    if (index == _tabIndex) return;
-    setState(() => _tabIndex = index);
-    _searchCtrl.clear();
-    if (index == 2) {
-      context.read<LiveLibraryCubit>().load();
-      return;
-    }
-    final scope = index == 0 ? 'global' : 'mine';
-    context.read<QuizLibraryBloc>().add(LoadQuizzesEvent(scope: scope));
-  }
+class _QuizLibraryScaffoldState extends State<_QuizLibraryScaffold> {
+  final _allTabKey = GlobalKey<_AllQuizzesTabState>();
+  final _mineTabKey = GlobalKey<_MyQuizzesTabState>();
 
-  void _search() {
-    if (_tabIndex == 2) return;
-    final scope = _tabIndex == 0 ? 'global' : 'mine';
-    final query = _searchCtrl.text.trim();
-    context.read<QuizLibraryBloc>().add(
-          LoadQuizzesEvent(
-            scope: scope,
-            search: query.isEmpty ? null : query,
-          ),
-        );
-  }
-
-  void _openLiveSession(BuildContext context, LiveLibrarySession session) {
-    final cubit = context.read<LiveLibraryCubit>();
+  void _onCreateTap() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => LiveTeacherScreen(
-          sessionId: session.sessionId,
-          quizTitle: session.quizTitle,
-          questionCount: 0,
+        builder: (_) => BlocProvider(
+          create: (_) => CreateQuizBloc(
+            getIt(),
+            getIt<CreateSessionUsecase>(),
+            getIt<IQuizRepository>(),
+          ),
+          child: const CreateQuizScreen(),
         ),
       ),
     ).then((_) {
-      if (_tabIndex == 2) cubit.load();
+      _allTabKey.currentState?.reload();
+      _mineTabKey.currentState?.reload();
     });
-  }
-
-  void _openQuiz(BuildContext context, Quiz quiz, bool isMineTab) {
-    final libBloc = context.read<QuizLibraryBloc>();
-    final scope = _tabIndex == 0 ? 'global' : 'mine';
-    final route = isMineTab && !quiz.isPublic
-        ? MaterialPageRoute(
-            builder: (_) => EditQuizTemplateScreen(quizId: quiz.id),
-          )
-        : MaterialPageRoute(
-            builder: (_) => QuizDetailScreen(
-              quizId: quiz.id,
-              isOwnerHint: isMineTab,
-            ),
-          );
-    Navigator.push(context, route).then(
-      (updated) {
-        if (updated == true) libBloc.add(LoadQuizzesEvent(scope: scope));
-      },
-    );
   }
 
   @override
@@ -116,14 +86,15 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: AppColors.mono900,
-                        borderRadius: BorderRadius.circular(AppDimens.radiusXs),
+                        borderRadius:
+                            BorderRadius.circular(AppDimens.radiusXs),
                       ),
-                      child:
-                          const Text('УЧИТЕЛЬ', style: AppTextStyles.badgeText),
+                      child: const Text('УЧИТЕЛЬ',
+                          style: AppTextStyles.badgeText),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -133,24 +104,7 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
                               style: AppTextStyles.screenTitle),
                         ),
                         IconButton(
-                          onPressed: () {
-                            final libBloc = context.read<QuizLibraryBloc>();
-                            final scope = _tabIndex == 0 ? 'global' : 'mine';
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => BlocProvider(
-                                  create: (_) => CreateQuizBloc(
-                                    getIt(),
-                                    getIt<CreateSessionUsecase>(),
-                                    getIt<IQuizRepository>(),
-                                  ),
-                                  child: const CreateQuizScreen(),
-                                ),
-                              ),
-                            ).then((_) =>
-                                libBloc.add(LoadQuizzesEvent(scope: scope)));
-                          },
+                          onPressed: _onCreateTap,
                           icon: const Icon(Icons.add, size: 26),
                           color: AppColors.mono900,
                         ),
@@ -160,168 +114,40 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
                 ),
               ),
               const SizedBox(height: 14),
-              // Pill-shaped tabs
-              Padding(
-                padding: const EdgeInsets.symmetric(
+              // Tab switcher
+              const TabBar(
+                labelColor: AppColors.mono900,
+                unselectedLabelColor: AppColors.mono400,
+                indicatorColor: AppColors.mono900,
+                indicatorSize: TabBarIndicatorSize.label,
+                dividerColor: AppColors.mono150,
+                splashFactory: NoSplash.splashFactory,
+                overlayColor: WidgetStatePropertyAll(Colors.transparent),
+                padding: EdgeInsets.symmetric(
                     horizontal: AppDimens.screenPaddingH),
-                child: Row(
+                labelStyle: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+                unselectedLabelStyle: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+                tabs: [
+                  Tab(text: 'Все квизы'),
+                  Tab(text: 'Мои квизы'),
+                  Tab(text: 'Мои лайвы'),
+                ],
+              ),
+              // Independent tabs
+              Expanded(
+                child: TabBarView(
                   children: [
-                    _PillTab(
-                      label: 'Все квизы',
-                      isActive: _tabIndex == 0,
-                      onTap: () => _switchTab(0),
-                    ),
-                    const SizedBox(width: 6),
-                    _PillTab(
-                      label: 'Мои квизы',
-                      isActive: _tabIndex == 1,
-                      onTap: () => _switchTab(1),
-                    ),
-                    const SizedBox(width: 6),
-                    _PillTab(
-                      label: 'Мои лайвы',
-                      isActive: _tabIndex == 2,
-                      onTap: () => _switchTab(2),
-                    ),
+                    _AllQuizzesTab(key: _allTabKey),
+                    _MyQuizzesTab(key: _mineTabKey),
+                    const _LiveTab(),
                   ],
                 ),
-              ),
-              const SizedBox(height: 16),
-              // Search bar (only for quiz tabs)
-              if (_tabIndex != 2) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppDimens.screenPaddingH),
-                  child: SearchBarWidget(
-                    hint: 'Найти квиз...',
-                    controller: _searchCtrl,
-                    onChanged: (_) => _search(),
-                    onClear: _search,
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-              // Content
-              Expanded(
-                child: _tabIndex == 2
-                    ? _LiveSessionsContent(
-                        onTap: (s) => _openLiveSession(context, s),
-                      )
-                    : BlocBuilder<QuizLibraryBloc, QuizLibraryState>(
-                        buildWhen: (previous, current) {
-                          if (previous is QuizLibraryLoaded &&
-                              current is QuizLibraryLoading) {
-                            return false;
-                          }
-                          return true;
-                        },
-                        builder: (context, state) {
-                          if (state is QuizLibraryLoading) {
-                            return const Center(
-                              child: CircularProgressIndicator(
-                                color: AppColors.mono700,
-                                strokeWidth: 2,
-                              ),
-                            );
-                          }
-                          if (state is QuizLibraryError) {
-                            return Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.error_outline,
-                                      color: AppColors.mono400, size: 48),
-                                  const SizedBox(height: 12),
-                                  Text(state.message,
-                                      style: AppTextStyles.screenSubtitle),
-                                ],
-                              ),
-                            );
-                          }
-                          if (state is QuizLibraryLoaded) {
-                            final scope = _tabIndex == 0 ? 'global' : 'mine';
-                            Future<void> onRefresh() async {
-                              final bloc = context.read<QuizLibraryBloc>();
-                              bloc.add(LoadQuizzesEvent(scope: scope));
-                              await bloc.stream
-                                  .firstWhere((s) =>
-                                      s is QuizLibraryLoaded ||
-                                      s is QuizLibraryError)
-                                  .timeout(const Duration(seconds: 30),
-                                      onTimeout: () => state);
-                            }
-                            if (state.quizzes.isEmpty) {
-                              return EdiumRefreshIndicator(
-                                onRefresh: onRefresh,
-                                child: ListView(
-                                  physics:
-                                      const AlwaysScrollableScrollPhysics(),
-                                  children: [
-                                    SizedBox(
-                                      height: 320,
-                                      child: Center(
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(Icons.quiz_outlined,
-                                                size: 48,
-                                                color: AppColors.mono200),
-                                            const SizedBox(height: 12),
-                                            Text('Квизы не найдены',
-                                                style: AppTextStyles.fieldText
-                                                    .copyWith(
-                                                        fontWeight:
-                                                            FontWeight.w600)),
-                                            const SizedBox(height: 4),
-                                            const Text(
-                                                'Попробуйте изменить поиск',
-                                                style: AppTextStyles
-                                                    .screenSubtitle),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }
-                            final isMineTab = _tabIndex == 1;
-                            return EdiumRefreshIndicator(
-                              onRefresh: onRefresh,
-                              child: ListView.separated(
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                padding: const EdgeInsets.fromLTRB(
-                                    AppDimens.screenPaddingH,
-                                    8,
-                                    AppDimens.screenPaddingH,
-                                    24),
-                                itemCount: state.quizzes.length,
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(height: 10),
-                                itemBuilder: (context, i) {
-                                  final quiz = state.quizzes[i];
-                                  final card = QuizCard(
-                                    quiz: quiz,
-                                    showPublicBadge: isMineTab,
-                                    onTap: () =>
-                                        _openQuiz(context, quiz, isMineTab),
-                                  );
-                                  if (!isMineTab) return card;
-                                  if (quiz.isPublic) return card;
-                                  return _buildDismissible(
-                                    key: ValueKey('q-${quiz.id}'),
-                                    onDismissed: () => context
-                                        .read<QuizLibraryBloc>()
-                                        .add(DeleteQuizEvent(quiz.id)),
-                                    child: card,
-                                  );
-                                },
-                              ),
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
               ),
             ],
           ),
@@ -331,33 +157,389 @@ class _QuizLibraryScreenState extends State<QuizLibraryScreen> {
   }
 }
 
-Widget _buildDismissible({
-  required Key key,
-  required VoidCallback onDismissed,
-  required Widget child,
-}) {
-  return ClipRRect(
-    borderRadius: BorderRadius.circular(14),
-    child: Container(
-      color: AppColors.error,
-      child: Dismissible(
-        key: key,
-        direction: DismissDirection.endToStart,
-        onDismissed: (_) => onDismissed(),
-        background: Container(
-          color: AppColors.error,
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 20),
-          child:
-              const Icon(Icons.delete_outline, color: Colors.white, size: 20),
-        ),
-        child: child,
-      ),
-    ),
-  );
+// ─── Tab: Все квизы ───────────────────────────────────────────────────────────
+
+class _AllQuizzesTab extends StatefulWidget {
+  const _AllQuizzesTab({super.key});
+
+  @override
+  State<_AllQuizzesTab> createState() => _AllQuizzesTabState();
 }
 
-// ─── Live sessions tab ────────────────────────────────────────────────────────
+class _AllQuizzesTabState extends State<_AllQuizzesTab> {
+  late final QuizLibraryBloc _bloc;
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _bloc = QuizLibraryBloc(
+      getQuizzes: getIt(),
+      likeQuiz: getIt(),
+      quizRepository: getIt<IQuizRepository>(),
+    )..add(const LoadQuizzesEvent(scope: 'global'));
+  }
+
+  @override
+  void dispose() {
+    _bloc.close();
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void reload() {
+    final q = _searchCtrl.text.trim();
+    _bloc.add(LoadQuizzesEvent(scope: 'global', search: q.isEmpty ? null : q));
+  }
+
+  void _search() => reload();
+
+  void _openQuiz(BuildContext context, Quiz quiz) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            QuizDetailScreen(quizId: quiz.id, isOwnerHint: false),
+      ),
+    ).then((updated) {
+      if (updated == true) reload();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider.value(
+      value: _bloc,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppDimens.screenPaddingH, 12,
+                AppDimens.screenPaddingH, 12),
+            child: SearchBarWidget(
+              hint: 'Найти квиз...',
+              controller: _searchCtrl,
+              onChanged: (_) => _search(),
+              onClear: _search,
+            ),
+          ),
+          Expanded(
+            child: BlocBuilder<QuizLibraryBloc, QuizLibraryState>(
+              buildWhen: (p, c) =>
+                  !(p is QuizLibraryLoaded && c is QuizLibraryLoading),
+              builder: (context, state) {
+                if (state is QuizLibraryLoading) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                        color: AppColors.mono700, strokeWidth: 2),
+                  );
+                }
+                if (state is QuizLibraryError) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.error_outline,
+                            color: AppColors.mono400, size: 48),
+                        const SizedBox(height: 12),
+                        Text(state.message,
+                            style: AppTextStyles.screenSubtitle),
+                      ],
+                    ),
+                  );
+                }
+                if (state is QuizLibraryLoaded) {
+                  return _buildList(context, state);
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildList(BuildContext context, QuizLibraryLoaded state) {
+    Future<void> onRefresh() async {
+      reload();
+      await _bloc.stream
+          .firstWhere(
+              (s) => s is QuizLibraryLoaded || s is QuizLibraryError)
+          .timeout(const Duration(seconds: 30), onTimeout: () => state);
+    }
+
+    if (state.quizzes.isEmpty) {
+      return EdiumRefreshIndicator(
+        onRefresh: onRefresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(
+              height: 320,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.quiz_outlined,
+                        size: 48, color: AppColors.mono200),
+                    const SizedBox(height: 12),
+                    Text('Квизы не найдены',
+                        style: AppTextStyles.fieldText
+                            .copyWith(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    const Text('Попробуйте изменить поиск',
+                        style: AppTextStyles.screenSubtitle),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return EdiumRefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(
+            AppDimens.screenPaddingH, 8, AppDimens.screenPaddingH, 24),
+        itemCount: state.quizzes.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (context, i) {
+          final quiz = state.quizzes[i];
+          return QuizCard(
+            quiz: quiz,
+            showPublicBadge: false,
+            showTopQuestionBadge: true,
+            onTap: () => _openQuiz(context, quiz),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ─── Tab: Мои квизы ───────────────────────────────────────────────────────────
+
+class _MyQuizzesTab extends StatefulWidget {
+  const _MyQuizzesTab({super.key});
+
+  @override
+  State<_MyQuizzesTab> createState() => _MyQuizzesTabState();
+}
+
+class _MyQuizzesTabState extends State<_MyQuizzesTab> {
+  late final QuizLibraryBloc _bloc;
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _bloc = QuizLibraryBloc(
+      getQuizzes: getIt(),
+      likeQuiz: getIt(),
+      quizRepository: getIt<IQuizRepository>(),
+    )..add(const LoadQuizzesEvent(scope: 'mine'));
+  }
+
+  @override
+  void dispose() {
+    _bloc.close();
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void reload() {
+    final q = _searchCtrl.text.trim();
+    _bloc.add(LoadQuizzesEvent(scope: 'mine', search: q.isEmpty ? null : q));
+  }
+
+  void _search() => reload();
+
+  void _openQuiz(BuildContext context, Quiz quiz) {
+    final route = quiz.isPublic
+        ? MaterialPageRoute(
+            builder: (_) =>
+                QuizDetailScreen(quizId: quiz.id, isOwnerHint: true),
+          )
+        : MaterialPageRoute(
+            builder: (_) => EditQuizTemplateScreen(quizId: quiz.id),
+          );
+    Navigator.push(context, route).then((updated) {
+      if (updated == true) reload();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider.value(
+      value: _bloc,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppDimens.screenPaddingH, 12,
+                AppDimens.screenPaddingH, 12),
+            child: SearchBarWidget(
+              hint: 'Найти квиз...',
+              controller: _searchCtrl,
+              onChanged: (_) => _search(),
+              onClear: _search,
+            ),
+          ),
+          Expanded(
+            child: BlocBuilder<QuizLibraryBloc, QuizLibraryState>(
+              buildWhen: (p, c) =>
+                  !(p is QuizLibraryLoaded && c is QuizLibraryLoading),
+              builder: (context, state) {
+                if (state is QuizLibraryLoading) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                        color: AppColors.mono700, strokeWidth: 2),
+                  );
+                }
+                if (state is QuizLibraryError) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.error_outline,
+                            color: AppColors.mono400, size: 48),
+                        const SizedBox(height: 12),
+                        Text(state.message,
+                            style: AppTextStyles.screenSubtitle),
+                      ],
+                    ),
+                  );
+                }
+                if (state is QuizLibraryLoaded) {
+                  return _buildList(context, state);
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildList(BuildContext context, QuizLibraryLoaded state) {
+    Future<void> onRefresh() async {
+      reload();
+      await _bloc.stream
+          .firstWhere(
+              (s) => s is QuizLibraryLoaded || s is QuizLibraryError)
+          .timeout(const Duration(seconds: 30), onTimeout: () => state);
+    }
+
+    if (state.quizzes.isEmpty) {
+      return EdiumRefreshIndicator(
+        onRefresh: onRefresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(
+              height: 320,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.quiz_outlined,
+                        size: 48, color: AppColors.mono200),
+                    const SizedBox(height: 12),
+                    Text('Квизы не найдены',
+                        style: AppTextStyles.fieldText
+                            .copyWith(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    const Text('Попробуйте изменить поиск',
+                        style: AppTextStyles.screenSubtitle),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return EdiumRefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(
+            AppDimens.screenPaddingH, 8, AppDimens.screenPaddingH, 24),
+        itemCount: state.quizzes.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (context, i) {
+          final quiz = state.quizzes[i];
+          final card = QuizCard(
+            quiz: quiz,
+            showPublicBadge: true,
+            showTopQuestionBadge: false,
+            onTap: () => _openQuiz(context, quiz),
+          );
+          if (quiz.isPublic) return card;
+          return _buildDismissible(
+            key: ValueKey('q-${quiz.id}'),
+            onDismissed: () => _bloc.add(DeleteQuizEvent(quiz.id)),
+            child: card,
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ─── Tab: Мои лайвы ───────────────────────────────────────────────────────────
+
+class _LiveTab extends StatefulWidget {
+  const _LiveTab();
+
+  @override
+  State<_LiveTab> createState() => _LiveTabState();
+}
+
+class _LiveTabState extends State<_LiveTab> {
+  late final LiveLibraryCubit _cubit;
+
+  @override
+  void initState() {
+    super.initState();
+    _cubit = LiveLibraryCubit(getIt<ILiveRepository>())..load();
+  }
+
+  @override
+  void dispose() {
+    _cubit.close();
+    super.dispose();
+  }
+
+  void _openSession(LiveLibrarySession session) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LiveTeacherScreen(
+          sessionId: session.sessionId,
+          quizTitle: session.quizTitle,
+          questionCount: 0,
+        ),
+      ),
+    ).then((_) => _cubit.load());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider.value(
+      value: _cubit,
+      child: _LiveSessionsContent(onTap: _openSession),
+    );
+  }
+}
+
+// ─── Live sessions list ───────────────────────────────────────────────────────
 
 class _LiveSessionsContent extends StatelessWidget {
   final ValueChanged<LiveLibrarySession> onTap;
@@ -368,23 +550,10 @@ class _LiveSessionsContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<LiveLibraryCubit, LiveLibraryState>(
       builder: (context, state) {
-        if (state is LiveLibraryInitial) {
-          WidgetsBinding.instance.addPostFrameCallback(
-            (_) => context.read<LiveLibraryCubit>().load(),
-          );
+        if (state is LiveLibraryInitial || state is LiveLibraryLoading) {
           return const Center(
             child: CircularProgressIndicator(
-              color: AppColors.mono700,
-              strokeWidth: 2,
-            ),
-          );
-        }
-        if (state is LiveLibraryLoading) {
-          return const Center(
-            child: CircularProgressIndicator(
-              color: AppColors.mono700,
-              strokeWidth: 2,
-            ),
+                color: AppColors.mono700, strokeWidth: 2),
           );
         }
         if (state is LiveLibraryError) {
@@ -501,17 +670,13 @@ class _LiveSessionCard extends StatelessWidget {
                 Text(
                   '${session.participantsCount}',
                   style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.mono600,
-                  ),
+                      fontSize: 13, color: AppColors.mono600),
                 ),
                 const Spacer(),
                 Text(
                   _formatDate(session.createdAt),
                   style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.mono400,
-                  ),
+                      fontSize: 12, color: AppColors.mono400),
                 ),
               ],
             ),
@@ -551,7 +716,8 @@ class _PhaseBadge extends StatelessWidget {
           const Color(0xFFDCFCE7),
           const Color(0xFF166534)
         ),
-      LivePhase.completed => ('Завершён', AppColors.mono100, AppColors.mono400),
+      LivePhase.completed =>
+        ('Завершён', AppColors.mono100, AppColors.mono400),
     };
 
     return Container(
@@ -573,39 +739,30 @@ class _PhaseBadge extends StatelessWidget {
   }
 }
 
-// ─── Pill tab ─────────────────────────────────────────────────────────────────
+// ─── Dismissible helper ───────────────────────────────────────────────────────
 
-class _PillTab extends StatelessWidget {
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _PillTab({
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? AppColors.mono900 : AppColors.mono50,
-          borderRadius: BorderRadius.circular(20),
+Widget _buildDismissible({
+  required Key key,
+  required VoidCallback onDismissed,
+  required Widget child,
+}) {
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(14),
+    child: Container(
+      color: AppColors.error,
+      child: Dismissible(
+        key: key,
+        direction: DismissDirection.endToStart,
+        onDismissed: (_) => onDismissed(),
+        background: Container(
+          color: AppColors.error,
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          child: const Icon(Icons.delete_outline,
+              color: Colors.white, size: 20),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-            color: isActive ? Colors.white : AppColors.mono400,
-          ),
-        ),
+        child: child,
       ),
-    );
-  }
+    ),
+  );
 }
