@@ -71,3 +71,7 @@ class SwitchToRoleEvent extends AuthEvent {
   @override
   List<Object?> get props => [role];
 }
+
+class SessionExpiredEvent extends AuthEvent {
+  const SessionExpiredEvent();
+}

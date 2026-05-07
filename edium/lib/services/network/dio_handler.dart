@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:dio_refresh/dio_refresh.dart';
 import 'package:edium/core/config/api_config.dart';
+import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
+import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/services/network/endpoints.dart';
 import 'package:edium/services/token_storage/token_storage_interface.dart';
 import 'package:flutter/foundation.dart';
@@ -73,8 +75,11 @@ class DioHandler {
               accessToken: newAccessToken,
               refreshToken: newRefreshToken,
             );
-          } catch (e) { // TODO: Выход на экран регистрации
+          } catch (e) {
             await _tokenStorage.deleteTokens();
+            try {
+              getIt<AuthBloc>().add(const SessionExpiredEvent());
+            } catch (_) {}
             rethrow;
           }
         },

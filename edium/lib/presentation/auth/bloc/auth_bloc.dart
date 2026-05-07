@@ -51,6 +51,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<NameSubmittedEvent>(_onNameSubmitted);
     on<RoleSelectedEvent>(_onRoleSelected);
     on<LogoutEvent>(_onLogout);
+    on<SessionExpiredEvent>(_onSessionExpired);
     on<SwitchToRoleEvent>(_onSwitchToRole);
   }
 
@@ -228,6 +229,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await logout();
       await profileStorage.clear();
     } catch (_) {}
+    emit(const AuthUnauthenticated());
+  }
+
+  Future<void> _onSessionExpired(
+    SessionExpiredEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    dioHandler.stopProactiveRefresh();
+    await _tokenRefreshSub?.cancel();
+    _tokenRefreshSub = null;
     emit(const AuthUnauthenticated());
   }
 

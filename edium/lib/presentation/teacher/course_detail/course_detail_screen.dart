@@ -1841,6 +1841,32 @@ class _TrailingBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (item.isPassed) {
+      // For students, only display the numeric score when the result is published.
+      // Statuses graded/grading/completed mean the quiz is done but not yet published.
+      if (!isTeacher && item.state != 'published') {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: AppColors.mono100,
+            borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.check_circle_outline, size: 13, color: AppColors.mono600),
+              SizedBox(width: 4),
+              Text(
+                'Пройден',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mono600,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
       final scoreText =
           '${item.score!.toStringAsFixed(item.score! % 1 == 0 ? 0 : 1)}%';
       return Container(

@@ -71,6 +71,15 @@ abstract class IQuizRepository {
     DateTime? finishedAt,
   });
 
+  Future<String> createLiveSessionInline({
+    required String title,
+    String? description,
+    required String courseId,
+    required String moduleId,
+    required List<Map<String, dynamic>> questions,
+    int? questionTimeLimitSec,
+  });
+
   Future<void> deleteSession(String sessionId);
 
   Future<void> generateQuizQuestions(String quizId, String sourceText);
