@@ -47,6 +47,8 @@ abstract class ITestSessionRepository {
   Future<void> completeAttempt(String attemptId);
 
   Future<void> publishSession(String sessionId);
+
+  Future<void> finishSession(String sessionId);
 }
 
 class StartOrResumeResult {

@@ -124,4 +124,13 @@ class TestSessionDatasourceImpl extends BaseApiService
       parser: (_) {},
     );
   }
+
+  @override
+  Future<void> finishSession(String sessionId) {
+    return request(
+      'riddler/v1/sessions/$sessionId/finish',
+      method: HttpMethod.post,
+      parser: (_) {},
+    );
+  }
 }

@@ -71,7 +71,7 @@ class LibraryQuizDatasourceImpl extends BaseApiService
   @override
   Future<AttemptResultModel> getAttemptResult(String attemptId) {
     return request(
-      'riddler/v1/attempts/$attemptId/result',
+      'riddler/v1/attempts/$attemptId/review',
       method: HttpMethod.get,
       parser: (data) =>
           AttemptResultModel.fromJson(data as Map<String, dynamic>),

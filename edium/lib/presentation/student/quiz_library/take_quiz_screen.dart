@@ -172,6 +172,7 @@ class _TakeQuizScreenState extends State<TakeQuizScreen>
                 maxPossibleScore: state.maxPossibleScore,
                 quizTitle: state.quizTitle,
                 questions: state.questions,
+                showBottomCta: false,
               ),
             ),
           );
