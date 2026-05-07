@@ -266,6 +266,32 @@ class QuizDatasourceImpl extends BaseApiService implements IQuizDatasource {
   }
 
   @override
+  Future<String> createLiveSessionInline({
+    required String title,
+    String? description,
+    required String courseId,
+    required String moduleId,
+    required List<Map<String, dynamic>> questions,
+    int? questionTimeLimitSec,
+  }) {
+    return request<String>(
+      'riddler/v1/sessions/live/inline',
+      method: HttpMethod.post,
+      req: {
+        'title': title,
+        if (description != null) 'description': description,
+        'course_id': courseId,
+        'module_id': moduleId,
+        'questions': questions,
+        if (questionTimeLimitSec != null)
+          'question_time_limit_sec': questionTimeLimitSec,
+      },
+      parser: (data) =>
+          (data as Map<String, dynamic>)['session_id'] as String,
+    );
+  }
+
+  @override
   Future<void> deleteSession(String sessionId) {
     return request(
       'riddler/v1/sessions/$sessionId',

@@ -209,32 +209,15 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
             finishedAt: state.finishedAt,
           );
         } else {
-          // Live mode (or fallback): two-step create template → create session.
-          final templateId = await _createQuiz(
+          // Use the atomic inline endpoint for live sessions.
+          liveSessionId = await _quizRepository.createLiveSessionInline(
             title: state.title,
             description: state.description.isEmpty ? null : state.description,
-            mode: mode,
-            totalTimeLimitSec: state.totalTimeLimitSec,
-            questionTimeLimitSec: state.questionTimeLimitSec,
-            shuffleQuestions: state.shuffleQuestions,
-            startedAt: state.startedAt,
-            finishedAt: state.finishedAt,
-            questions: state.questions,
-          );
-          final sessionType = state.quizType == QuizCreationMode.live
-              ? SessionType.live
-              : SessionType.test;
-          final sid = await _createSession(
-            quizTemplateId: templateId,
+            courseId: event.courseId!,
             moduleId: event.moduleId!,
-            sessionType: sessionType,
-            totalTimeLimitSec: state.totalTimeLimitSec,
+            questions: state.questions,
             questionTimeLimitSec: state.questionTimeLimitSec,
-            shuffleQuestions: state.shuffleQuestions,
-            startedAt: state.startedAt,
-            finishedAt: state.finishedAt,
           );
-          if (sessionType == SessionType.live) liveSessionId = sid;
         }
         emit(state.copyWith(
           isSubmitting: false,
