@@ -90,18 +90,22 @@ class TestSessionDatasourceImpl extends BaseApiService
   }
 
   @override
-  Future<void> gradeSubmission({
+  Future<void> gradeAttempt({
     required String attemptId,
-    required String submissionId,
-    required double score,
-    String? feedback,
+    required List<({String submissionId, double score, String? feedback})> grades,
   }) {
     return request(
-      'riddler/v1/attempts/$attemptId/submissions/$submissionId/grade',
+      'riddler/v1/attempts/$attemptId/grade',
       method: HttpMethod.post,
       req: {
-        'score': score,
-        if (feedback != null && feedback.isNotEmpty) 'feedback': feedback,
+        'grades': grades
+            .map((g) => {
+                  'submission_id': g.submissionId,
+                  'score': g.score,
+                  if (g.feedback != null && g.feedback!.isNotEmpty)
+                    'feedback': g.feedback,
+                })
+            .toList(),
       },
       parser: (_) {},
     );
@@ -110,7 +114,7 @@ class TestSessionDatasourceImpl extends BaseApiService
   @override
   Future<void> completeAttempt(String attemptId) {
     return request(
-      'riddler/v1/attempts/$attemptId/complete',
+      'riddler/v1/attempts/$attemptId/finish',
       method: HttpMethod.post,
       parser: (_) {},
     );

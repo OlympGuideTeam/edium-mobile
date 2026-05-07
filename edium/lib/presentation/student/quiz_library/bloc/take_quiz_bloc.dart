@@ -17,6 +17,7 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
   final FinishAttemptUsecase _finishAttempt;
   final GetAttemptResultUsecase _getResult;
   final ITestSessionRepository? _testRepo;
+  final bool isFromCourse;
 
   Timer? _timer;
   String? _sessionIdForCache;
@@ -27,6 +28,7 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
     required FinishAttemptUsecase finishAttempt,
     required GetAttemptResultUsecase getResult,
     ITestSessionRepository? testSessionRepo,
+    this.isFromCourse = false,
   })  : _createAttempt = createAttempt,
         _submitAnswer = submitAnswer,
         _finishAttempt = finishAttempt,
@@ -200,7 +202,7 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
         questions: s.attempt.questions,
       ));
     } catch (e) {
-      if (finished) {
+      if (finished && isFromCourse) {
         emit(const TakeQuizSubmitted());
       } else {
         emit(TakeQuizError(_humanMessage(e)));
