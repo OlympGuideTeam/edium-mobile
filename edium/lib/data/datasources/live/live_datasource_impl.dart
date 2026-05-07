@@ -93,6 +93,7 @@ class LiveDatasourceImpl extends BaseApiService implements ILiveDatasource {
   Future<List<LiveLibrarySession>> getMyLiveSessions() => request(
         'riddler/v1/sessions/live',
         method: HttpMethod.get,
+        query: {'source': 'library'},
         parser: (data) {
           final sessions =
               (data as Map<String, dynamic>)['sessions'] as List<dynamic>? ?? [];

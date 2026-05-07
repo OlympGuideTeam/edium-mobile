@@ -2981,6 +2981,8 @@ class _ResultsPhase extends StatelessWidget {
                 unselectedLabelColor: AppColors.liveDarkMuted,
                 indicatorColor: AppColors.liveAccent,
                 dividerColor: AppColors.liveDarkBorder,
+                splashFactory: NoSplash.splashFactory,
+                overlayColor: WidgetStatePropertyAll(Colors.transparent),
                 tabs: [
                   Tab(text: 'Лидерборд'),
                   Tab(text: 'Разбор вопросов'),
