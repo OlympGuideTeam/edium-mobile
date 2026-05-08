@@ -13,7 +13,6 @@ import 'package:edium/presentation/student/quiz_library/bloc/take_quiz_state.dar
 import 'package:edium/presentation/student/quiz_library/quiz_result_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 
 class TakeQuizScreen extends StatefulWidget {
   final String sessionId;
@@ -63,22 +62,10 @@ class _TakeQuizScreenState extends State<TakeQuizScreen>
     super.dispose();
   }
 
-  /// Выходит с экрана прохождения теста: если знаем `courseId` —
-  /// возвращаемся на экран курса, иначе — на TestPreviewScreen.
-  /// [attemptId] передаётся через pop-result, чтобы TestPreviewBloc
-  /// смог загрузить актуальный статус попытки после возврата.
+  /// Выходит с экрана прохождения теста, возвращая attemptId через pop-result.
+  /// Логику перехода на курс или на TestPreviewScreen берёт на себя вызывающая сторона.
   void _exitToCourseOrPop(BuildContext context, String attemptId) {
-    final cid = widget.courseId;
-    if (cid != null) {
-      // TakeQuizScreen был открыт через Navigator.push поверх GoRouter-маршрута
-      // (TestPreviewScreen). Сначала закрываем его через Navigator.pop,
-      // чтобы GoRouter получил управление, затем навигируем к курсу.
-      Navigator.of(context).pop(attemptId);
-      context.go('/course/$cid');
-    } else {
-      // Возвращаемся на TestPreviewScreen с attemptId — он обновит BLoC.
-      Navigator.of(context).pop(attemptId);
-    }
+    Navigator.of(context).pop(attemptId);
   }
 
   void _handleClose(BuildContext context, TakeQuizInProgress state) {
