@@ -207,6 +207,9 @@ void _routeOrSwitch(
     final needsSwitch = (role == 'student' && cur != UserRole.student) ||
         (role == 'teacher' && cur != UserRole.teacher);
     debugPrint('[Notif] _routeOrSwitch route=$route role=$role cur=$cur needsSwitch=$needsSwitch');
+    // Encode role into the URL so the route builder can read isTeacher/isStudent
+    // from query params when extra is unavailable (deep link navigation).
+    final routeWithRole = _routeWithRole(route, role);
     if (needsSwitch) {
       getIt<AuthBloc>().add(SwitchToRoleEvent(role));
       // Wait for the role to actually switch in state before setting the
@@ -218,16 +221,24 @@ void _routeOrSwitch(
           final expected = role == 'teacher' ? UserRole.teacher : UserRole.student;
           if (s.user.role == expected) {
             sub?.cancel();
-            getIt<DeepLinkService>().setPendingRoute(route);
+            getIt<DeepLinkService>().setPendingRoute(routeWithRole);
           }
         }
       });
       return;
     }
-  } else {
-    debugPrint('[Notif] _routeOrSwitch route=$route role=null');
+    getIt<DeepLinkService>().setPendingRoute(routeWithRole);
+    return;
   }
+  debugPrint('[Notif] _routeOrSwitch route=$route role=null');
   getIt<DeepLinkService>().setPendingRoute(route);
+}
+
+String _routeWithRole(String route, String role) {
+  final uri = Uri.parse(route);
+  final params = Map<String, String>.from(uri.queryParameters);
+  params['role'] = role;
+  return uri.replace(queryParameters: params).toString();
 }
 
 Future<void> main() async {

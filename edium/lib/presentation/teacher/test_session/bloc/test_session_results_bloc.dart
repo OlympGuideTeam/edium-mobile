@@ -1,3 +1,4 @@
+import 'package:edium/domain/entities/attempt_summary.dart';
 import 'package:edium/domain/entities/live_session.dart';
 import 'package:edium/domain/entities/quiz_attempt.dart' show AttemptStatus;
 import 'package:edium/domain/entities/session_status_item.dart';
@@ -81,29 +82,49 @@ class TestSessionResultsBloc
       final sessionStatusItem = statusMap[sid];
       final sessionStatus = sessionStatusItem?.status;
 
-      final nameMap = {
-        for (final m in rosterMembers) m.userId: m.name,
+      // Строим map userId → attempt для быстрого поиска
+      final attemptMap = <String, AttemptSummary>{
+        for (final a in attempts) a.userId: a,
       };
 
-      final rows = attempts
-          .map((a) => StudentRow(
-                userId: a.userId,
-                displayName: nameMap[a.userId] ?? a.userName ?? a.userId,
-                attempt: a,
-              ))
-          .toList();
+      // Строим строки из ростера (все участники класса), добавляем попытки тех, кого нет в ростере
+      final List<StudentRow> rows;
+      if (rosterMembers.isNotEmpty) {
+        final rosterUserIds = <String>{};
+        final rosterRows = rosterMembers.map((m) {
+          rosterUserIds.add(m.userId);
+          return StudentRow(
+            userId: m.userId,
+            displayName: m.name,
+            attempt: attemptMap[m.userId],
+          );
+        }).toList();
+        // Попытки не вошедшие в ростер (edge case)
+        final extraRows = attempts
+            .where((a) => !rosterUserIds.contains(a.userId))
+            .map((a) => StudentRow(
+                  userId: a.userId,
+                  displayName: a.userName ?? a.userId,
+                  attempt: a,
+                ))
+            .toList();
+        rows = [...rosterRows, ...extraRows];
+      } else {
+        rows = attempts
+            .map((a) => StudentRow(
+                  userId: a.userId,
+                  displayName: a.userName ?? a.userId,
+                  attempt: a,
+                ))
+            .toList();
+      }
 
       final completedOrPublished = attempts
           .where((a) =>
               a.status == AttemptStatus.completed ||
               a.status == AttemptStatus.published)
           .toList();
-      final gradingOrGraded = attempts
-          .where((a) =>
-              a.status == AttemptStatus.grading ||
-              a.status == AttemptStatus.graded)
-          .toList();
-      final totalCount = attempts.length;
+      final totalCount = rows.length;
       final avgPct = completedOrPublished.isEmpty
           ? null
           : (completedOrPublished
@@ -111,20 +132,19 @@ class TestSessionResultsBloc
                   .fold<double>(0, (s, v) => s + v) /
               completedOrPublished.length);
 
-      // Удалять можно только если нет попыток и сессия ещё не активна/завершена.
-      final canDelete = totalCount == 0 &&
+      // Удалять можно только если нет ни одной попытки.
+      final canDelete = attempts.isEmpty &&
           _courseItemId != null &&
           (sessionStatus == null ||
               sessionStatus == 'not_started' ||
               sessionStatus == 'waiting');
 
-      // Публиковать можно если все попытки проверены учителем.
-      final canPublish = totalCount > 0 &&
-          gradingOrGraded.isEmpty &&
-          completedOrPublished.isNotEmpty &&
+      // Публиковать можно если все попытки хотя бы graded и ни одна ещё не published.
+      final canPublish = attempts.isNotEmpty &&
+          !attempts.any((a) => a.status == AttemptStatus.published) &&
           attempts.every((a) =>
-              a.status == AttemptStatus.completed ||
-              a.status == AttemptStatus.published);
+              a.status == AttemptStatus.graded ||
+              a.status == AttemptStatus.completed);
 
       emit(TestSessionResultsLoaded(
         sessionId: sid,

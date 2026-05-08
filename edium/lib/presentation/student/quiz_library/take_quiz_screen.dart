@@ -64,14 +64,20 @@ class _TakeQuizScreenState extends State<TakeQuizScreen>
   }
 
   /// Выходит с экрана прохождения теста: если знаем `courseId` —
-  /// возвращаемся на экран курса (и он перезагрузит детали в `LoadCourseDetailEvent`),
-  /// иначе просто закрываем экран.
-  void _exitToCourseOrPop(BuildContext context) {
+  /// возвращаемся на экран курса, иначе — на TestPreviewScreen.
+  /// [attemptId] передаётся через pop-result, чтобы TestPreviewBloc
+  /// смог загрузить актуальный статус попытки после возврата.
+  void _exitToCourseOrPop(BuildContext context, String attemptId) {
     final cid = widget.courseId;
     if (cid != null) {
+      // TakeQuizScreen был открыт через Navigator.push поверх GoRouter-маршрута
+      // (TestPreviewScreen). Сначала закрываем его через Navigator.pop,
+      // чтобы GoRouter получил управление, затем навигируем к курсу.
+      Navigator.of(context).pop(attemptId);
       context.go('/course/$cid');
     } else {
-      Navigator.pop(context);
+      // Возвращаемся на TestPreviewScreen с attemptId — он обновит BLoC.
+      Navigator.of(context).pop(attemptId);
     }
   }
 
@@ -286,7 +292,7 @@ class _TakeQuizScreenState extends State<TakeQuizScreen>
                       width: double.infinity,
                       height: 52,
                       child: ElevatedButton(
-                        onPressed: () => _exitToCourseOrPop(context),
+                        onPressed: () => _exitToCourseOrPop(context, state.attemptId),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.mono900,
                           foregroundColor: Colors.white,

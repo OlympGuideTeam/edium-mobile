@@ -1563,16 +1563,6 @@ class _ModuleSectionState extends State<_ModuleSection>
                                                 );
                                               }
                                             } else {
-                                              context.push(
-                                                '/test/${item.refId}',
-                                                extra: {
-                                                  'courseItem': item,
-                                                  'isTeacher': false,
-                                                  'courseId': widget.courseId,
-                                                },
-                                              );
-                                              // Результат опубликован (score != null) →
-                                              // сразу на quiz_result_screen, без превью.
                                               if (item.isPassed) {
                                                 context.push(
                                                   '/test/${item.refId}/results',
@@ -1587,6 +1577,7 @@ class _ModuleSectionState extends State<_ModuleSection>
                                                   extra: {
                                                     'courseItem': item,
                                                     'isTeacher': false,
+                                                    'courseId': widget.courseId,
                                                   },
                                                 );
                                               }
@@ -1692,9 +1683,23 @@ class _ModuleSectionState extends State<_ModuleSection>
           )) {
         return;
       }
-      final msg = e is ApiException && e.code == 'SESSION_COMPLETED'
-          ? e.message
-          : 'Ошибка входа: $e';
+      // 409 или SESSION_COMPLETED без attempt_id в деталях → используем item.attemptId
+      final isConflict = e is ApiException &&
+          (e.statusCode == 409 || e.code == 'SESSION_COMPLETED');
+      if (isConflict && item.attemptId != null) {
+        router.push(
+          '/live/${item.refId}/student',
+          extra: {
+            'attemptId': item.attemptId!,
+            'wsToken': '',
+            'quizTitle': item.title ?? '',
+            'questionCount': 0,
+            'moduleId': moduleId,
+          },
+        );
+        return;
+      }
+      final msg = e is ApiException ? e.message : 'Ошибка входа: $e';
       messenger.showSnackBar(SnackBar(content: Text(msg)));
     }
   }
@@ -1904,140 +1909,143 @@ class _TrailingBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (item.isPassed) {
-      // For students, only display the numeric score when the result is published.
-      // Statuses graded/grading/completed mean the quiz is done but not yet published.
-      if (!isTeacher && item.state != 'published') {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: AppColors.mono100,
-            borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.check_circle_outline, size: 13, color: AppColors.mono600),
-              SizedBox(width: 4),
-              Text(
-                'Пройден',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.mono600,
-                ),
-              ),
-            ],
-          ),
-        );
-      }
-      final scoreText =
-          '${item.score!.toStringAsFixed(item.score! % 1 == 0 ? 0 : 1)}%';
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: AppColors.mono100,
-          borderRadius: BorderRadius.circular(AppDimens.radiusMd),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.check_circle_outline,
-                size: 13, color: AppColors.mono600),
-            const SizedBox(width: 4),
-            Text(
-              scoreText,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppColors.mono600,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+    return isTeacher ? _teacherBadge() : _studentBadge();
+  }
 
-    if (!isTeacher) {
-      // Для ученика: используем Riddler-статус если есть, иначе item.state
-      final String label;
-      final bool isActionable;
-      if (sessionStatus != null) {
-        final s = sessionStatus!;
-        if (s.status == 'finished') {
-          label = 'Завершён';
-          isActionable = false;
-        } else if (s.status == 'not_started') {
-          label = 'Ожидает';
-          isActionable = false;
-        } else if (s.mode == 'live') {
-          label = s.phase == 'lobby' ? 'Войти →' : 'Идёт';
-          isActionable = s.phase == 'lobby';
-        } else {
-          // active
-          label = item.attemptId != null ? 'Продолжить →' : 'Начать →';
-          isActionable = true;
-        }
-      } else {
-        label = studentTestActionLabel(item);
-        isActionable = item.state == 'in_progress' ||
-            item.state == null ||
-            item.state == 'not_started';
-      }
-      return Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: isActionable ? FontWeight.w600 : FontWeight.w400,
-          color: isActionable ? AppColors.mono900 : AppColors.mono300,
-        ),
-      );
-    }
-
-    // Для учителя: используем Riddler-статус если есть, иначе вычисляем из payload
+  Widget _teacherBadge() {
     final String label;
     if (sessionStatus != null) {
       final s = sessionStatus!;
-      label = switch (s.status) {
-        'active' => 'Идёт',
-        'running' => s.phase == 'lobby' ? 'Лобби' : 'Идёт',
-        'finished' => 'Завершён',
-        'not_started' => 'Не начат',
-        _ => 'Ожидает',
-      };
+      if (s.mode == 'live') {
+        label = switch (s.phase) {
+          'lobby' => 'Лобби',
+          'question_active' || 'question_locked' => 'Идёт',
+          'completed' => 'Завершён',
+          _ => 'Не начат',
+        };
+      } else {
+        label = switch (s.status) {
+          'active' => 'Идёт',
+          'finished' => 'Завершён',
+          _ => 'Не начат',
+        };
+      }
     } else {
       final now = DateTime.now();
-      final payload = item.payload;
-      final String sessionState;
-      if (payload == null) {
-        sessionState = 'not_started';
+      final p = item.payload;
+      if (p == null) {
+        label = 'Не начат';
+      } else if (p.finishedAt != null && now.isAfter(p.finishedAt!)) {
+        label = 'Завершён';
+      } else if (p.startedAt == null || !now.isBefore(p.startedAt!)) {
+        label = 'Идёт';
       } else {
-        final end = payload.finishedAt;
-        final start = payload.startedAt;
-        if (end != null && now.isAfter(end)) {
-          sessionState = 'completed';
-        } else if (start == null || !now.isBefore(start)) {
-          sessionState = 'in_progress';
-        } else {
-          sessionState = 'waiting';
-        }
+        label = 'Ожидает';
       }
-      label = switch (sessionState) {
-        'in_progress' => 'Идёт',
-        'waiting' => 'Ожидает',
-        'completed' => 'Завершён',
-        _ => 'Не начат',
-      };
     }
     return Text(
       label,
-      style: const TextStyle(
-        fontSize: 12,
-        color: AppColors.mono300,
+      style: const TextStyle(fontSize: 12, color: AppColors.mono300),
+    );
+  }
+
+  Widget _studentBadge() {
+    final s = sessionStatus;
+    if (s != null) {
+      final as_ = s.attemptStatus;
+
+      // Попытка есть — смотрим её статус
+      if (as_ == 'grading' || as_ == 'graded' || as_ == 'completed') {
+        return _chip(
+          icon: Icons.hourglass_top_outlined,
+          label: 'Проверяется',
+        );
+      }
+      if (as_ == 'published') {
+        final score = s.score ?? item.score;
+        return _scoreChip(score);
+      }
+      if (as_ == 'kicked') {
+        return _labelText('Дисквалифицирован', actionable: false);
+      }
+      if (as_ == 'in_progress') {
+        return _labelText('Продолжить →', actionable: true);
+      }
+
+      // Попытки нет — смотрим статус сессии
+      if (s.mode == 'live') {
+        return switch (s.phase) {
+          'lobby' => _labelText('Войти →', actionable: true),
+          'question_active' || 'question_locked' => _labelText('Идёт', actionable: false),
+          'completed' => _labelText('Завершён', actionable: false),
+          _ => _labelText('Ожидает', actionable: false),
+        };
+      } else {
+        return switch (s.status) {
+          'active' => _labelText('Начать →', actionable: true),
+          'finished' => _labelText('Завершён', actionable: false),
+          _ => _labelText('Ожидает', actionable: false),
+        };
+      }
+    }
+
+    // Riddler недоступен — fallback на Caesar
+    if (item.isPassed) {
+      if (item.state != 'published') {
+        return _chip(icon: Icons.check_circle_outline, label: 'Пройден');
+      }
+      return _scoreChip(item.score);
+    }
+    final label = studentTestActionLabel(item);
+    final actionable = item.state == 'in_progress' ||
+        item.state == null ||
+        item.state == 'not_started';
+    return _labelText(label, actionable: actionable);
+  }
+
+  Widget _scoreChip(double? score) {
+    if (score == null) {
+      return _chip(icon: Icons.check_circle_outline, label: 'Пройден');
+    }
+    final text = '${score.toStringAsFixed(score % 1 == 0 ? 0 : 1)}%';
+    return _chip(icon: Icons.check_circle_outline, label: text);
+  }
+
+  Widget _chip({required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.mono100,
+        borderRadius: BorderRadius.circular(AppDimens.radiusMd),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: AppColors.mono600),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.mono600,
+            ),
+          ),
+        ],
       ),
     );
   }
 
+  Widget _labelText(String label, {required bool actionable}) {
+    return Text(
+      label,
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: actionable ? FontWeight.w600 : FontWeight.w400,
+        color: actionable ? AppColors.mono900 : AppColors.mono300,
+      ),
+    );
+  }
 }
 
 // ─── Черновики ────────────────────────────────────────────────────────────────

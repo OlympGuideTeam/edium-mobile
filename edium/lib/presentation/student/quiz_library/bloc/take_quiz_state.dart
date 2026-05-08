@@ -100,7 +100,10 @@ class TakeQuizCompleted extends TakeQuizState {
 }
 
 class TakeQuizSubmitted extends TakeQuizState {
-  const TakeQuizSubmitted();
+  final String attemptId;
+  const TakeQuizSubmitted({required this.attemptId});
+  @override
+  List<Object?> get props => [attemptId];
 }
 
 class TakeQuizError extends TakeQuizState {

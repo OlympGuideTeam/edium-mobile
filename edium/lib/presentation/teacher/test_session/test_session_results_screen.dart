@@ -43,6 +43,8 @@ class TestSessionResultsScreen extends StatelessWidget {
           quizTitle: courseItem?.title ?? 'Тест',
         );
       }
+      // Сюда попадаем только при некорректном deep link без attemptId.
+      // Бэкенд должен слать /test/{sessionId}/attempts/{attemptId} для студента.
       return Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
@@ -272,13 +274,17 @@ class _View extends StatelessWidget {
               ...state.rows.map((r) => _StudentRowTile(
                     row: r,
                     onTap: r.attempt != null
-                        ? () {
+                        ? () async {
                             final status = r.attempt!.status;
                             if (status == AttemptStatus.graded ||
                                 status == AttemptStatus.grading) {
-                              context.push(
+                              await context.push(
                                 '/test/${state.sessionId}/attempts/${r.attempt!.attemptId}/grade',
                               );
+                              if (context.mounted) {
+                                context.read<TestSessionResultsBloc>().add(
+                                    const RefreshSessionResultsEvent());
+                              }
                             } else {
                               context.push(
                                 '/test/${state.sessionId}/attempts/${r.attempt!.attemptId}',
@@ -417,7 +423,7 @@ class _StatusHero extends StatelessWidget {
         return (
           tag: 'СРЕДНИЙ БАЛЛ',
           title: avg.toStringAsFixed(0),
-          subtitle: 'из 100 · ${_pluralStudents(total)}',
+          subtitle: 'из 10 · ${_pluralStudents(total)}',
         );
       }
       return (
@@ -448,7 +454,7 @@ class _StatusHero extends StatelessWidget {
       return (
         tag: 'СРЕДНИЙ БАЛЛ',
         title: avg.toStringAsFixed(0),
-        subtitle: 'из 100 · ${_pluralStudents(total)}',
+        subtitle: 'из 10 · ${_pluralStudents(total)}',
       );
     }
 
@@ -793,12 +799,17 @@ class _StudentRowTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final attempt = row.attempt;
     final status = attempt?.status;
-    final scoreText = attempt?.score != null
-        ? attempt!.score!.toStringAsFixed(0)
-        : null;
+    final score = attempt?.score;
+    final isPublished = status == AttemptStatus.published;
     final tappable = onTap != null;
     final needsAction = status == AttemptStatus.graded;
     final isInactive = status == null;
+
+    // Для published оценка показывается внутри _StatusBadge (grade chip),
+    // для остальных статусов — отдельным числом справа.
+    final scoreText = (!isPublished && score != null)
+        ? score.toStringAsFixed(0)
+        : null;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -815,41 +826,43 @@ class _StudentRowTile extends StatelessWidget {
               width: AppDimens.borderWidth,
             ),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  row.displayName,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: isInactive ? AppColors.mono400 : AppColors.mono900,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+              Row(
+                children: [
+                  _StatusBadge(status: status, score: score),
+                  const Spacer(),
+                  if (scoreText != null) ...[
+                    Text(
+                      scoreText,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.mono900,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                  ],
+                  if (tappable)
+                    Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: needsAction ? AppColors.mono400 : AppColors.mono300,
+                    ),
+                ],
               ),
-              const SizedBox(width: 8),
-              _StatusBadge(status: status),
-              if (scoreText != null) ...[
-                const SizedBox(width: 6),
-                Text(
-                  scoreText,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.mono900,
-                  ),
+              const SizedBox(height: 6),
+              Text(
+                row.displayName,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: isInactive ? AppColors.mono400 : AppColors.mono900,
                 ),
-              ],
-              if (tappable) ...[
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.chevron_right,
-                  size: 18,
-                  color: needsAction ? AppColors.mono400 : AppColors.mono300,
-                ),
-              ],
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
         ),
@@ -862,71 +875,28 @@ class _StudentRowTile extends StatelessWidget {
 
 class _StatusBadge extends StatelessWidget {
   final AttemptStatus? status;
-  const _StatusBadge({required this.status});
+  final double? score;
+  const _StatusBadge({required this.status, this.score});
 
   @override
   Widget build(BuildContext context) {
     switch (status) {
       case null:
-        return const _Chip(
-          label: 'Не начал',
-          textColor: AppColors.mono350,
-          bgColor: Colors.transparent,
-          borderColor: AppColors.mono150,
-        );
+        return _chip('Не начал', AppColors.mono350, Colors.transparent, AppColors.mono150);
       case AttemptStatus.inProgress:
-        return const _Chip(
-          label: 'Проходит',
-          textColor: AppColors.mono400,
-          bgColor: AppColors.mono50,
-          borderColor: AppColors.mono150,
-        );
+        return _chip('Проходит', AppColors.mono400, AppColors.mono50, AppColors.mono150);
       case AttemptStatus.grading:
-        return const _Chip(
-          label: 'ИИ проверяет',
-          textColor: AppColors.mono400,
-          bgColor: AppColors.mono50,
-          borderColor: AppColors.mono150,
-        );
+        return _chip('Не оценено', AppColors.mono400, AppColors.mono50, AppColors.mono150);
       case AttemptStatus.graded:
-        return const _Chip(
-          label: 'ИИ проверило',
-          textColor: Colors.white,
-          bgColor: AppColors.mono900,
-          borderColor: AppColors.mono900,
-          icon: Icons.edit_outlined,
-        );
+        return _chip('Оценено ИИ', Colors.white, AppColors.mono900, AppColors.mono900);
       case AttemptStatus.completed:
-        return const _Chip(
-          label: 'Учитель проверил',
-          textColor: AppColors.mono600,
-          bgColor: AppColors.mono50,
-          borderColor: AppColors.mono150,
-          icon: Icons.check_outlined,
-        );
+        return _chip('Оценено Вами', AppColors.mono600, AppColors.mono50, AppColors.mono150);
       case AttemptStatus.published:
-        return const SizedBox.shrink();
+        return _GradeChip(score: score);
     }
   }
-}
 
-class _Chip extends StatelessWidget {
-  final String label;
-  final Color textColor;
-  final Color bgColor;
-  final Color borderColor;
-  final IconData? icon;
-
-  const _Chip({
-    required this.label,
-    required this.textColor,
-    required this.bgColor,
-    required this.borderColor,
-    this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _chip(String label, Color textColor, Color bgColor, Color borderColor) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -934,19 +904,74 @@ class _Chip extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDimens.radiusXs),
         border: Border.all(color: borderColor, width: AppDimens.borderWidth),
       ),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
+          color: textColor,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Бейдж оценки (published) ─────────────────────────────────────────────────
+
+class _GradeChip extends StatelessWidget {
+  final double? score;
+  const _GradeChip({this.score});
+
+  String _fmt(double v) =>
+      v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(1);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.mono900,
+        borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (icon != null) ...[
-            Icon(icon, size: 11, color: textColor),
-            const SizedBox(width: 4),
-          ],
-          Text(
-            label,
+          const Text(
+            'ОЦЕНКА',
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 9,
               fontWeight: FontWeight.w700,
-              color: textColor,
+              color: AppColors.mono300,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: score != null ? _fmt(score!) : '—',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    height: 1.0,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                if (score != null)
+                  const TextSpan(
+                    text: ' / 10',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.mono300,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
