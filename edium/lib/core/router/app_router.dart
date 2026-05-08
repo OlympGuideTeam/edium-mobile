@@ -262,6 +262,13 @@ GoRouter buildRouter() {
         },
       ),
       GoRoute(
+        path: '/test/:attemptId/review',
+        builder: (_, state) {
+          final aid = state.pathParameters['attemptId']!;
+          return AttemptReviewScreen(attemptId: aid);
+        },
+      ),
+      GoRoute(
         path: '/test/:sessionId/attempts/:attemptId/grade',
         builder: (_, state) {
           final aid = state.pathParameters['attemptId']!;
