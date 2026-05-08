@@ -114,6 +114,8 @@ class CourseDatasourceImpl extends BaseApiService implements ICourseDatasource {
               mode: e['mode'] as String,
               status: e['status'] as String,
               phase: e['phase'] as String?,
+              attemptStatus: e['attempt_status'] as String?,
+              score: (e['score'] as num?)?.toDouble(),
             ),
         };
       },

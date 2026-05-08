@@ -11,10 +11,19 @@ class SessionStatusItem {
   /// pending | lobby | question_active | question_locked | completed
   final String? phase;
 
+  /// null если caller — учитель.
+  /// in_progress | grading | graded | completed | kicked | published
+  final String? attemptStatus;
+
+  /// null если попытка не опубликована.
+  final double? score;
+
   const SessionStatusItem({
     required this.sessionId,
     required this.mode,
     required this.status,
     this.phase,
+    this.attemptStatus,
+    this.score,
   });
 }

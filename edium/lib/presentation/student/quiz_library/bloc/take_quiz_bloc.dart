@@ -20,6 +20,7 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
   final bool isFromCourse;
 
   Timer? _timer;
+  Timer? _debounceTimer;
   String? _sessionIdForCache;
 
   TakeQuizBloc({
@@ -47,6 +48,7 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
   @override
   Future<void> close() {
     _timer?.cancel();
+    _debounceTimer?.cancel();
     return super.close();
   }
 
@@ -123,7 +125,24 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
     emit(s.copyWith(answers: updated));
 
     final sid = _sessionIdForCache;
-    if (sid != null && _testRepo != null) {
+    if (sid == null || _testRepo == null) return;
+
+    final isTextAnswer = event.answerData.containsKey('text');
+    if (isTextAnswer) {
+      // Дебаунс 2 секунды: не отправляем при каждом нажатии клавиши
+      _debounceTimer?.cancel();
+      final questionId = s.currentQuestion.id;
+      final attemptId = s.attempt.attemptId;
+      final answerData = event.answerData;
+      _debounceTimer = Timer(const Duration(seconds: 2), () {
+        _testRepo!.submitAnswer(
+          attemptId: attemptId,
+          sessionId: sid,
+          questionId: questionId,
+          answerData: answerData,
+        );
+      });
+    } else {
       await _testRepo!.submitAnswer(
         attemptId: s.attempt.attemptId,
         sessionId: sid,
@@ -189,7 +208,7 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
           attemptId: s.attempt.attemptId,
           sessionId: sid,
         );
-        emit(const TakeQuizSubmitted());
+        emit(TakeQuizSubmitted(attemptId: s.attempt.attemptId));
         return;
       }
       await _finishAttempt(s.attempt.attemptId);
@@ -203,7 +222,7 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
       ));
     } catch (e) {
       if (finished && isFromCourse) {
-        emit(const TakeQuizSubmitted());
+        emit(TakeQuizSubmitted(attemptId: s.attempt.attemptId));
       } else {
         emit(TakeQuizError(_humanMessage(e)));
       }
@@ -224,6 +243,9 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
   Future<void> _submitCurrentIfAnswered(TakeQuizInProgress s) async {
     final answer = s.answers[s.currentQuestion.id];
     if (answer == null) return;
+    // Сбрасываем дебаунс — сейчас отправляем немедленно
+    _debounceTimer?.cancel();
+    _debounceTimer = null;
     final sid = _sessionIdForCache;
     try {
       if (sid != null && _testRepo != null) {

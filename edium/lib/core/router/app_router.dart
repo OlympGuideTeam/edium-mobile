@@ -26,6 +26,7 @@ import 'package:edium/presentation/profile/edit_profile/edit_profile_screen.dart
 import 'package:edium/presentation/profile/notifications/notifications_screen.dart';
 import 'package:edium/presentation/shared/widgets/legal_document_screen.dart';
 import 'package:edium/presentation/shared/test/attempt_review_screen.dart';
+import 'package:edium/presentation/teacher/edit_quiz_template/edit_quiz_template_screen.dart';
 import 'package:edium/presentation/teacher/grade_attempt/teacher_grade_attempt_screen.dart';
 import 'package:edium/presentation/teacher/review_session/review_session_screen.dart';
 import 'package:edium/presentation/shared/invite/invite_screen.dart';
@@ -209,9 +210,11 @@ GoRouter buildRouter() {
           final sid = state.pathParameters['sessionId']!;
           final extra = state.extra as Map<String, dynamic>?;
           final courseItem = extra?['courseItem'] as CourseItem?;
-          // extra is null only if navigating without context.push (e.g., deep link).
-          // Defaulting to false is the correct security posture: deny teacher access.
-          final isTeacher = extra?['isTeacher'] as bool? ?? false;
+          // When navigating via context.push, isTeacher comes from extra.
+          // When navigating via deep link (e.g. notification tap), extra is null
+          // and the role is encoded as a query parameter by _routeOrSwitch.
+          final isTeacher = (extra?['isTeacher'] as bool?) ??
+              (state.uri.queryParameters['role'] == 'teacher');
           final moduleId = extra?['moduleId'] as String?;
           return TestSessionResultsScreen(
             sessionId: sid,
@@ -233,6 +236,13 @@ GoRouter buildRouter() {
             classId: classId,
             courseItem: courseItem,
           );
+        },
+      ),
+      GoRoute(
+        path: '/template/:quizId',
+        builder: (_, state) {
+          final quizId = state.pathParameters['quizId']!;
+          return EditQuizTemplateScreen(quizId: quizId);
         },
       ),
       GoRoute(
