@@ -10,6 +10,7 @@ import 'package:edium/presentation/auth/bloc/auth_state.dart';
 import 'package:edium/presentation/live/live_session_completed_navigation.dart';
 import 'package:edium/services/network/api_exception.dart';
 import 'package:edium/presentation/profile/profile_screen.dart';
+import 'package:edium/presentation/student/home/bloc/notification_badge_cubit.dart';
 import 'package:edium/presentation/student/home/bloc/student_dashboard_cubit.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/student_quiz_bloc.dart';
 import 'package:edium/presentation/student/quiz_library/bloc/student_quiz_event.dart';
@@ -17,6 +18,7 @@ import 'package:edium/presentation/student/quiz_library/student_quiz_library_scr
 import 'package:edium/presentation/teacher/classes/classes_screen.dart';
 import 'package:edium/presentation/shared/widgets/edium_tab_bar.dart';
 import 'package:edium/presentation/shared/widgets/edium_refresh_indicator.dart';
+import 'package:edium/presentation/shared/widgets/notification_bell_button.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -54,6 +56,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             getIt(),
             getIt(),
           )..load(),
+        ),
+        BlocProvider(
+          create: (_) => NotificationBadgeCubit(getIt())..load(),
         ),
       ],
       child: Scaffold(
@@ -103,7 +108,10 @@ class _StudentDashboardPage extends StatelessWidget {
   const _StudentDashboardPage({required this.onNavigateToTab});
 
   Future<void> _refresh(BuildContext context) async {
-    await context.read<StudentDashboardCubit>().load();
+    await Future.wait([
+      context.read<StudentDashboardCubit>().load(),
+      context.read<NotificationBadgeCubit>().load(),
+    ]);
   }
 
   @override
@@ -143,7 +151,20 @@ class _StudentDashboardPage extends StatelessWidget {
                               style: AppTextStyles.badgeText),
                         ),
                         const SizedBox(height: 12),
-                        const Text('Edium', style: AppTextStyles.screenTitle),
+                        BlocBuilder<NotificationBadgeCubit, int>(
+                          builder: (context, unreadCount) => Row(
+                            children: [
+                              const Text('Edium',
+                                  style: AppTextStyles.screenTitle),
+                              const Spacer(),
+                              NotificationBellButton(
+                                unreadCount: unreadCount,
+                                onTap: () =>
+                                    context.push('/profile/notifications'),
+                              ),
+                            ],
+                          ),
+                        ),
                         const SizedBox(height: 24),
                         Text(
                           'Привет, $firstName',
