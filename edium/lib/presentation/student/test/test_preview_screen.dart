@@ -815,9 +815,13 @@ class _BottomCta extends StatelessWidget {
         ),
       ),
     );
-    // После возврата с TakeQuizScreen обновляем статус в BLoC.
-    // attemptId — null если пользователь вышел до завершения теста.
-    if (context.mounted && attemptId != null) {
+    if (!context.mounted || attemptId == null) return;
+
+    if (courseId != null) {
+      // Тест завершён из курса — закрываем превью без анимации,
+      // возвращая true чтобы CourseDetailScreen обновил данные.
+      context.pop(true);
+    } else {
       context.read<TestPreviewBloc>().add(LoadTestPreviewEvent(
             meta: meta,
             initialAttemptId: attemptId,
