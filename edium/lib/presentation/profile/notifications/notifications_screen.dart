@@ -141,7 +141,10 @@ class _NotificationsContent extends StatelessWidget {
                       .add(MarkReadEvent(item.id));
                 }
                 if (item.route != null) {
-                  context.push(item.route!);
+                  final route = item.role != null
+                      ? _withRole(item.route!, item.role!)
+                      : item.route!;
+                  context.push(route);
                 }
               },
             ),
@@ -290,4 +293,11 @@ class _NotificationTile extends StatelessWidget {
     ];
     return '${dt.day} ${months[dt.month - 1]}';
   }
+}
+
+String _withRole(String route, String role) {
+  final uri = Uri.parse(route);
+  final params = Map<String, String>.from(uri.queryParameters);
+  params['role'] = role;
+  return uri.replace(queryParameters: params).toString();
 }

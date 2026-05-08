@@ -788,12 +788,12 @@ class _BottomCta extends StatelessWidget {
     );
   }
 
-  void _onTap(
+  Future<void> _onTap(
     BuildContext context,
     TestSessionMeta meta,
     TestPreviewStatus status,
-  ) {
-    Navigator.push(
+  ) async {
+    final attemptId = await Navigator.push<String?>(
       context,
       MaterialPageRoute(
         builder: (_) => BlocProvider(
@@ -815,5 +815,13 @@ class _BottomCta extends StatelessWidget {
         ),
       ),
     );
+    // После возврата с TakeQuizScreen обновляем статус в BLoC.
+    // attemptId — null если пользователь вышел до завершения теста.
+    if (context.mounted && attemptId != null) {
+      context.read<TestPreviewBloc>().add(LoadTestPreviewEvent(
+            meta: meta,
+            initialAttemptId: attemptId,
+          ));
+    }
   }
 }

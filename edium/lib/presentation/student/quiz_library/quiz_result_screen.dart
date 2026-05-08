@@ -92,9 +92,8 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _TopBar(onBack: () => _exit(context)),
             _TopBar(
-              onBack: () => Navigator.pop(context),
+              onBack: () => _exit(context),
               trailing: showGrade ? _GradeBadge(grade: grade) : null,
             ),
             Expanded(
@@ -110,9 +109,8 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
                       ),
                     ),
             ),
-            _BottomCta(onPressed: () => _exit(context)),
             if (widget.showBottomCta)
-              _BottomCta(onPressed: () => Navigator.pop(context)),
+              _BottomCta(onPressed: () => _exit(context)),
           ],
         ),
       ),
