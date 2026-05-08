@@ -1137,6 +1137,7 @@ class _CourseContentListState extends State<_CourseContentList> {
                       isTeacher: course.isTeacher,
                       courseId: course.id,
                       moduleListReloadToken: _moduleListReloadToken,
+                      onReload: _onPullRefresh,
                     );
                   },
                 )
@@ -1152,6 +1153,7 @@ class _CourseContentListState extends State<_CourseContentList> {
                           isTeacher: course.isTeacher,
                           courseId: course.id,
                           moduleListReloadToken: _moduleListReloadToken,
+                          onReload: _onPullRefresh,
                         ),
                       );
                     },
@@ -1219,6 +1221,7 @@ class _ReorderableModuleItem extends StatelessWidget {
   final bool isTeacher;
   final String courseId;
   final int moduleListReloadToken;
+  final Future<void> Function()? onReload;
 
   const _ReorderableModuleItem({
     super.key,
@@ -1227,6 +1230,7 @@ class _ReorderableModuleItem extends StatelessWidget {
     required this.isTeacher,
     required this.courseId,
     this.moduleListReloadToken = 0,
+    this.onReload,
   });
 
   @override
@@ -1240,6 +1244,7 @@ class _ReorderableModuleItem extends StatelessWidget {
           isTeacher: isTeacher,
           courseId: courseId,
           moduleListReloadToken: moduleListReloadToken,
+          onReload: onReload,
         ),
       ),
     );
@@ -1292,6 +1297,8 @@ class _ModuleSection extends StatefulWidget {
   final String courseId;
   /// Совпадает с токеном списка после refresh курса — перезагрузка раскрытого модуля.
   final int moduleListReloadToken;
+  /// Вызывается после завершения теста студентом — silent reload курса + перезагрузка items.
+  final Future<void> Function()? onReload;
 
   const _ModuleSection({
     required this.module,
@@ -1299,6 +1306,7 @@ class _ModuleSection extends StatefulWidget {
     required this.courseId,
     this.classId,
     this.moduleListReloadToken = 0,
+    this.onReload,
   });
 
   @override
@@ -1532,7 +1540,7 @@ class _ModuleSectionState extends State<_ModuleSection>
                                     isTeacher: widget.isTeacher,
                                     sessionStatus: _statuses[item.refId],
                                     onTap: item.isTestQuiz
-                                        ? () {
+                                        ? () async {
                                             if (widget.isTeacher) {
                                               final now = DateTime.now();
                                               final p = item.payload;
@@ -1572,7 +1580,8 @@ class _ModuleSectionState extends State<_ModuleSection>
                                                   },
                                                 );
                                               } else {
-                                                context.push(
+                                                final completed =
+                                                    await context.push<bool>(
                                                   '/test/${item.refId}',
                                                   extra: {
                                                     'courseItem': item,
@@ -1580,6 +1589,10 @@ class _ModuleSectionState extends State<_ModuleSection>
                                                     'courseId': widget.courseId,
                                                   },
                                                 );
+                                                if (completed == true &&
+                                                    context.mounted) {
+                                                  await widget.onReload?.call();
+                                                }
                                               }
                                             }
                                           }
