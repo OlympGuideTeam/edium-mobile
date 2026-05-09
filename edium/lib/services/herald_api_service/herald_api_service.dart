@@ -38,6 +38,18 @@ class HeraldApiService extends BaseApiService implements IHeraldApiService {
   }
 
   @override
+  Future<int> getUnreadNotificationsCount() async {
+    return request(
+      HeraldEndpoints.notificationsCount.path,
+      method: HttpMethod.get,
+      parser: (data) {
+        final map = data as Map<String, dynamic>;
+        return (map['count'] as num).toInt();
+      },
+    );
+  }
+
+  @override
   Future<void> markNotificationRead(String id) async {
     return request(
       heraldNotificationRead(id),

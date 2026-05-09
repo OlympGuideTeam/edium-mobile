@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -23,15 +24,26 @@ class NotificationTapData {
   final String route;
   final String? role;
   final String? messageId;
+  final String? notificationId;
 
   const NotificationTapData({
     required this.route,
     this.role,
     this.messageId,
+    this.notificationId,
   });
 }
 
 class NotificationService with WidgetsBindingObserver {
+  static const _badgeChannel = MethodChannel('edium/badge');
+
+  static Future<void> setBadgeCount(int count) async {
+    if (!Platform.isIOS) return;
+    try {
+      await _badgeChannel.invokeMethod<void>('setBadgeCount', count);
+    } catch (_) {}
+  }
+
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
@@ -49,6 +61,7 @@ class NotificationService with WidgetsBindingObserver {
         _previousLifecycleState != null &&
         _previousLifecycleState != AppLifecycleState.resumed) {
       _lastResumeTime = DateTime.now();
+      _badgeRefreshController.add(null);
       debugPrint('[Notif] lifecycle: resumed from $_previousLifecycleState');
     }
     _previousLifecycleState = state;
@@ -95,6 +108,11 @@ class NotificationService with WidgetsBindingObserver {
     if (messageId == null) return false;
     return _foregroundMessageIds.contains(messageId);
   }
+
+  final _badgeRefreshController = StreamController<void>.broadcast();
+  Stream<void> get badgeRefreshStream => _badgeRefreshController.stream;
+
+  void triggerBadgeRefresh() => _badgeRefreshController.add(null);
 
   late final Stream<String> tokenRefreshStream;
 
@@ -194,17 +212,24 @@ class NotificationService with WidgetsBindingObserver {
     // auto-show, so show manually too.
     final title = message.notification?.title ?? message.data['title'] as String?;
     final body  = message.notification?.body  ?? message.data['body']  as String?;
-    if (title == null) return;
+
+    // Data-only (silent) push — no banner to display, but signal badge refresh.
+    if (title == null) {
+      _badgeRefreshController.add(null);
+      return;
+    }
 
     final route = message.data['route']?.toString();
     final role  = message.data['role']?.toString();
+    final nid   = message.data['notification_id']?.toString();
 
-    // Encode route + role + messageId in the local notification payload.
+    // Encode route + role + messageId + notification_id in the local notification payload.
     final payload = route != null
         ? jsonEncode({
             'route': route,
             if (role != null) 'role': role,
             if (mid != null) 'mid': mid,
+            if (nid != null) 'notification_id': nid,
           })
         : null;
 
@@ -242,6 +267,7 @@ class NotificationService with WidgetsBindingObserver {
           route: route,
           role: map['role']?.toString(),
           messageId: map['mid']?.toString(),
+          notificationId: map['notification_id']?.toString(),
         ));
       }
     } catch (_) {
@@ -253,6 +279,7 @@ class NotificationService with WidgetsBindingObserver {
   void _onMessageTap(RemoteMessage message) {
     final route = message.data['route']?.toString();
     final mid = message.messageId;
+    final nid = message.data['notification_id']?.toString();
     debugPrint('[Notif] onMessageOpenedApp mid=$mid route="$route" '
         'inFGSet=${_foregroundMessageIds.contains(mid)} '
         'lifecycle=$_previousLifecycleState');
@@ -261,10 +288,12 @@ class NotificationService with WidgetsBindingObserver {
       route: route,
       role: message.data['role']?.toString(),
       messageId: mid,
+      notificationId: nid,
     ));
   }
 
   void dispose() {
     _tapController.close();
+    _badgeRefreshController.close();
   }
 }
