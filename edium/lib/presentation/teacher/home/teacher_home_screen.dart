@@ -121,6 +121,11 @@ class _TeacherDashboardPage extends StatelessWidget {
       value: getIt<AuthBloc>(),
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
+          final user =
+              state is AuthAuthenticated ? state.user : null;
+          final firstName = (user?.name.isNotEmpty == true)
+              ? user!.name.split(' ').first
+              : 'Учитель';
           return Scaffold(
             backgroundColor: Colors.white,
             body: SafeArea(
@@ -167,6 +172,16 @@ class _TeacherDashboardPage extends StatelessWidget {
                               ),
                             ],
                           ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Привет, $firstName',
+                          style: AppTextStyles.screenTitle,
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Ведите классы, запускайте квизы и проверяйте работы.',
+                          style: AppTextStyles.screenSubtitle,
                         ),
                         const SizedBox(height: 16),
                         const _AwaitingReviewSection(),

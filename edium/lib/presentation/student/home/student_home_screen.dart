@@ -180,7 +180,7 @@ class _StudentDashboardPage extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
                         Text(
                           'Привет, $firstName',
                           style: AppTextStyles.screenTitle,
@@ -190,7 +190,7 @@ class _StudentDashboardPage extends StatelessWidget {
                           'Готов проверить свои знания?',
                           style: AppTextStyles.screenSubtitle,
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
                         BlocBuilder<StudentDashboardCubit,
                             StudentDashboardState>(
                           builder: (context, state) {
