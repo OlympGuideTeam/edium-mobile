@@ -78,6 +78,40 @@ extension AppDelegate {
     pendingLaunchNotification = map
   }
 
+  // ─── Badge channel ───────────────────────────────────────────────────────
+
+  private static var badgeChannelRegistered = false
+
+  static func registerBadgeChannelIfNeeded(attempt: Int = 0) {
+    if badgeChannelRegistered { return }
+    if attempt > 200 { return }
+
+    guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+          let root = scene.windows.first?.rootViewController as? FlutterViewController else {
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+        registerBadgeChannelIfNeeded(attempt: attempt + 1)
+      }
+      return
+    }
+
+    badgeChannelRegistered = true
+    let channel = FlutterMethodChannel(
+      name: "edium/badge",
+      binaryMessenger: root.binaryMessenger
+    )
+    channel.setMethodCallHandler { call, result in
+      guard call.method == "setBadgeCount", let count = call.arguments as? Int else {
+        result(FlutterMethodNotImplemented); return
+      }
+      if #available(iOS 16.0, *) {
+        UNUserNotificationCenter.current().setBadgeCount(count) { _ in }
+      } else {
+        UIApplication.shared.applicationIconBadgeNumber = count
+      }
+      result(nil)
+    }
+  }
+
   /// Регистрация после появления `FlutterViewController` в активной сцене (совместимо с UIScene).
   static func registerLaunchNotificationChannelIfNeeded(attempt: Int = 0) {
     if launchNotificationChannelRegistered { return }
@@ -122,6 +156,7 @@ extension AppDelegate {
     let ok = super.application(application, didFinishLaunchingWithOptions: launchOptions)
     DispatchQueue.main.async {
       Self.registerLaunchNotificationChannelIfNeeded()
+      Self.registerBadgeChannelIfNeeded()
     }
     return ok
   }

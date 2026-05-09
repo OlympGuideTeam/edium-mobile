@@ -2277,7 +2277,7 @@ class _CourseSheetTabState extends State<_CourseSheetTab> {
     _future = getIt<GetCourseSheetUsecase>()(courseId: widget.courseId);
   }
 
-  Map<String, String> _buildTitleIndex() {
+  Map<String, String> _titlesFromCourseModules() {
     final index = <String, String>{};
     for (final module in widget.course.modules) {
       for (final item in module.items) {
@@ -2285,6 +2285,19 @@ class _CourseSheetTabState extends State<_CourseSheetTab> {
       }
     }
     return index;
+  }
+
+  /// Имя колонки: приоритет у `title` из ответа ведомости, иначе название из курса.
+  Map<String, String> _columnTitles(CourseSheet sheet) {
+    final fromCourse = _titlesFromCourseModules();
+    final out = <String, String>{};
+    for (final c in sheet.columns) {
+      final api = c.title?.trim();
+      out[c.id] = (api != null && api.isNotEmpty)
+          ? api
+          : (fromCourse[c.id] ?? c.id);
+    }
+    return out;
   }
 
   Future<void> _export(
@@ -2353,7 +2366,7 @@ class _CourseSheetTabState extends State<_CourseSheetTab> {
           );
         }
 
-        final titleIndex = _buildTitleIndex();
+        final titleIndex = _columnTitles(sheet);
         return Column(
           children: [
             // ── Тулбар ──
@@ -2476,6 +2489,15 @@ class _SheetTableState extends State<_SheetTable> {
   static const double _avgColWidth = 60.0;
   static const double _headerH = 80.0;
   static const double _rowH = 48.0;
+
+  /// Баллы в ведомости приходят по 10-балльной шкале (см. Caesar `.../sheet`).
+  static const double _goodScoreMin = 8;
+  static const double _midScoreMin = 6;
+
+  String _formatSheetScore(double score) =>
+      score == score.roundToDouble()
+          ? score.toStringAsFixed(0)
+          : score.toStringAsFixed(1);
 
   // Синхронизация горизонтального скролла между шапкой и телом
   final _hHead = ScrollController();
@@ -2687,18 +2709,18 @@ class _SheetTableState extends State<_SheetTable> {
       chipBg = AppColors.mono100;
       chipFg = AppColors.mono400;
       label = '—';
-    } else if (score >= 80) {
+    } else if (score >= _goodScoreMin) {
       chipBg = const Color(0xFFDCFCE7);
       chipFg = const Color(0xFF15803D);
-      label = score.toStringAsFixed(0);
-    } else if (score >= 60) {
+      label = _formatSheetScore(score);
+    } else if (score >= _midScoreMin) {
       chipBg = const Color(0xFFFEF9C3);
       chipFg = const Color(0xFF854D0E);
-      label = score.toStringAsFixed(0);
+      label = _formatSheetScore(score);
     } else {
       chipBg = const Color(0xFFFEE2E2);
       chipFg = const Color(0xFFB91C1C);
-      label = score.toStringAsFixed(0);
+      label = _formatSheetScore(score);
     }
 
     return GestureDetector(
@@ -2772,18 +2794,18 @@ class _SheetTableState extends State<_SheetTable> {
       chipBg = AppColors.mono100;
       chipFg = AppColors.mono400;
       label = '—';
-    } else if (score >= 80) {
+    } else if (score >= _goodScoreMin) {
       chipBg = const Color(0xFFDCFCE7);
       chipFg = const Color(0xFF15803D);
-      label = score.toStringAsFixed(0);
-    } else if (score >= 60) {
+      label = _formatSheetScore(score);
+    } else if (score >= _midScoreMin) {
       chipBg = const Color(0xFFFEF9C3);
       chipFg = const Color(0xFF854D0E);
-      label = score.toStringAsFixed(0);
+      label = _formatSheetScore(score);
     } else {
       chipBg = const Color(0xFFFEE2E2);
       chipFg = const Color(0xFFB91C1C);
-      label = score.toStringAsFixed(0);
+      label = _formatSheetScore(score);
     }
 
     showModalBottomSheet(
@@ -2844,7 +2866,7 @@ class _SheetTableState extends State<_SheetTable> {
                 if (score != null) ...[
                   const SizedBox(width: 8),
                   const Text(
-                    '/ 100',
+                    '/ 10',
                     style: TextStyle(fontSize: 14, color: AppColors.mono300),
                   ),
                 ],

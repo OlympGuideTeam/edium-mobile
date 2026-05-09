@@ -65,6 +65,28 @@ class LiveDatasourceImpl extends BaseApiService implements ILiveDatasource {
       );
 
   @override
+  Future<List<LiveRosterMember>> getUsersRoster(List<String> userIds) {
+    if (userIds.isEmpty) {
+      return Future.value(const []);
+    }
+    return request(
+      'caesar/v1/users/roster',
+      method: HttpMethod.get,
+      req: {'user_ids': userIds},
+      parser: (data) {
+        final map = data as Map<String, dynamic>;
+        final users = map['users'] as List<dynamic>? ?? const [];
+        return users
+            .map((e) => LiveRosterMember.fromModuleRosterMemberJson(
+                  e as Map<String, dynamic>,
+                ))
+            .where((m) => m.userId.isNotEmpty)
+            .toList();
+      },
+    );
+  }
+
+  @override
   Future<LiveResultsStudent> getLiveResultsStudent(String sessionId, String attemptId) => request(
         'riddler/v1/sessions/$sessionId/live/results/student',
         method: HttpMethod.get,
