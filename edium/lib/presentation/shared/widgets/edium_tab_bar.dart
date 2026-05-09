@@ -6,10 +6,14 @@ class EdiumTabItem {
   final IconData activeIcon;
   final String label;
 
+  /// Если задан, срабатывает при двойном тапе (например, смена роли на вкладке «Профиль»).
+  final VoidCallback? onDoubleTap;
+
   const EdiumTabItem({
     required this.icon,
     required this.activeIcon,
     required this.label,
+    this.onDoubleTap,
   });
 }
 
@@ -44,6 +48,7 @@ class EdiumTabBar extends StatelessWidget {
                       item: items[i],
                       isActive: i == currentIndex,
                       onTap: () => onTap(i),
+                      onDoubleTap: items[i].onDoubleTap,
                     ),
                   ),
               ],
@@ -59,17 +64,20 @@ class _TabItem extends StatelessWidget {
   final EdiumTabItem item;
   final bool isActive;
   final VoidCallback onTap;
+  final VoidCallback? onDoubleTap;
 
   const _TabItem({
     required this.item,
     required this.isActive,
     required this.onTap,
+    this.onDoubleTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      onDoubleTap: onDoubleTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedScale(
         scale: isActive ? 1.08 : 1.0,
