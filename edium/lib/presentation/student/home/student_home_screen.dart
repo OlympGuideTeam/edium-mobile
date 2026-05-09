@@ -5,7 +5,9 @@ import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/live_session.dart';
 import 'package:edium/domain/entities/student_dashboard.dart';
 import 'package:edium/domain/repositories/live_repository.dart' show ILiveRepository;
+import 'package:edium/domain/entities/user.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
+import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
 import 'package:edium/presentation/live/live_session_completed_navigation.dart';
 import 'package:edium/services/network/api_exception.dart';
@@ -81,18 +83,18 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               context.read<NotificationBadgeCubit>().load();
             }
           },
-          items: const [
-            EdiumTabItem(
+          items: [
+            const EdiumTabItem(
               icon: CupertinoIcons.house,
               activeIcon: CupertinoIcons.house_fill,
               label: 'Главная',
             ),
-            EdiumTabItem(
+            const EdiumTabItem(
               icon: CupertinoIcons.compass,
               activeIcon: CupertinoIcons.compass_fill,
               label: 'Квизы',
             ),
-            EdiumTabItem(
+            const EdiumTabItem(
               icon: CupertinoIcons.person_2,
               activeIcon: CupertinoIcons.person_2_fill,
               label: 'Классы',
@@ -101,6 +103,14 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               icon: CupertinoIcons.person_crop_circle,
               activeIcon: CupertinoIcons.person_crop_circle_fill,
               label: 'Профиль',
+              onDoubleTap: () {
+                final authState = context.read<AuthBloc>().state;
+                if (authState is! AuthAuthenticated) return;
+                final r = authState.user.role;
+                if (r == null) return;
+                final next = r == UserRole.teacher ? 'student' : 'teacher';
+                context.read<AuthBloc>().add(SwitchToRoleEvent(next));
+              },
             ),
           ],
         ),
