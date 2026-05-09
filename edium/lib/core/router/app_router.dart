@@ -397,6 +397,14 @@ String? _redirect(BuildContext context, GoRouterState state) {
       return null;
     }
 
+    // Двойной тап на «Профиль» в таб-баре меняет роль: state уже новый, а путь
+    // мог остаться /teacher/home или /student/home — выравниваем.
+    final shellHome = _homeRoute(authState);
+    if ((location == '/teacher/home' || location == '/student/home') &&
+        location != shellHome) {
+      return shellHome;
+    }
+
     if (isAuthFlowPath) {
       return _homeRoute(authState);
     }

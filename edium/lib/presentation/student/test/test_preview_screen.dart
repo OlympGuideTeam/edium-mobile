@@ -76,12 +76,15 @@ class _TestPreviewView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _BackRow(onBack: () => context.pop()),
-            Expanded(
-              child: BlocConsumer<TestPreviewBloc, TestPreviewState>(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SafeArea(
+            bottom: false,
+            child: _BackRow(onBack: () => context.pop()),
+          ),
+          Expanded(
+            child: BlocConsumer<TestPreviewBloc, TestPreviewState>(
                 // Когда результаты опубликованы — сразу заменяем экран на QuizResultScreen
                 listener: (context, state) {
                   if (state is TestPreviewLoaded &&
@@ -134,8 +137,7 @@ class _TestPreviewView extends StatelessWidget {
                 },
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -267,11 +269,11 @@ class _LoadedBody extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(
+          padding: EdgeInsets.fromLTRB(
             AppDimens.screenPaddingH,
             0,
             AppDimens.screenPaddingH,
-            24,
+            MediaQuery.of(context).padding.bottom + 12,
           ),
           child: _BottomCta(
             state: state,

@@ -5,7 +5,9 @@ import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/awaiting_review_session.dart';
 import 'package:edium/domain/repositories/quiz_repository.dart';
 import 'package:edium/domain/usecases/quiz/create_session_usecase.dart';
+import 'package:edium/domain/entities/user.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
+import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
 import 'package:edium/presentation/profile/profile_screen.dart';
 import 'package:edium/presentation/teacher/classes/classes_screen.dart';
@@ -74,18 +76,18 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
               context.read<NotificationBadgeCubit>().load();
             }
           },
-          items: const [
-            EdiumTabItem(
+          items: [
+            const EdiumTabItem(
               icon: CupertinoIcons.house,
               activeIcon: CupertinoIcons.house_fill,
               label: 'Главная',
             ),
-            EdiumTabItem(
+            const EdiumTabItem(
               icon: CupertinoIcons.book,
               activeIcon: CupertinoIcons.book_fill,
               label: 'Библиотека',
             ),
-            EdiumTabItem(
+            const EdiumTabItem(
               icon: CupertinoIcons.person_2,
               activeIcon: CupertinoIcons.person_2_fill,
               label: 'Классы',
@@ -94,6 +96,14 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
               icon: CupertinoIcons.person_crop_circle,
               activeIcon: CupertinoIcons.person_crop_circle_fill,
               label: 'Профиль',
+              onDoubleTap: () {
+                final authState = context.read<AuthBloc>().state;
+                if (authState is! AuthAuthenticated) return;
+                final r = authState.user.role;
+                if (r == null) return;
+                final next = r == UserRole.teacher ? 'student' : 'teacher';
+                context.read<AuthBloc>().add(SwitchToRoleEvent(next));
+              },
             ),
           ],
         ),
@@ -121,17 +131,26 @@ class _TeacherDashboardPage extends StatelessWidget {
       value: getIt<AuthBloc>(),
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
+          final user =
+              state is AuthAuthenticated ? state.user : null;
+          final firstName = (user?.name.isNotEmpty == true)
+              ? user!.name.split(' ').first
+              : 'Учитель';
           return Scaffold(
             backgroundColor: Colors.white,
             body: SafeArea(
               child: EdiumRefreshIndicator(
                 onRefresh: () => _refresh(context),
-                child: SingleChildScrollView(
+                child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppDimens.screenPaddingH),
-                    child: Column(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppDimens.screenPaddingH,
+                    0,
+                    AppDimens.screenPaddingH,
+                    96,
+                  ),
+                  children: [
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 32),
@@ -169,8 +188,17 @@ class _TeacherDashboardPage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
+                        Text(
+                          'Привет, $firstName',
+                          style: AppTextStyles.screenTitle,
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Ведите классы, запускайте квизы и проверяйте работы.',
+                          style: AppTextStyles.screenSubtitle,
+                        ),
+                        const SizedBox(height: 16),
                         const _AwaitingReviewSection(),
-                        const SizedBox(height: 24),
                         const Text('БЫСТРЫЕ ДЕЙСТВИЯ',
                             style: AppTextStyles.sectionTag),
                         const SizedBox(height: 16),
@@ -209,7 +237,7 @@ class _TeacherDashboardPage extends StatelessWidget {
                         const SizedBox(height: 24),
                       ],
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
@@ -238,6 +266,7 @@ class _AwaitingReviewSection extends StatelessWidget {
                     child: _AwaitingReviewCard(session: s),
                   )),
               const SizedBox(height: 14),
+              const SizedBox(height: 24),
             ],
           );
         }
