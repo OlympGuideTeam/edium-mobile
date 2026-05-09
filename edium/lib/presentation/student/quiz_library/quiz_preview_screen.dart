@@ -36,11 +36,12 @@ class _QuizPreviewScreenState extends State<QuizPreviewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Back button row
-            Padding(
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
               child: Row(
@@ -53,24 +54,24 @@ class _QuizPreviewScreenState extends State<QuizPreviewScreen> {
                 ],
               ),
             ),
-            Expanded(
-              child: FutureBuilder<LibraryQuiz>(
-                future: _detailFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return _buildContent(context, widget.quiz,
-                        isLoading: true);
-                  }
-                  if (snapshot.hasError) {
-                    return _buildContent(context, widget.quiz,
-                        error: snapshot.error.toString());
-                  }
-                  return _buildContent(context, snapshot.data!);
-                },
-              ),
+          ),
+          Expanded(
+            child: FutureBuilder<LibraryQuiz>(
+              future: _detailFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return _buildContent(context, widget.quiz,
+                      isLoading: true);
+                }
+                if (snapshot.hasError) {
+                  return _buildContent(context, widget.quiz,
+                      error: snapshot.error.toString());
+                }
+                return _buildContent(context, snapshot.data!);
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -171,7 +172,7 @@ class _QuizPreviewScreenState extends State<QuizPreviewScreen> {
                   : const Text('Начать квиз'),
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: MediaQuery.of(context).padding.bottom + 12),
         ],
       ),
     );

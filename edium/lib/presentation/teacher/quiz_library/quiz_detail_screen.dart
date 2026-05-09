@@ -323,42 +323,48 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildTopBar(quiz),
-            Expanded(
-              child: RefreshIndicator(
-                color: AppColors.mono900,
-                onRefresh: _load,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(
-                    AppDimens.screenPaddingH,
-                    0,
-                    AppDimens.screenPaddingH,
-                    32,
+      body: Column(
+        children: [
+          Expanded(
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  _buildTopBar(quiz),
+                  Expanded(
+                    child: RefreshIndicator(
+                      color: AppColors.mono900,
+                      onRefresh: _load,
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(
+                          AppDimens.screenPaddingH,
+                          0,
+                          AppDimens.screenPaddingH,
+                          32,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 8),
+                            _buildHeader(quiz),
+                            const SizedBox(height: 20),
+                            _buildSettingsRow(quiz),
+                            const SizedBox(height: 24),
+                            const Divider(height: 1, color: AppColors.mono100),
+                            const SizedBox(height: 24),
+                            _buildQuestionsSection(quiz),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 8),
-                      _buildHeader(quiz),
-                      const SizedBox(height: 20),
-                      _buildSettingsRow(quiz),
-                      const SizedBox(height: 24),
-                      const Divider(height: 1, color: AppColors.mono100),
-                      const SizedBox(height: 24),
-                      _buildQuestionsSection(quiz),
-                    ],
-                  ),
-                ),
+                ],
               ),
             ),
-            // Bottom bar with "Add to course" action
-            _buildBottomBar(),
-          ],
-        ),
+          ),
+          _buildBottomBar(),
+        ],
       ),
     );
   }
