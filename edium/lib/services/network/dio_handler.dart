@@ -17,6 +17,7 @@ class DioHandler {
   final ITokenStorage _tokenStorage;
   final TokenManager _tokenManager;
   Timer? _refreshTimer;
+  Future<TokenStore>? _refreshInFlight;
 
   DioHandler._internal(this._tokenStorage)
       : _tokenManager = TokenManager.instance, 
@@ -58,22 +59,18 @@ class DioHandler {
       DioRefreshInterceptor(
         tokenManager: _tokenManager,
         onRefresh: (dio, tokenStore) async {
-          try {
-            final response = await dio.post(
-              DoormanEndpoints.authTokensRefresh.path,
-              data: {
-                'refresh_token': tokenStore.refreshToken,
-              }
+          final refreshToken = tokenStore.refreshToken;
+          if (refreshToken == null || refreshToken.isEmpty) {
+            throw DioException(
+              requestOptions: RequestOptions(
+                path: DoormanEndpoints.authTokensRefresh.path,
+              ),
+              error: 'Missing refresh token',
             );
-
-            final newAccessToken = response.data['access_token'] as String;
-            final newRefreshToken = response.data['refresh_token'] as String;
-
-            await _tokenStorage.saveTokens(accessToken: newAccessToken, refreshToken: newRefreshToken);
-
-            return TokenStore(
-              accessToken: newAccessToken,
-              refreshToken: newRefreshToken,
+          }
+          try {
+            return await _refreshTokensSingleFlight(
+              refreshToken: refreshToken,
             );
           } catch (e) {
             await _tokenStorage.deleteTokens();
@@ -131,19 +128,80 @@ class DioHandler {
     final refreshToken = await _tokenStorage.getRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) return false;
     try {
-      final response = await dio.post(
-        DoormanEndpoints.authTokensRefresh.path,
-        data: {'refresh_token': refreshToken},
+      await _refreshTokensSingleFlight(
+        refreshToken: refreshToken,
       );
-      final newAccess = response.data['access_token'] as String;
-      final newRefresh = response.data['refresh_token'] as String;
-      await _tokenStorage.saveTokens(accessToken: newAccess, refreshToken: newRefresh);
-      _tokenManager.setToken(TokenStore(accessToken: newAccess, refreshToken: newRefresh));
       return true;
     } catch (_) {
       await _tokenStorage.deleteTokens();
       return false;
     }
+  }
+
+  Future<TokenStore> _refreshTokensSingleFlight({
+    required String refreshToken,
+  }) {
+    final inFlight = _refreshInFlight;
+    if (inFlight != null) return inFlight;
+
+    final refreshFuture = _refreshTokensInternal(refreshToken: refreshToken);
+    _refreshInFlight = refreshFuture;
+
+    refreshFuture.whenComplete(() {
+      if (identical(_refreshInFlight, refreshFuture)) {
+        _refreshInFlight = null;
+      }
+    });
+
+    return refreshFuture;
+  }
+
+  Future<TokenStore> _refreshTokensInternal({
+    required String refreshToken,
+  }) async {
+    final response = await _postRefreshWithRetry(refreshToken: refreshToken);
+    final newAccess = response.data['access_token'] as String;
+    final newRefresh = response.data['refresh_token'] as String;
+    await _tokenStorage.saveTokens(
+      accessToken: newAccess,
+      refreshToken: newRefresh,
+    );
+    final tokenStore = TokenStore(
+      accessToken: newAccess,
+      refreshToken: newRefresh,
+    );
+    _tokenManager.setToken(tokenStore);
+    return tokenStore;
+  }
+
+  Future<Response<dynamic>> _postRefreshWithRetry({
+    required String refreshToken,
+  }) async {
+    try {
+      return await _postRefresh(refreshToken: refreshToken);
+    } on DioException catch (e) {
+      if (!_shouldRetryRefresh(e)) rethrow;
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      return _postRefresh(refreshToken: refreshToken);
+    }
+  }
+
+  Future<Response<dynamic>> _postRefresh({
+    required String refreshToken,
+  }) {
+    return dio.post(
+      DoormanEndpoints.authTokensRefresh.path,
+      data: {'refresh_token': refreshToken},
+    );
+  }
+
+  bool _shouldRetryRefresh(DioException e) {
+    if (e.response != null) return false;
+    return e.type == DioExceptionType.connectionError ||
+        e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.sendTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.unknown;
   }
 
   void startProactiveRefresh() {

@@ -63,6 +63,19 @@ class LiveDatasourceMock implements ILiveDatasource {
   }
 
   @override
+  Future<List<LiveRosterMember>> getUsersRoster(List<String> userIds) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    return userIds
+        .map(
+          (id) => LiveRosterMember(
+            userId: id,
+            name: 'Ученик ${id.length >= 4 ? id.substring(id.length - 4) : id}',
+          ),
+        )
+        .toList();
+  }
+
+  @override
   Future<LiveResultsStudent> getLiveResultsStudent(String sessionId, String attemptId) async {
     await Future.delayed(const Duration(milliseconds: 200));
     return const LiveResultsStudent(

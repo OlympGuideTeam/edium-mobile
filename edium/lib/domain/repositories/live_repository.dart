@@ -20,6 +20,9 @@ abstract interface class ILiveRepository {
   /// Список учеников класса для модуля (Caesar) — предзагрузка имён в лобби live.
   Future<List<LiveRosterMember>> getModuleRoster(String moduleId);
 
+  /// Профили по списку user id (Caesar) — когда нет `moduleId` (deep link, уведомления).
+  Future<List<LiveRosterMember>> getUsersRoster(List<String> userIds);
+
   /// Final results for student.
   Future<LiveResultsStudent> getLiveResultsStudent(String sessionId, String attemptId);
 

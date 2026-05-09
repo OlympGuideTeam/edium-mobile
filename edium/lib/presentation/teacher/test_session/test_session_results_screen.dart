@@ -932,7 +932,7 @@ class _GradeChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: AppColors.mono900,
-        borderRadius: BorderRadius.circular(AppDimens.radiusSm),
+        borderRadius: BorderRadius.circular(AppDimens.radiusXs),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -941,10 +941,10 @@ class _GradeChip extends StatelessWidget {
           const Text(
             'ОЦЕНКА',
             style: TextStyle(
-              fontSize: 9,
+              fontSize: 10,
               fontWeight: FontWeight.w700,
               color: AppColors.mono300,
-              letterSpacing: 0.8,
+              letterSpacing: 0.5,
             ),
           ),
           const SizedBox(width: 8),
@@ -954,11 +954,11 @@ class _GradeChip extends StatelessWidget {
                 TextSpan(
                   text: score != null ? _fmt(score!) : '—',
                   style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
                     color: Colors.white,
                     height: 1.0,
-                    letterSpacing: -0.3,
+                    letterSpacing: 0.5,
                   ),
                 ),
                 if (score != null)
@@ -968,7 +968,7 @@ class _GradeChip extends StatelessWidget {
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: AppColors.mono300,
-                      letterSpacing: -0.2,
+                      letterSpacing: 0.5,
                     ),
                   ),
               ],

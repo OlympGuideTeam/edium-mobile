@@ -8,6 +8,7 @@ import 'package:edium/domain/repositories/test_session_repository.dart';
 import 'package:edium/domain/usecases/test_session/list_session_attempts_usecase.dart';
 import 'package:edium/presentation/teacher/test_session/bloc/test_session_results_event.dart';
 import 'package:edium/presentation/teacher/test_session/bloc/test_session_results_state.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class TestSessionResultsBloc
@@ -75,9 +76,18 @@ class TestSessionResultsBloc
           _courseRepo.getSessionStatuses([sid]),
         ]);
         results = futures;
+        final attemptsForRoster = results[0] as List<AttemptSummary>;
+        final userIds = attemptsForRoster.map((a) => a.userId).toSet().toList();
+        if (userIds.isNotEmpty) {
+          try {
+            rosterMembers = await _liveRepo.getUsersRoster(userIds);
+          } catch (e, st) {
+            debugPrint('[TestSessionResultsBloc] users roster: $e\n$st');
+          }
+        }
       }
 
-      final attempts = results[0] as List;
+      final attempts = results[0] as List<AttemptSummary>;
       final statusMap = results[mid != null ? 2 : 1] as Map<String, SessionStatusItem>;
       final sessionStatusItem = statusMap[sid];
       final sessionStatus = sessionStatusItem?.status;
@@ -87,9 +97,10 @@ class TestSessionResultsBloc
         for (final a in attempts) a.userId: a,
       };
 
-      // Строим строки из ростера (все участники класса), добавляем попытки тех, кого нет в ростере
+      // С moduleId — весь класс из Caesar module roster + попытки вне ростера.
+      // Без moduleId (уведомления / deep link) — только попытки, имена из GET users/roster.
       final List<StudentRow> rows;
-      if (rosterMembers.isNotEmpty) {
+      if (mid != null && rosterMembers.isNotEmpty) {
         final rosterUserIds = <String>{};
         final rosterRows = rosterMembers.map((m) {
           rosterUserIds.add(m.userId);
@@ -99,7 +110,6 @@ class TestSessionResultsBloc
             attempt: attemptMap[m.userId],
           );
         }).toList();
-        // Попытки не вошедшие в ростер (edge case)
         final extraRows = attempts
             .where((a) => !rosterUserIds.contains(a.userId))
             .map((a) => StudentRow(
@@ -110,10 +120,14 @@ class TestSessionResultsBloc
             .toList();
         rows = [...rosterRows, ...extraRows];
       } else {
+        final nameByUserId = {
+          for (final m in rosterMembers) m.userId: m.name,
+        };
         rows = attempts
             .map((a) => StudentRow(
                   userId: a.userId,
-                  displayName: a.userName ?? a.userId,
+                  displayName:
+                      nameByUserId[a.userId] ?? a.userName ?? a.userId,
                   attempt: a,
                 ))
             .toList();
@@ -139,8 +153,10 @@ class TestSessionResultsBloc
               sessionStatus == 'not_started' ||
               sessionStatus == 'waiting');
 
-      // Публиковать можно если все попытки хотя бы graded и ни одна ещё не published.
-      final canPublish = attempts.isNotEmpty &&
+      // Публиковать можно только после завершения сессии (finished), когда все
+      // попытки хотя бы graded и ни одна ещё не published.
+      final canPublish = sessionStatus == 'finished' &&
+          attempts.isNotEmpty &&
           !attempts.any((a) => a.status == AttemptStatus.published) &&
           attempts.every((a) =>
               a.status == AttemptStatus.graded ||

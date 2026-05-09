@@ -40,5 +40,12 @@ class HeraldApiServiceMock implements IHeraldApiService {
   }
 
   @override
+  Future<int> getUnreadNotificationsCount() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final items = await getNotifications();
+    return items.where((n) => !n.isRead).length;
+  }
+
+  @override
   Future<void> markNotificationRead(String id) async {}
 }
