@@ -13,6 +13,7 @@ import 'package:edium/firebase_options.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
+import 'package:edium/services/herald_api_service/herald_api_service_interface.dart';
 import 'package:edium/services/navigation_block_service/navigation_block_service.dart';
 import 'package:edium/services/notification_service/deep_link_service.dart';
 import 'package:edium/services/notification_service/notification_service.dart';
@@ -45,6 +46,7 @@ void _handleNotificationTap({
   required String? role,
   required String? messageId,
   required bool wasInForeground,
+  String? notificationId,
   bool fromTerminatedLaunch = false,
 }) {
   if (messageId != null) {
@@ -53,6 +55,12 @@ void _handleNotificationTap({
     if (_processedMessageIds.length > 32) {
       _processedMessageIds.remove(_processedMessageIds.first);
     }
+  }
+
+  if (notificationId != null) {
+    getIt<IHeraldApiService>()
+        .markNotificationRead(notificationId)
+        .catchError((_) {});
   }
 
   final state = getIt<AuthBloc>().state;
@@ -156,11 +164,13 @@ void _handleRemoteMessageTap(
 }) {
   final route = message.data['route']?.toString();
   final role = message.data['role']?.toString();
+  final nid = message.data['notification_id']?.toString();
   if (route == null || route.isEmpty) return;
   _handleNotificationTap(
     route: route,
     role: role,
     messageId: message.messageId,
+    notificationId: nid,
     wasInForeground: false,
     fromTerminatedLaunch: fromTerminatedLaunch,
   );
@@ -182,10 +192,12 @@ Future<void> _resolveIosTerminatedTapFallback() async {
       final roleRaw = native['role'];
       final midRaw = native['messageId'];
       debugPrint('[Notif] cold start from native Scene tap route=$route try #$i');
+      final nidRaw = native['notification_id'];
       _handleNotificationTap(
         route: route,
         role: (roleRaw == null || roleRaw.isEmpty) ? null : roleRaw,
         messageId: (midRaw == null || midRaw.isEmpty) ? null : midRaw,
+        notificationId: (nidRaw == null || nidRaw.isEmpty) ? null : nidRaw,
         wasInForeground: false,
         fromTerminatedLaunch: true,
       );
@@ -305,6 +317,7 @@ Future<void> main() async {
         route: tap.route,
         role: tap.role,
         messageId: tap.messageId,
+        notificationId: tap.notificationId,
         wasInForeground: ns.wasReceivedInForeground(tap.messageId),
       );
     });

@@ -32,6 +32,10 @@ class LiveRepositoryImpl implements ILiveRepository {
       _datasource.getModuleRoster(moduleId);
 
   @override
+  Future<List<LiveRosterMember>> getUsersRoster(List<String> userIds) =>
+      _datasource.getUsersRoster(userIds);
+
+  @override
   Future<LiveResultsStudent> getLiveResultsStudent(String sessionId, String attemptId) =>
       _datasource.getLiveResultsStudent(sessionId, attemptId);
 

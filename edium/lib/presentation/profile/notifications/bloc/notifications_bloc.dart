@@ -110,6 +110,7 @@ class NotificationsBloc
 
     try {
       await heraldApiService.markNotificationRead(event.notificationId);
+      notificationService.triggerBadgeRefresh();
     } catch (_) {
       // Revert on error
       emit(current);

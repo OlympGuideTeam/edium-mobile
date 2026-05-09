@@ -197,8 +197,14 @@ class SheetRow {
 class SheetColumn {
   final String id;
   final String objectId;
+  /// Заголовок элемента курса из ответа `GET .../sheet` (`items[].title`).
+  final String? title;
 
-  const SheetColumn({required this.id, required this.objectId});
+  const SheetColumn({
+    required this.id,
+    required this.objectId,
+    this.title,
+  });
 }
 
 class CourseSheet {

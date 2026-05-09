@@ -56,17 +56,24 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
           create: (_) => AwaitingReviewCubit(getIt())..load(),
         ),
         BlocProvider(
-          create: (_) => NotificationBadgeCubit(getIt())..load(),
+          create: (_) => NotificationBadgeCubit(getIt(), getIt())..load(),
         ),
       ],
-      child: Scaffold(
+      // Builder, чтобы обработчики снизу видели NotificationBadgeCubit.
+      child: Builder(
+        builder: (context) => Scaffold(
         body: IndexedStack(
           index: _currentIndex,
           children: pages,
         ),
         bottomNavigationBar: EdiumTabBar(
           currentIndex: _currentIndex,
-          onTap: (i) => setState(() => _currentIndex = i),
+          onTap: (i) {
+            setState(() => _currentIndex = i);
+            if (i == 0) {
+              context.read<NotificationBadgeCubit>().load();
+            }
+          },
           items: const [
             EdiumTabItem(
               icon: CupertinoIcons.house,
@@ -89,6 +96,7 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
               label: 'Профиль',
             ),
           ],
+        ),
         ),
       ),
     );
@@ -147,8 +155,15 @@ class _TeacherDashboardPage extends StatelessWidget {
                               const Spacer(),
                               NotificationBellButton(
                                 unreadCount: unreadCount,
-                                onTap: () =>
-                                    context.push('/profile/notifications'),
+                                onTap: () async {
+                                  await context
+                                      .push('/profile/notifications');
+                                  if (context.mounted) {
+                                    context
+                                        .read<NotificationBadgeCubit>()
+                                        .load();
+                                  }
+                                },
                               ),
                             ],
                           ),
