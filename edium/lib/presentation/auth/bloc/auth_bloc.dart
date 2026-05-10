@@ -223,9 +223,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     _tokenRefreshSub = null;
     emit(const AuthLoading());
     try {
-      // TODO: unregister FCM token from Herald once backend supports token in logout
-      // final token = await notificationService.getToken();
-      // if (token != null) await heraldApiService.unregisterDevice(token);
+
+
       await logout();
       await profileStorage.clear();
     } catch (_) {}
@@ -278,7 +277,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           },
         );
       } catch (_) {
-        // Non-critical: app works without push notifications
+
       }
     });
   }

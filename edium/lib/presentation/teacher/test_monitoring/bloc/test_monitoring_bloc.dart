@@ -92,7 +92,7 @@ class TestMonitoringBloc
     }
   }
 
-  // graded (требует проверки) → inProgress → не начинал → grading → completed
+
   int _compareRows(MonitoringRow a, MonitoringRow b) =>
       _priority(a).compareTo(_priority(b));
 

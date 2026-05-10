@@ -129,7 +129,7 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
 
     final isTextAnswer = event.answerData.containsKey('text');
     if (isTextAnswer) {
-      // Дебаунс 2 секунды: не отправляем при каждом нажатии клавиши
+
       _debounceTimer?.cancel();
       final questionId = s.currentQuestion.id;
       final attemptId = s.attempt.attemptId;
@@ -184,7 +184,7 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
     final total = s.attempt.questions.length;
     if (event.index < 0 || event.index >= total) return;
     if (event.index == s.currentIndex) return;
-    // Отправим ответ текущего вопроса (best-effort) перед прыжком.
+
     await _submitCurrentIfAnswered(s);
     emit(s.copyWith(currentIndex: event.index));
   }
@@ -243,7 +243,7 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
   Future<void> _submitCurrentIfAnswered(TakeQuizInProgress s) async {
     final answer = s.answers[s.currentQuestion.id];
     if (answer == null) return;
-    // Сбрасываем дебаунс — сейчас отправляем немедленно
+
     _debounceTimer?.cancel();
     _debounceTimer = null;
     final sid = _sessionIdForCache;
@@ -263,11 +263,11 @@ class TakeQuizBloc extends Bloc<TakeQuizEvent, TakeQuizState> {
         );
       }
     } catch (_) {
-      // best-effort — не блокируем переход по вопросам
+
     }
   }
 
-  /// Маппим error codes из FRONTEND.md (riddler) в человекочитаемые сообщения.
+
   String _humanMessage(Object error) {
     if (error is DioException) {
       final data = error.response?.data;

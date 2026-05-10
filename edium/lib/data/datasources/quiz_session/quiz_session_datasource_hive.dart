@@ -9,7 +9,7 @@ class QuizSessionDatasourceHive implements IQuizSessionDatasource {
   int _nextId = 1;
 
   QuizSessionDatasourceHive() {
-    // Determine next ID from existing sessions
+
     for (final key in HiveStorage.sessionsBox.keys) {
       final raw = key.toString();
       if (raw.startsWith('session-')) {
@@ -86,7 +86,7 @@ class QuizSessionDatasourceHive implements IQuizSessionDatasource {
         return false;
       }
 
-      // single_choice
+
       final correctOption = question.options.firstWhere((o) => o.isCorrect,
           orElse: () => question.options.first);
       return answer.toString() == correctOption.id;

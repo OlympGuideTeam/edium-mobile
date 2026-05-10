@@ -320,7 +320,7 @@ Future<void> initializeDependencies({
   getIt.registerLazySingleton(() => GetAwaitingReviewUsecase(getIt()));
   getIt.registerFactory(() => GetStudentDashboardUsecase(getIt()));
 
-  // Live quiz
+
   if (ApiConfig.useMock) {
     getIt.registerLazySingleton<ILiveDatasource>(
       () => LiveDatasourceMock(),

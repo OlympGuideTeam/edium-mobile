@@ -15,8 +15,7 @@ abstract class ICourseDatasource {
 
   Future<CourseSheet> getCourseSheet({required String courseId});
 
-  /// Batch-запрос статусов сессий из Riddler.
-  /// Возвращает map sessionId → статус. Отсутствующие ID просто не попадают в map.
+
   Future<Map<String, SessionStatusItem>> getSessionStatuses(
     List<String> sessionIds,
   );

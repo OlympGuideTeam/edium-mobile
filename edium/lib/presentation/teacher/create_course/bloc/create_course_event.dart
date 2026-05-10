@@ -1,48 +1,16 @@
 import 'package:equatable/equatable.dart';
 
+part 'create_course_event_update_course_title_event.dart';
+part 'create_course_event_add_module_event.dart';
+part 'create_course_event_update_module_event.dart';
+part 'create_course_event_remove_module_event.dart';
+part 'create_course_event_reorder_modules_event.dart';
+part 'create_course_event_submit_course_event.dart';
+
+
 abstract class CreateCourseEvent extends Equatable {
   const CreateCourseEvent();
   @override
   List<Object?> get props => [];
 }
 
-class UpdateCourseTitleEvent extends CreateCourseEvent {
-  final String title;
-  const UpdateCourseTitleEvent(this.title);
-  @override
-  List<Object?> get props => [title];
-}
-
-class AddModuleEvent extends CreateCourseEvent {
-  const AddModuleEvent();
-}
-
-class UpdateModuleEvent extends CreateCourseEvent {
-  final int index;
-  final String title;
-  const UpdateModuleEvent(this.index, this.title);
-  @override
-  List<Object?> get props => [index, title];
-}
-
-class RemoveModuleEvent extends CreateCourseEvent {
-  final int index;
-  const RemoveModuleEvent(this.index);
-  @override
-  List<Object?> get props => [index];
-}
-
-class ReorderModulesEvent extends CreateCourseEvent {
-  final int oldIndex;
-  final int newIndex;
-  const ReorderModulesEvent(this.oldIndex, this.newIndex);
-  @override
-  List<Object?> get props => [oldIndex, newIndex];
-}
-
-class SubmitCourseEvent extends CreateCourseEvent {
-  final String classId;
-  const SubmitCourseEvent(this.classId);
-  @override
-  List<Object?> get props => [classId];
-}

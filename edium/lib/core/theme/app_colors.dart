@@ -18,15 +18,15 @@ class AppColors {
   static const Color successLight = Color(0xFFDCFCE7);
   static const Color errorLight = Color(0xFFFEE2E2);
 
-  // Live quiz — dark theme accent
-  static const Color liveAccent = Color(0xFFE85A3B); // orange-red
+
+  static const Color liveAccent = Color(0xFFE85A3B);
   static const Color liveDarkBg = Color(0xFF1A1A1A);
   static const Color liveDarkSurface = Color(0xFF252525);
   static const Color liveDarkCard = Color(0xFF2A2A2A);
   static const Color liveDarkMuted = Color(0xFF9F9F9F);
-  static const Color liveDarkBorder = Color(0x1AFFFFFF); // 10% white
+  static const Color liveDarkBorder = Color(0x1AFFFFFF);
 
-  // Монохромная шкала (UI в чёрно-белом стиле)
+
   static const Color mono900 = Color(0xFF1A1A1A);
   static const Color mono700 = Color(0xFF333333);
   static const Color mono600 = Color(0xFF555555);

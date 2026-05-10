@@ -26,7 +26,7 @@ class TeacherGradeBloc extends Bloc<TeacherGradeEvent, TeacherGradeState> {
     emit(const TeacherGradeLoading());
     try {
       final review = await _getReview(event.attemptId);
-      // Предзаполняем localGrades оценками из сервера (LLM/auto)
+
       final initialGrades = <String, ({double score, String? feedback})>{};
       for (final a in review.answers) {
         if (a.finalScore != null) {

@@ -1,5 +1,10 @@
 import 'package:equatable/equatable.dart';
 
+part 'notifications_event_load_notifications_event.dart';
+part 'notifications_event_toggle_push_event.dart';
+part 'notifications_event_mark_read_event.dart';
+
+
 abstract class NotificationsEvent extends Equatable {
   const NotificationsEvent();
 
@@ -7,22 +12,3 @@ abstract class NotificationsEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class LoadNotificationsEvent extends NotificationsEvent {
-  const LoadNotificationsEvent();
-}
-
-class TogglePushEvent extends NotificationsEvent {
-  final bool enabled;
-  const TogglePushEvent(this.enabled);
-
-  @override
-  List<Object?> get props => [enabled];
-}
-
-class MarkReadEvent extends NotificationsEvent {
-  final String notificationId;
-  const MarkReadEvent(this.notificationId);
-
-  @override
-  List<Object?> get props => [notificationId];
-}

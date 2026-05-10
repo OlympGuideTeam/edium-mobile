@@ -125,9 +125,8 @@ class _OtpScreenState extends State<OtpScreen>
 
   String get _maskedPhone {
     final p = widget.phone;
-    // if (p.length >= 12) {
-    //   return '${p.substring(0, 5)} ···-··-${p.substring(p.length - 2)}';
-    // }
+
+
     return p;
   }
 
@@ -193,7 +192,7 @@ class _OtpScreenState extends State<OtpScreen>
         channel: widget.channel,
       );
     } catch (_) {
-      // OTP_ALREADY_SENT и прочие ошибки игнорируем — таймер всё равно перезапускаем
+
     }
     _startCountdown(retryAfter);
     _hiddenController.clear();
@@ -226,7 +225,7 @@ class _OtpScreenState extends State<OtpScreen>
                 final isLoading = state is AuthLoading;
                 return Column(
                   children: [
-                    // Кнопка назад
+
                     Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 4, vertical: 8),
@@ -258,7 +257,7 @@ class _OtpScreenState extends State<OtpScreen>
                               style: AppTextStyles.screenSubtitle,
                             ),
                             const SizedBox(height: 32),
-                            // OTP-ячейки с shake-анимацией
+
                             AnimatedBuilder(
                               animation: _shakeAnimation,
                               builder: (context, child) => Transform.translate(
@@ -271,7 +270,7 @@ class _OtpScreenState extends State<OtpScreen>
                                   height: AppDimens.otpCellH,
                                   child: Stack(
                                     children: [
-                                      // Визуальные ячейки
+
                                       Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
@@ -340,7 +339,7 @@ class _OtpScreenState extends State<OtpScreen>
                                           );
                                         }),
                                       ),
-                                      // Скрытый TextField
+
                                       Positioned.fill(
                                         child: ExcludeSemantics(
                                           child: Opacity(
@@ -466,7 +465,7 @@ class _OtpScreenState extends State<OtpScreen>
                               ),
                             ],
                             const Spacer(),
-                            // Кнопка подтверждения
+
                             SizedBox(
                               width: double.infinity,
                               height: AppDimens.buttonH,
@@ -496,7 +495,7 @@ class _OtpScreenState extends State<OtpScreen>
                               ),
                             ),
                             const SizedBox(height: 12),
-                            // Кнопка "Изменить номер"
+
                             SizedBox(
                               width: double.infinity,
                               height: AppDimens.buttonHSm,

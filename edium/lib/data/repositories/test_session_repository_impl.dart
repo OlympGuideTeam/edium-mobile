@@ -93,7 +93,7 @@ class TestSessionRepositoryImpl implements ITestSessionRepository {
         answerData: answerData,
       );
     } catch (_) {
-      // HTTP — best-effort. Кэш уже обновлён, повторим при следующем submit/finish.
+
     }
   }
 
@@ -102,7 +102,7 @@ class TestSessionRepositoryImpl implements ITestSessionRepository {
     required String attemptId,
     required String sessionId,
   }) async {
-    // При finish — пытаемся дослать все несинхронизированные ответы из кэша.
+
     final cached = await _cache.read(sessionId);
     if (cached != null) {
       for (final entry in cached.answers.entries) {
@@ -113,7 +113,7 @@ class TestSessionRepositoryImpl implements ITestSessionRepository {
             answerData: entry.value,
           );
         } catch (_) {
-          // best-effort
+
         }
       }
     }

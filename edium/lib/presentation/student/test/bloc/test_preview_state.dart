@@ -3,18 +3,24 @@ import 'package:edium/domain/entities/quiz_attempt.dart' show AttemptStatus;
 import 'package:edium/domain/entities/test_session_meta.dart';
 import 'package:equatable/equatable.dart';
 
-/// Итоговое состояние CTA на экране превью.
+part 'test_preview_state_test_preview_initial.dart';
+part 'test_preview_state_test_preview_loading.dart';
+part 'test_preview_state_test_preview_loaded.dart';
+part 'test_preview_state_test_preview_error.dart';
+
+
+
 enum TestPreviewStatus {
-  start,     // «Начать тест»
-  resume,    // «Продолжить»
-  locked,    // «Откроется DD MMM в HH:mm» (startedAt > now)
-  expired,   // «Дедлайн истёк» (finishedAt < now и нет завершённого attempt)
-  grading,   // «Проверяется ИИ» (AttemptStatus.grading)
-  graded,    // «Ожидайте: учитель проверяет» (AttemptStatus.graded OR completed — не опубликовано)
-  published, // «Посмотреть результат» (AttemptStatus.published)
+  start,
+  resume,
+  locked,
+  expired,
+  grading,
+  graded,
+  published,
 }
 
-/// Чистая функция — покрыта unit-тестом.
+
 TestPreviewStatus derivePreviewStatus({
   required TestSessionMeta meta,
   required bool hasActiveCache,
@@ -49,34 +55,3 @@ abstract class TestPreviewState extends Equatable {
   List<Object?> get props => [];
 }
 
-class TestPreviewInitial extends TestPreviewState {
-  const TestPreviewInitial();
-}
-
-class TestPreviewLoading extends TestPreviewState {
-  const TestPreviewLoading();
-}
-
-class TestPreviewLoaded extends TestPreviewState {
-  final TestSessionMeta meta;
-  final TestPreviewStatus status;
-  final AttemptReview? review;   // если есть attempt_id — для кнопки "к результату"
-  final String? cachedAttemptId; // если восстанавливаем — берём id отсюда
-
-  const TestPreviewLoaded({
-    required this.meta,
-    required this.status,
-    this.review,
-    this.cachedAttemptId,
-  });
-
-  @override
-  List<Object?> get props => [meta, status, review, cachedAttemptId];
-}
-
-class TestPreviewError extends TestPreviewState {
-  final String message;
-  const TestPreviewError(this.message);
-  @override
-  List<Object?> get props => [message];
-}
