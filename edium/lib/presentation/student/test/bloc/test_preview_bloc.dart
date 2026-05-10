@@ -28,10 +28,7 @@ class TestPreviewBloc extends Bloc<TestPreviewEvent, TestPreviewState> {
     try {
       var meta = event.meta;
 
-      // quizId == sessionId when Caesar didn't return quiz_template_id
-      // (old items). In that case GET /quizzes/{id} would 404 — skip it.
-      // When Caesar returns quiz_template_id, quizId != sessionId and the
-      // call fetches real question count and metadata from Riddler.
+
       if (meta.quizId != meta.sessionId) {
         try {
           final riddlerMeta = await _repo.getSessionMeta(
@@ -51,19 +48,17 @@ class TestPreviewBloc extends Bloc<TestPreviewEvent, TestPreviewState> {
             finishedAt: meta.finishedAt ?? riddlerMeta.finishedAt,
           );
         } catch (_) {
-          // Riddler unavailable — proceed with Caesar-only meta
+
         }
       }
 
       final now = DateTime.now();
 
-      // 1. Локальный кэш попытки (in-progress)
+
       final cached = await _repo.readCachedAttempt(meta.sessionId);
       final hasActiveCache = cached != null && !cached.isExpired(now);
 
-      // 2. Если Caesar дал attemptId — подтягиваем review для актуального статуса
-      //    (completed / grading / graded / in_progress).
-      //    Если /review вернёт 403 для in_progress — трактуем как inProgress.
+
       AttemptReview? review;
       AttemptStatus? latestStatus;
       final aid = event.initialAttemptId;
@@ -78,9 +73,7 @@ class TestPreviewBloc extends Bloc<TestPreviewEvent, TestPreviewState> {
         latestStatus = AttemptStatus.inProgress;
       }
 
-      // Riddler GET /quizzes/{id} expects quiz template ID, but for course
-      // tests we only have the session ID — so questionCount stays 0 until
-      // the backend exposes it via Caesar. Derive it locally when possible.
+
       if (meta.questionCount == 0) {
         final derived = (hasActiveCache ? cached.questions.length : null) ??
             review?.answers.length ??

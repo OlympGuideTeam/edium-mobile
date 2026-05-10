@@ -36,7 +36,7 @@ Widget _embeddedLegalWebView(WebViewController controller) {
   return WebViewWidget.fromPlatformCreationParams(params: params);
 }
 
-/// Юридическая страница в WebView (открывается через push в стек GoRouter).
+
 class LegalDocumentScreen extends StatefulWidget {
   final String url;
   final String title;

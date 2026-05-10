@@ -2,10 +2,15 @@ import 'package:edium/data/datasources/library_quiz/library_quiz_datasource.dart
 import 'package:edium/data/models/library_quiz_model.dart';
 import 'package:edium/data/models/quiz_attempt_model.dart';
 
+part 'library_quiz_datasource_mock_attempt_state.dart';
+part 'library_quiz_datasource_mock_quiz_question_full.dart';
+part 'library_quiz_datasource_mock_eval_result.dart';
+
+
 class LibraryQuizDatasourceMock implements ILibraryQuizDatasource {
   static final List<LibraryQuizModel> _quizzes = _buildQuizzes();
 
-  // attemptId → (sessionId, questions, answers)
+
   final Map<String, _AttemptState> _attempts = {};
   int _attemptCounter = 1;
 
@@ -112,7 +117,6 @@ class LibraryQuizDatasourceMock implements ILibraryQuizDatasource {
     );
   }
 
-  // ── evaluation ──────────────────────────────────────────────────────────
 
   _EvalResult _evaluate(
     QuizQuestionForStudentModel question,
@@ -214,7 +218,6 @@ class LibraryQuizDatasourceMock implements ILibraryQuizDatasource {
     }
   }
 
-  // ── seed data ────────────────────────────────────────────────────────────
 
   static final _now = DateTime(2026, 4, 20, 14, 0);
 
@@ -494,7 +497,7 @@ class LibraryQuizDatasourceMock implements ILibraryQuizDatasource {
               correctOptionIds: {'q001-2-b', 'q001-2-c'}),
           _QuizQuestionFull(
               id: 'q001-3', correctAnswers: ['async', 'async*']),
-          _QuizQuestionFull(id: 'q001-4'), // free answer
+          _QuizQuestionFull(id: 'q001-4'),
         ];
       case 'quiz-002':
         return [
@@ -515,7 +518,7 @@ class LibraryQuizDatasourceMock implements ILibraryQuizDatasource {
                 'киевская русь',
                 'kievan rus',
               ]),
-          _QuizQuestionFull(id: 'q003-3'), // free
+          _QuizQuestionFull(id: 'q003-3'),
           _QuizQuestionFull(
               id: 'q003-4',
               correctOptionIds: {'q003-4-a', 'q003-4-c'}),
@@ -544,50 +547,3 @@ class LibraryQuizDatasourceMock implements ILibraryQuizDatasource {
   }
 }
 
-class _AttemptState {
-  final String sessionId;
-  final String quizId;
-  final List<QuizQuestionForStudentModel> questions;
-  final Map<String, Map<String, dynamic>> answers = {};
-  final DateTime startedAt;
-  DateTime? finishedAt;
-
-  _AttemptState({
-    required this.sessionId,
-    required this.quizId,
-    required this.questions,
-    required this.startedAt,
-  });
-}
-
-class _QuizQuestionFull {
-  final String id;
-  final String? correctOptionId;
-  final Set<String> correctOptionIds;
-  final List<String>? correctAnswers;
-  final List<String>? correctOrder;
-  final Map<String, String>? correctPairs;
-
-  _QuizQuestionFull({
-    required this.id,
-    this.correctOptionId,
-    Set<String>? correctOptionIds,
-    this.correctAnswers,
-    this.correctOrder,
-    this.correctPairs,
-  }) : correctOptionIds = correctOptionIds ?? {};
-}
-
-class _EvalResult {
-  final double score;
-  final String source;
-  final String? feedback;
-  final Map<String, dynamic>? correctData;
-
-  _EvalResult({
-    required this.score,
-    required this.source,
-    this.feedback,
-    this.correctData,
-  });
-}

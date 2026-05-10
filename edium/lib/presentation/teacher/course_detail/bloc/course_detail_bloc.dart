@@ -42,8 +42,7 @@ class CourseDetailBloc extends Bloc<CourseDetailEvent, CourseDetailState> {
     return null;
   }
 
-  // Intersects the API-reported isTeacher with the current stored role.
-  // Prevents teacher UI from appearing when the user is in student mode.
+
   CourseDetail _applyRoleGuard(CourseDetail course) {
     final isCurrentlyTeacher = _profileStorage.getRole() == 'teacher';
     return course.copyWith(isTeacher: course.isTeacher && isCurrentlyTeacher);
@@ -98,7 +97,7 @@ class CourseDetailBloc extends Bloc<CourseDetailEvent, CourseDetailState> {
   ) async {
     final current = _currentCourse;
     if (current == null) return;
-    // Optimistic update: remove draft from list immediately
+
     final updatedDrafts = current.drafts
         .where((d) => d.id != event.draftId)
         .toList();
@@ -126,7 +125,7 @@ class CourseDetailBloc extends Bloc<CourseDetailEvent, CourseDetailState> {
   ) async {
     final current = _currentCourse;
     if (current == null) return;
-    // Optimistic reorder
+
     final idToModule = {for (final m in current.modules) m.id: m};
     final reordered = event.moduleIds
         .map((id) => idToModule[id])
@@ -173,10 +172,10 @@ class CourseDetailBloc extends Bloc<CourseDetailEvent, CourseDetailState> {
     final optimisticId = 'opt_${DateTime.now().millisecondsSinceEpoch}';
 
     if (event.moduleId == null) {
-      // saveOnly → quiz becomes a draft
+
       var drafts = current.drafts;
       if (event.existingTemplateId != null) {
-        // editing existing draft + saveOnly → replace it in place
+
         drafts = drafts.map((d) {
           if (d.quizTemplateId != event.existingTemplateId) return d;
           return CourseDraft(
@@ -199,7 +198,7 @@ class CourseDetailBloc extends Bloc<CourseDetailEvent, CourseDetailState> {
         drafts: drafts,
       )));
     } else {
-      // "Начать" → session created in a module; draft stays in the list
+
       final drafts = current.drafts;
 
       final updatedModules = current.modules.map((m) {

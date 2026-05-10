@@ -1,41 +1,11 @@
 import 'package:edium/domain/entities/live_ws_event.dart';
 
+part 'live_student_event_live_student_start.dart';
+part 'live_student_event_live_student_ws_event.dart';
+part 'live_student_event_live_student_submit_answer.dart';
+part 'live_student_event_live_student_load_results.dart';
+part 'live_student_event_live_student_dispose.dart';
+
+
 sealed class LiveStudentEvent {}
 
-class LiveStudentStart extends LiveStudentEvent {
-  final String sessionId;
-  final String attemptId;
-  final String wsToken;
-  final String quizTitle;
-  final int questionCount;
-  /// Модуль курса — GET `/caesar/v1/modules/{id}/roster` для имён в лобби.
-  final String? moduleId;
-
-  LiveStudentStart({
-    required this.sessionId,
-    required this.attemptId,
-    required this.wsToken,
-    required this.quizTitle,
-    required this.questionCount,
-    this.moduleId,
-  });
-}
-
-class LiveStudentWsEvent extends LiveStudentEvent {
-  final LiveWsEvent event;
-  LiveStudentWsEvent(this.event);
-}
-
-class LiveStudentSubmitAnswer extends LiveStudentEvent {
-  final String questionId;
-  final Map<String, dynamic> answerData;
-
-  LiveStudentSubmitAnswer({
-    required this.questionId,
-    required this.answerData,
-  });
-}
-
-class LiveStudentLoadResults extends LiveStudentEvent {}
-
-class LiveStudentDispose extends LiveStudentEvent {}

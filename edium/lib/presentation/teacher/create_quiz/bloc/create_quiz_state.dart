@@ -16,19 +16,19 @@ class CreateQuizState extends Equatable {
   final bool success;
   final QuizCreationMode quizType;
   final bool isInCourseContext;
-  /// When set, [SubmitQuizEvent] updates this template instead of creating a new quiz.
+
   final String? existingQuizTemplateId;
-  /// Server question ids to remove before re-adding [questions] (draft / edit flow).
+
   final List<String> originalQuestionIds;
-  /// Module id that was selected when the quiz was successfully submitted.
-  /// null means saveOnly (becomes a draft), non-null means a session was created.
+
+
   final String? submittedModuleId;
-  /// Session id returned by the backend after creating a live session.
+
   final String? liveSessionId;
 
-  /// Запрос генерации вопросов по AI отправлен на сервер.
+
   final bool isAiGenerating;
-  /// Увеличивается при успешной постановке задачи генерации (для one-shot UI).
+
   final int aiGenerateAckVersion;
 
   const CreateQuizState({

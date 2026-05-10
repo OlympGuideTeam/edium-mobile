@@ -26,19 +26,13 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 final ValueNotifier<int> appRestartKey = ValueNotifier(0);
 
-// Dedup by messageId only — catches the same FCM message arriving via
-// multiple paths (e.g., onMessageOpenedApp + getInitialMessage on terminated
-// launch). LRU-capped at 32. Earlier we also deduped by route+role, but
-// that blocked legitimate repeat taps with the same content.
+
 final _processedMessageIds = <String>{};
 
-// Ensures only one cold-start subscription is created even if the same
-// notification fires through multiple FCM paths (onMessageOpenedApp +
-// getInitialMessage) with null or mismatched messageIds.
+
 bool _coldStartHandled = false;
 
-// Used to suppress the late Android onMessageOpenedApp duplicate that fires
-// after the cold-start tap has already been handled.
+
 final DateTime _appStartTime = DateTime.now();
 
 void _handleNotificationTap({
@@ -66,18 +60,12 @@ void _handleNotificationTap({
   final state = getIt<AuthBloc>().state;
   final isColdStart = fromTerminatedLaunch || state is! AuthAuthenticated;
 
-  // NavigationBlockService applies only to live taps — on cold start there's
-  // no sensitive screen yet.
+
   if (!isColdStart && getIt<NavigationBlockService>().isBlocked) return;
 
-  // For cold start (terminated launch): navigate to the actual target route
-  // with a role switch if needed. The wasReceivedInForeground check is
-  // unreliable here — on Android, FCM can replay the message through onMessage
-  // during startup (adding the messageId to _foregroundMessageIds before
-  // onMessageOpenedApp fires), making wasInForeground appear true even though
-  // the app was not actually in the foreground.
+
   if (isColdStart) {
-    if (_coldStartHandled) return; // multiple FCM paths, deduplicate
+    if (_coldStartHandled) return;
     _coldStartHandled = true;
     debugPrint('[Notif] cold-start tap → route=$route role=$role, waiting for auth');
 
@@ -96,8 +84,8 @@ void _handleNotificationTap({
     sub = getIt<AuthBloc>().stream.listen((s) {
       if (s is AuthAuthenticated) {
         sub.cancel();
-        // Wait for GoRouter's auth-redirect frame to settle before setting
-        // the pending route — avoids "nothing to pop" errors in go_router v14.
+
+
         WidgetsBinding.instance.addPostFrameCallback((_) {
           debugPrint('[Notif] cold-start auth ready, routing to $capturedRoute');
           _routeOrSwitch(s, route: capturedRoute, role: capturedRole);
@@ -107,18 +95,14 @@ void _handleNotificationTap({
     return;
   }
 
-  // Android: onMessageOpenedApp fires late during startup (after cold-start
-  // was already processed) because FCM replays onMessage first, making the
-  // tap appear as a foreground event. Suppress within the startup window.
+
   if (_coldStartHandled &&
       DateTime.now().difference(_appStartTime).inSeconds < 10) {
     debugPrint('[Notif] startup-window dedup, skipping duplicate live tap');
     return;
   }
 
-  // Live tap: приложение уже было запущено (foreground или background).
-  // Тап из шторки ведёт в тот же маршрут и роль, что и баннер в foreground /
-  // cold start — _routeOrSwitch синхронизирует роль перед setPendingRoute.
+
   if (route.isEmpty) return;
 
   debugPrint('[Notif] live tap route=$route role=$role mid=$messageId '
@@ -130,7 +114,7 @@ void _handleNotificationTap({
 const _iosLaunchNotificationChannel =
     MethodChannel('edium/launch_notification');
 
-/// Fallback при UIScene: тап по FCM лежит в `SceneDelegate.connectionOptions`, см. AppDelegate.swift.
+
 Future<Map<String, String>?> _consumeIosNativePendingLaunch({
   int attempts = 1,
   Duration delay = Duration.zero,
@@ -219,14 +203,13 @@ void _routeOrSwitch(
     final needsSwitch = (role == 'student' && cur != UserRole.student) ||
         (role == 'teacher' && cur != UserRole.teacher);
     debugPrint('[Notif] _routeOrSwitch route=$route role=$role cur=$cur needsSwitch=$needsSwitch');
-    // Encode role into the URL so the route builder can read isTeacher/isStudent
-    // from query params when extra is unavailable (deep link navigation).
+
+
     final routeWithRole = _routeWithRole(route, role);
     if (needsSwitch) {
       getIt<AuthBloc>().add(SwitchToRoleEvent(role));
-      // Wait for the role to actually switch in state before setting the
-      // pending route — avoids a race where _redirect consumes the route
-      // before the new role is reflected in _homeRoute.
+
+
       StreamSubscription<AuthState>? sub;
       sub = getIt<AuthBloc>().stream.listen((s) {
         if (s is AuthAuthenticated) {
@@ -271,10 +254,7 @@ Future<void> main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    // Must be called BEFORE initialize() — on iOS, registering the
-    // onMessageOpenedApp listener inside initialize() can consume the
-    // terminated-launch notification event, leaving getInitialMessage()
-    // returning null.
+
     initialMessage = await FirebaseMessaging.instance.getInitialMessage();
 
     notificationService = NotificationService();
@@ -283,8 +263,7 @@ Future<void> main() async {
     debugPrint('Firebase init failed: $e');
   }
 
-  // Universal links (iOS) / App Links (Android)
-  // https://links.edium.online/invite/<token> → /invite/<token>
+
   final appLinks = AppLinks();
   try {
     final initialUri = await appLinks.getInitialLink();
@@ -299,7 +278,7 @@ Future<void> main() async {
     deepLinkService: deepLinkService,
   );
 
-  // Universal links while app is running (foreground/background).
+
   appLinks.uriLinkStream.listen((uri) {
     debugPrint('[DeepLink] uriLinkStream received: $uri');
     final route = _parseDeepLinkUri(uri);
@@ -307,9 +286,7 @@ Future<void> main() async {
     if (route != null) getIt<DeepLinkService>().setPendingRoute(route);
   });
 
-  // Wire live tap listener BEFORE dispatching AppStarted: on iOS terminated
-  // launch onMessageOpenedApp may fire while auth is still loading, and
-  // _handleNotificationTap is set up to defer until AuthAuthenticated.
+
   final ns = notificationService;
   if (ns != null) {
     ns.tapStream.listen((tap) {
@@ -321,20 +298,17 @@ Future<void> main() async {
         wasInForeground: ns.wasReceivedInForeground(tap.messageId),
       );
     });
-    // iOS terminated: onMessageOpenedApp can fire during initialize() — before
-    // we reach this line — and broadcast streams drop events without
-    // listeners. NotificationService buffers them in _earlyTaps; flush now.
+
+
     ns.flushEarlyTaps();
   }
 
-  // Terminated-launch tap via getInitialMessage. App was killed → not in
-  // foreground → wasInForeground:false. Dedup by messageId protects us if
-  // onMessageOpenedApp also fires for the same message.
+
   if (initialMessage != null) {
     _handleRemoteMessageTap(initialMessage, fromTerminatedLaunch: true);
   } else if (Platform.isIOS) {
-    // Важно: не блокируем runApp на iOS fallback, иначе cold start даёт
-    // несколько секунд белого экрана. Резолвим tap асинхронно.
+
+
     unawaited(_resolveIosTerminatedTapFallback());
   }
 
@@ -346,16 +320,14 @@ Future<void> main() async {
     ),
   );
 
-  // Роутер и окно уже существуют до смены AuthInitial → AuthLoading/…,
-  // иначе go_router + scene lifecycle на iOS иногда не успевают отрисовать
-  // первый маршрут (белый экран до hot restart).
+
   WidgetsBinding.instance.addPostFrameCallback((_) {
     debugPrint('[Boot] dispatching AppStarted');
     getIt<AuthBloc>().add(const AppStarted());
   });
 }
 
-// https://links.edium.online/invite/{token} → /invite/{token}
+
 String? _parseDeepLinkUri(Uri uri) {
   if (uri.host != 'links.edium.online') return null;
   final segments = uri.pathSegments;

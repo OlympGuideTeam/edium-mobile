@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Кастомный pull-to-refresh спиннер в стиле Edium (чёрно-белый минимализм).
+
 class EdiumRefreshIndicator extends StatelessWidget {
   final Widget child;
   final RefreshCallback onRefresh;

@@ -1,14 +1,8 @@
+
+part 'edit_profile_event_update_profile_event.dart';
+part 'edit_profile_event_delete_account_event.dart';
+
 abstract class EditProfileEvent {
   const EditProfileEvent();
 }
 
-class UpdateProfileEvent extends EditProfileEvent {
-  final String name;
-  final String surname;
-
-  const UpdateProfileEvent({required this.name, required this.surname});
-}
-
-class DeleteAccountEvent extends EditProfileEvent {
-  const DeleteAccountEvent();
-}

@@ -1,12 +1,12 @@
 import 'package:edium/data/datasources/quiz_session/quiz_session_datasource.dart';
 import 'package:edium/data/models/quiz_session_model.dart';
-// AnswerRecordModel is in the same file as QuizSessionModel
+
 
 class QuizSessionDatasourceMock implements IQuizSessionDatasource {
   final List<QuizSessionModel> _sessions = [];
   int _nextId = 1;
 
-  // Answers correctness: map questionId -> correct answer(s)
+
   final Map<String, dynamic> _correctAnswers = {
     'q1': 'b',
     'q2': ['a', 'b'],
@@ -70,7 +70,7 @@ class QuizSessionDatasourceMock implements IQuizSessionDatasource {
     };
     final explanation = correct ? null : explanations[questionId];
 
-    // Track answer in session
+
     final idx = _sessions.indexWhere((s) => s.id == sessionId);
     if (idx != -1) {
       final session = _sessions[idx];

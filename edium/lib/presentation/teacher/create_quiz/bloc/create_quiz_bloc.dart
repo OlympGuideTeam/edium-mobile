@@ -193,10 +193,10 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
           courseId: event.courseId,
         );
       } else {
-        // Course context, new quiz, "Начать".
+
         String? liveSessionId;
         if (state.quizType == QuizCreationMode.test && event.courseId != null) {
-          // Use the atomic inline endpoint for test sessions.
+
           await _quizRepository.createTestSessionInline(
             title: state.title,
             description: state.description.isEmpty ? null : state.description,
@@ -209,7 +209,7 @@ class CreateQuizBloc extends Bloc<CreateQuizEvent, CreateQuizState> {
             finishedAt: state.finishedAt,
           );
         } else {
-          // Use the atomic inline endpoint for live sessions.
+
           liveSessionId = await _quizRepository.createLiveSessionInline(
             title: state.title,
             description: state.description.isEmpty ? null : state.description,
