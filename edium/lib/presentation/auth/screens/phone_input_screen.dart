@@ -6,6 +6,7 @@ import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
+import 'package:edium/presentation/shared/widgets/edium_notification.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -168,9 +169,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
     if (!mounted) return;
     final text = data?.text;
     if (text == null || text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Буфер обмена пуст')),
-      );
+      EdiumNotification.show(context, 'Буфер обмена пуст');
       return;
     }
     final digits = _parseClipboardPhone(text);
@@ -186,10 +185,10 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
       });
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Не удалось распознать номер — скопируйте 10 цифр или +7…'),
-      ),
+    EdiumNotification.show(
+      context,
+      'Не удалось распознать номер — скопируйте 10 цифр или +7…',
+      type: EdiumNotificationType.error,
     );
   }
 
