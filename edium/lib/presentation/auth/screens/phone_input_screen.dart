@@ -34,6 +34,13 @@ String _cleanPhoneInput(String raw) {
   return digits;
 }
 
+/// Возвращает 10 цифр номера РФ из произвольного текста или null, если цифр меньше 10.
+String? _parseClipboardPhone(String? raw) {
+  if (raw == null || raw.trim().isEmpty) return null;
+  final digits = _cleanPhoneInput(raw);
+  return digits.length == 10 ? digits : null;
+}
+
 class _PhoneInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
@@ -81,13 +88,20 @@ class PhoneInputScreen extends StatefulWidget {
 
 class _PhoneInputScreenState extends State<PhoneInputScreen> {
   final _controller = TextEditingController();
+  final _phoneFocus = FocusNode();
   String? _error;
+  /// 10 цифр из буфера, если там есть полный номер и он ещё не совпадает с полем.
+  String? _pasteSuggestionDigits;
   late final TapGestureRecognizer _privacyTap;
   late final TapGestureRecognizer _termsTap;
 
   @override
   void initState() {
     super.initState();
+    _phoneFocus.addListener(_onPhoneFocusChange);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshClipboardSuggestion();
+    });
     _privacyTap = TapGestureRecognizer()
       ..onTap = () {
         if (!mounted) return;
@@ -108,10 +122,75 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
 
   @override
   void dispose() {
+    _phoneFocus.removeListener(_onPhoneFocusChange);
+    _phoneFocus.dispose();
     _privacyTap.dispose();
     _termsTap.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _onPhoneFocusChange() {
+    if (_phoneFocus.hasFocus) {
+      _refreshClipboardSuggestion();
+    }
+  }
+
+  Future<void> _refreshClipboardSuggestion() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (!mounted) return;
+    final fromClipboard = _parseClipboardPhone(data?.text);
+    setState(() {
+      _pasteSuggestionDigits =
+          (fromClipboard != null && fromClipboard != _digits)
+              ? fromClipboard
+              : null;
+    });
+  }
+
+  void _applyPasteFromClipboard() {
+    final digits = _pasteSuggestionDigits;
+    if (digits == null || digits.length != 10) return;
+    final formatted = _formatPhoneDigits(digits);
+    _controller.value = TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+    setState(() {
+      _pasteSuggestionDigits = null;
+      _error = null;
+    });
+  }
+
+  /// По тапу — на iOS буфер доступен; фоновое чтение без жеста часто пустое.
+  Future<void> _pasteFromClipboardOnTap() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (!mounted) return;
+    final text = data?.text;
+    if (text == null || text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Буфер обмена пуст')),
+      );
+      return;
+    }
+    final digits = _parseClipboardPhone(text);
+    if (digits != null) {
+      final formatted = _formatPhoneDigits(digits);
+      _controller.value = TextEditingValue(
+        text: formatted,
+        selection: TextSelection.collapsed(offset: formatted.length),
+      );
+      setState(() {
+        _pasteSuggestionDigits = null;
+        _error = null;
+      });
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Не удалось распознать номер — скопируйте 10 цифр или +7…'),
+      ),
+    );
   }
 
   String get _digits => _controller.text.replaceAll(RegExp(r'[^0-9]'), '');
@@ -188,6 +267,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
         listener: (context, state) {
           if (ModalRoute.of(context)?.isCurrent != true) return;
           if (state is AuthOtpSent) {
+            TextInput.finishAutofillContext();
             context.push(
               '/otp?phone=${Uri.encodeComponent(state.phone)}&channel=${state.channel}&retryAfter=${state.retryAfter}',
             );
@@ -202,7 +282,9 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
             onTap: () => FocusScope.of(context).unfocus(),
             child: Scaffold(
               backgroundColor: Colors.white,
+              resizeToAvoidBottomInset: true,
               body: SafeArea(
+                maintainBottomViewPadding: true,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -220,9 +302,10 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                             horizontal: AppDimens.screenPaddingH),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+                        child: AutofillGroup(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                             const SizedBox(height: 8),
                             const Text('Войти в Edium',
                                 style: AppTextStyles.screenTitle),
@@ -232,8 +315,83 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                               style: AppTextStyles.screenSubtitle,
                             ),
                             const SizedBox(height: 28),
-                            const Text('Номер телефона',
-                                style: AppTextStyles.fieldLabel),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const Expanded(
+                                  child: Text(
+                                    'Номер телефона',
+                                    style: AppTextStyles.fieldLabel,
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: _pasteFromClipboardOnTap,
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: Text(
+                                    'Вставить',
+                                    style: AppTextStyles.fieldLabel.copyWith(
+                                      color: AppColors.mono700,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (_pasteSuggestionDigits != null) ...[
+                              const SizedBox(height: 8),
+                              Material(
+                                color: AppColors.mono150.withValues(alpha: 0.45),
+                                borderRadius:
+                                    BorderRadius.circular(AppDimens.radiusMd),
+                                child: InkWell(
+                                  onTap: _applyPasteFromClipboard,
+                                  borderRadius:
+                                      BorderRadius.circular(AppDimens.radiusMd),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.content_paste_rounded,
+                                          size: 20,
+                                          color: AppColors.mono700,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            'Вставить номер из буфера обмена',
+                                            style: AppTextStyles.helperText
+                                                .copyWith(
+                                              color: AppColors.mono700,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          _formatPhoneDigits(
+                                              _pasteSuggestionDigits!),
+                                          style: AppTextStyles.fieldText
+                                              .copyWith(
+                                            letterSpacing: 0.5,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 8),
                             // Поле ввода телефона
                             Container(
@@ -280,7 +438,12 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                                   Expanded(
                                     child: TextField(
                                       controller: _controller,
+                                      focusNode: _phoneFocus,
                                       keyboardType: TextInputType.phone,
+                                      textInputAction: TextInputAction.done,
+                                      autofillHints: const [
+                                        AutofillHints.telephoneNumber,
+                                      ],
                                       cursorColor: AppColors.mono900,
                                       inputFormatters: [
                                         _PhoneInputFormatter(),
@@ -288,8 +451,16 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                                       style: AppTextStyles.fieldText.copyWith(
                                         letterSpacing: 0.5,
                                       ),
-                                      onChanged: (_) =>
-                                          setState(() => _error = null),
+                                      onChanged: (_) {
+                                        setState(() {
+                                          _error = null;
+                                          if (_pasteSuggestionDigits != null &&
+                                              _digits ==
+                                                  _pasteSuggestionDigits) {
+                                            _pasteSuggestionDigits = null;
+                                          }
+                                        });
+                                      },
                                       decoration: InputDecoration(
                                         hintText: '900 000 00 00',
                                         hintStyle:
@@ -374,6 +545,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                             Center(child: _legalConsentRichText()),
                             const SizedBox(height: 24),
                           ],
+                          ),
                         ),
                       ),
                     ),
