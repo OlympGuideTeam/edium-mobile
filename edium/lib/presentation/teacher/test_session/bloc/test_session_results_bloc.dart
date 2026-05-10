@@ -92,13 +92,12 @@ class TestSessionResultsBloc
       final sessionStatusItem = statusMap[sid];
       final sessionStatus = sessionStatusItem?.status;
 
-      // Строим map userId → attempt для быстрого поиска
+
       final attemptMap = <String, AttemptSummary>{
         for (final a in attempts) a.userId: a,
       };
 
-      // С moduleId — весь класс из Caesar module roster + попытки вне ростера.
-      // Без moduleId (уведомления / deep link) — только попытки, имена из GET users/roster.
+
       final List<StudentRow> rows;
       if (mid != null && rosterMembers.isNotEmpty) {
         final rosterUserIds = <String>{};
@@ -146,15 +145,14 @@ class TestSessionResultsBloc
                   .fold<double>(0, (s, v) => s + v) /
               completedOrPublished.length);
 
-      // Удалять можно только если нет ни одной попытки.
+
       final canDelete = attempts.isEmpty &&
           _courseItemId != null &&
           (sessionStatus == null ||
               sessionStatus == 'not_started' ||
               sessionStatus == 'waiting');
 
-      // Публиковать можно только после завершения сессии (finished), когда все
-      // попытки хотя бы graded и ни одна ещё не published.
+
       final canPublish = sessionStatus == 'finished' &&
           attempts.isNotEmpty &&
           !attempts.any((a) => a.status == AttemptStatus.published) &&

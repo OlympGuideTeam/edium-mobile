@@ -1,25 +1,10 @@
+
+part 'classes_event_load_classes_event.dart';
+part 'classes_event_search_classes_event.dart';
+part 'classes_event_create_class_event.dart';
+part 'classes_event_delete_class_event.dart';
+
 abstract class ClassesEvent {
   const ClassesEvent();
 }
 
-class LoadClassesEvent extends ClassesEvent {
-  const LoadClassesEvent();
-}
-
-class SearchClassesEvent extends ClassesEvent {
-  final String query;
-
-  const SearchClassesEvent(this.query);
-}
-
-class CreateClassEvent extends ClassesEvent {
-  final String title;
-
-  const CreateClassEvent(this.title);
-}
-
-class DeleteClassEvent extends ClassesEvent {
-  final String classId;
-
-  const DeleteClassEvent(this.classId);
-}

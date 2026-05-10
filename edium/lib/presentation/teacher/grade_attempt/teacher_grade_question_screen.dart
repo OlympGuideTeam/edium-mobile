@@ -7,6 +7,13 @@ import 'package:edium/domain/usecases/test_session/grade_submission_usecase.dart
 import 'package:edium/presentation/shared/widgets/question_image_widget.dart';
 import 'package:flutter/material.dart';
 
+part 'teacher_grade_question_screen_top_bar.dart';
+part 'teacher_grade_question_screen_index_badge.dart';
+part 'teacher_grade_question_screen_score_picker.dart';
+part 'teacher_grade_question_screen_score_row.dart';
+part 'teacher_grade_question_screen_score_chip.dart';
+
+
 class TeacherGradeQuestionScreen extends StatefulWidget {
   final String attemptId;
   final AnswerReview answer;
@@ -106,7 +113,7 @@ class _TeacherGradeQuestionScreenState
                   const Text('Проверка ответа', style: AppTextStyles.screenTitle),
                   const SizedBox(height: 20),
 
-                  // Вопрос
+
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -131,7 +138,7 @@ class _TeacherGradeQuestionScreenState
                   ],
                   const SizedBox(height: 14),
 
-                  // Ответ студента
+
                   Text('Ответ ученика', style: AppTextStyles.fieldLabel),
                   const SizedBox(height: 6),
                   Container(
@@ -150,7 +157,7 @@ class _TeacherGradeQuestionScreenState
                   ),
                   const SizedBox(height: 6),
 
-                  // ИИ-статус
+
                   if (widget.answer.finalScore == null) ...[
                     Row(
                       children: [
@@ -183,13 +190,13 @@ class _TeacherGradeQuestionScreenState
                   ],
                   const SizedBox(height: 20),
 
-                  // Балл
+
                   Text('Балл', style: AppTextStyles.fieldLabel),
                   const SizedBox(height: 8),
                   _ScorePicker(controller: _scoreCtrl),
                   const SizedBox(height: 20),
 
-                  // Комментарий
+
                   Text('Комментарий', style: AppTextStyles.fieldLabel),
                   const SizedBox(height: 6),
                   TextField(
@@ -223,7 +230,7 @@ class _TeacherGradeQuestionScreenState
               ),
             ),
 
-            // Кнопка сохранить
+
             Padding(
               padding: const EdgeInsets.fromLTRB(
                   AppDimens.screenPaddingH, 8, AppDimens.screenPaddingH, 16),
@@ -261,144 +268,3 @@ class _TeacherGradeQuestionScreenState
   }
 }
 
-// ── Shared widgets ──────────────────────────────────────────────────────────
-
-class _TopBar extends StatelessWidget {
-  final VoidCallback onBack;
-  const _TopBar({required this.onBack});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new,
-                size: 20, color: AppColors.mono900),
-            onPressed: onBack,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _IndexBadge extends StatelessWidget {
-  final int index;
-  const _IndexBadge({required this.index});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 28,
-      height: 28,
-      decoration: BoxDecoration(
-        color: AppColors.mono100,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Center(
-        child: Text(
-          '$index',
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: AppColors.mono600,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ScorePicker extends StatelessWidget {
-  final TextEditingController controller;
-  const _ScorePicker({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    final selected = int.tryParse(controller.text.trim());
-    return Column(
-      children: [
-        _ScoreRow(
-            values: const [1, 2, 3, 4, 5],
-            selected: selected,
-            controller: controller),
-        const SizedBox(height: 6),
-        _ScoreRow(
-            values: const [6, 7, 8, 9, 10],
-            selected: selected,
-            controller: controller),
-      ],
-    );
-  }
-}
-
-class _ScoreRow extends StatelessWidget {
-  final List<int> values;
-  final int? selected;
-  final TextEditingController controller;
-
-  const _ScoreRow({
-    required this.values,
-    required this.selected,
-    required this.controller,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (int i = 0; i < values.length; i++) ...[
-          if (i > 0) const SizedBox(width: 6),
-          Expanded(
-              child: _ScoreChip(
-                  value: values[i],
-                  isSelected: selected == values[i],
-                  controller: controller)),
-        ],
-      ],
-    );
-  }
-}
-
-class _ScoreChip extends StatelessWidget {
-  final int value;
-  final bool isSelected;
-  final TextEditingController controller;
-
-  const _ScoreChip({
-    required this.value,
-    required this.isSelected,
-    required this.controller,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => controller.text = value.toString(),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        height: 44,
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.mono900 : Colors.white,
-          borderRadius: BorderRadius.circular(AppDimens.radiusSm),
-          border: Border.all(
-            color: isSelected ? AppColors.mono900 : AppColors.mono150,
-            width: AppDimens.borderWidth,
-          ),
-        ),
-        alignment: Alignment.center,
-        child: AnimatedDefaultTextStyle(
-          duration: const Duration(milliseconds: 150),
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: isSelected ? Colors.white : AppColors.mono600,
-          ),
-          child: Text('$value'),
-        ),
-      ),
-    );
-  }
-}

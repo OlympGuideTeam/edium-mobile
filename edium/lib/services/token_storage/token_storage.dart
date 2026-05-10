@@ -38,5 +38,5 @@ class TokenStorage implements ITokenStorage {
       _storage.delete(key: _accessTokenKey),
       _storage.delete(key: _refreshTokenKey)
     ]);
-  }  
+  }
 }

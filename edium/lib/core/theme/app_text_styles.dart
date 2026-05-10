@@ -68,7 +68,6 @@ class AppTextStyles {
     letterSpacing: 0.1,
   );
 
-  // ── Монохромный UI (auth-экраны и новые экраны) ──────────────────────────
 
   static const TextStyle screenTitle = TextStyle(
     fontSize: 22,
@@ -127,7 +126,7 @@ class AppTextStyles {
     color: AppColors.mono700,
   );
 
-  // Shorthand aliases
+
   static const TextStyle h1 = heading1;
   static const TextStyle h2 = heading2;
   static const TextStyle h3 = heading3;

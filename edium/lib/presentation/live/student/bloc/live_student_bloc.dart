@@ -23,7 +23,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
   int? _classmatesTotal;
   Map<String, String> _roster = {};
 
-  // In-memory state for question transitions
+
   LiveQuestion? _currentQuestion;
   int _questionIndex = 0;
   int _questionTotal = 0;
@@ -127,7 +127,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
     return wsName.isNotEmpty ? wsName : userId ?? '?';
   }
 
-  /// Если сразу на результаты (без лобби/WS), roster в [_onStart] мог не заполниться — добираем перед API итогов.
+
   Future<void> _ensureRosterBeforeResults() async {
     final mid = _moduleId;
     if (_roster.isNotEmpty || mid == null || mid.isEmpty) return;
@@ -235,7 +235,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
         emit(LiveStudentKicked());
 
       case LiveParticipantKicked():
-        // Another student was kicked — no action needed for this student
+
 
       case LiveWsDisconnected():
         if (state is! LiveStudentKicked && state is! LiveStudentCompleted) {
@@ -243,7 +243,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
         }
 
       case LiveWsError():
-        // Non-fatal errors (e.g. ALREADY_ANSWERED) — ignore for now
+
 
       default:
         break;
@@ -312,7 +312,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
         'answer_data': event.answerData,
       },
     });
-    // Optimistically mark as answered
+
     if (state is LiveStudentQuestionActive) {
       final s = state as LiveStudentQuestionActive;
       emit(s.copyWith(myAnswer: event.answerData));

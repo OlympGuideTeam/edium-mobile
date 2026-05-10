@@ -20,7 +20,7 @@ class DioHandler {
   Future<TokenStore>? _refreshInFlight;
 
   DioHandler._internal(this._tokenStorage)
-      : _tokenManager = TokenManager.instance, 
+      : _tokenManager = TokenManager.instance,
       dio = Dio(
           BaseOptions(
             baseUrl: ApiConfig.baseUrl,
@@ -227,10 +227,10 @@ class DioHandler {
 
   static Future<void> setup() async {
     final tokenStorage = getIt<ITokenStorage>();
-    
+
     final accessToken = await tokenStorage.getAccessToken();
     final refreshToken = await tokenStorage.getRefreshToken();
-    
+
     if (accessToken != null && refreshToken != null) {
       TokenManager.instance.setToken(
         TokenStore(
@@ -239,7 +239,7 @@ class DioHandler {
         ),
       );
     }
-    
+
     getIt.registerSingleton<DioHandler>(
       DioHandler._internal(tokenStorage),
     );

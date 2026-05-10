@@ -50,7 +50,7 @@ class NotificationsBloc
       if (event.enabled) {
         final currentStatus = await notificationService.getPermissionStatus();
 
-        // Already denied — can't re-request, must open Settings
+
         if (currentStatus == AuthorizationStatus.denied) {
           emit(current.copyWith(shouldOpenSettings: true));
           return;
@@ -91,7 +91,7 @@ class NotificationsBloc
     final current = state;
     if (current is! NotificationsLoaded) return;
 
-    // Optimistic update
+
     final updated = current.items.map((item) {
       if (item.id == event.notificationId) {
         return NotificationItem(
@@ -112,7 +112,7 @@ class NotificationsBloc
       await heraldApiService.markNotificationRead(event.notificationId);
       notificationService.triggerBadgeRefresh();
     } catch (_) {
-      // Revert on error
+
       emit(current);
     }
   }

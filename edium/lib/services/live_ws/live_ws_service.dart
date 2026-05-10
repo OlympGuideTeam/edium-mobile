@@ -6,13 +6,7 @@ import 'package:edium/core/config/api_config.dart';
 import 'package:edium/domain/entities/live_ws_event.dart';
 import 'package:flutter/foundation.dart';
 
-/// Manages a single WebSocket connection to Riddler live endpoint.
-///
-/// Usage:
-///   1. await connect(sessionId, token)
-///   2. listen to [events]
-///   3. send(...) to emit C→S messages
-///   4. await disconnect() when done
+
 class LiveWsService {
   WebSocket? _socket;
   StreamSubscription? _sub;
@@ -65,7 +59,6 @@ class LiveWsService {
     _controller.close();
   }
 
-  // ─── Private ───────────────────────────────────────────────────────────────
 
   void _onData(dynamic raw) {
     if (_disposed) return;

@@ -1,38 +1,14 @@
 import 'package:edium/domain/entities/live_ws_event.dart';
 
+part 'live_teacher_event_live_teacher_load.dart';
+part 'live_teacher_event_live_teacher_ws_event.dart';
+part 'live_teacher_event_live_teacher_start_lobby.dart';
+part 'live_teacher_event_live_teacher_start_quiz.dart';
+part 'live_teacher_event_live_teacher_next_question.dart';
+part 'live_teacher_event_live_teacher_kick_participant.dart';
+part 'live_teacher_event_live_teacher_load_results.dart';
+part 'live_teacher_event_live_teacher_dispose.dart';
+
+
 sealed class LiveTeacherEvent {}
 
-class LiveTeacherLoad extends LiveTeacherEvent {
-  final String sessionId;
-  final String quizTitle;
-  final int questionCount;
-  /// Модуль курса (Caesar) — для GET `/caesar/v1/modules/{id}/roster`; вне курса null.
-  final String? moduleId;
-
-  LiveTeacherLoad({
-    required this.sessionId,
-    required this.quizTitle,
-    required this.questionCount,
-    this.moduleId,
-  });
-}
-
-class LiveTeacherWsEvent extends LiveTeacherEvent {
-  final LiveWsEvent event;
-  LiveTeacherWsEvent(this.event);
-}
-
-class LiveTeacherStartLobby extends LiveTeacherEvent {}
-
-class LiveTeacherStartQuiz extends LiveTeacherEvent {}
-
-class LiveTeacherNextQuestion extends LiveTeacherEvent {}
-
-class LiveTeacherKickParticipant extends LiveTeacherEvent {
-  final String attemptId;
-  LiveTeacherKickParticipant(this.attemptId);
-}
-
-class LiveTeacherLoadResults extends LiveTeacherEvent {}
-
-class LiveTeacherDispose extends LiveTeacherEvent {}

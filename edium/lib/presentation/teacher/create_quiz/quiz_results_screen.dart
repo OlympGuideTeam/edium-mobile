@@ -4,6 +4,10 @@ import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/usecases/quiz/get_quiz_results_usecase.dart';
 import 'package:flutter/material.dart';
 
+part 'quiz_results_screen_result_stat.dart';
+part 'quiz_results_screen_student_result_tile.dart';
+
+
 class QuizResultsScreen extends StatefulWidget {
   final String quizId;
 
@@ -132,104 +136,3 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
   }
 }
 
-class _ResultStat extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-
-  const _ResultStat({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color.withAlpha(20),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withAlpha(76)),
-      ),
-      child: Column(
-        children: [
-          Text(value,
-              style: AppTextStyles.heading3.copyWith(color: color)),
-          const SizedBox(height: 4),
-          Text(label,
-              style: AppTextStyles.caption, textAlign: TextAlign.center),
-        ],
-      ),
-    );
-  }
-}
-
-class _StudentResultTile extends StatelessWidget {
-  final Map<String, dynamic> result;
-
-  const _StudentResultTile({required this.result});
-
-  @override
-  Widget build(BuildContext context) {
-    final score = result['score'] as int;
-    final total = result['total'] as int;
-    final pct = total > 0 ? (score / total * 100).round() : 0;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.cardBorder),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: AppColors.primaryLight,
-            child: Text(
-              (result['name'] as String)[0],
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(result['name'] as String,
-                    style: AppTextStyles.bodySmall
-                        .copyWith(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 2),
-                Text('$score / $total вопросов',
-                    style: AppTextStyles.caption),
-              ],
-            ),
-          ),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: pct >= 70
-                  ? AppColors.successLight
-                  : AppColors.errorLight,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              '$pct%',
-              style: AppTextStyles.caption.copyWith(
-                color: pct >= 70 ? AppColors.success : AppColors.error,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

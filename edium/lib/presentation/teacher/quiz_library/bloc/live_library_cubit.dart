@@ -4,6 +4,10 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'live_library_state.dart';
+part 'live_library_cubit_live_library_initial.dart';
+part 'live_library_cubit_live_library_loading.dart';
+part 'live_library_cubit_live_library_loaded.dart';
+part 'live_library_cubit_live_library_error.dart';
 
 class LiveLibraryCubit extends Cubit<LiveLibraryState> {
   final ILiveRepository _repo;

@@ -13,6 +13,10 @@ import 'package:edium/presentation/student/quiz_library/take_quiz_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+part 'quiz_preview_screen_info_card.dart';
+part 'quiz_preview_screen_warning_block.dart';
+
+
 class QuizPreviewScreen extends StatefulWidget {
   final LibraryQuiz quiz;
 
@@ -91,7 +95,7 @@ class _QuizPreviewScreenState extends State<QuizPreviewScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
-          // Title
+
           Text(
             quiz.title,
             style: const TextStyle(
@@ -109,7 +113,7 @@ class _QuizPreviewScreenState extends State<QuizPreviewScreen> {
             ),
           ],
           const SizedBox(height: 28),
-          // Info cards
+
           _InfoCard(
             icon: Icons.quiz_outlined,
             title: 'Количество вопросов',
@@ -132,7 +136,7 @@ class _QuizPreviewScreenState extends State<QuizPreviewScreen> {
             ),
           ],
           const SizedBox(height: 24),
-          // Warning for timed quiz
+
           if (quiz.hasTimeLimit)
             _WarningBlock(
               text:
@@ -144,7 +148,7 @@ class _QuizPreviewScreenState extends State<QuizPreviewScreen> {
               isError: true,
             ),
           const Spacer(),
-          // Start button
+
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -196,7 +200,7 @@ class _QuizPreviewScreenState extends State<QuizPreviewScreen> {
             sessionId: sessionId,
             quizTitle: quiz.title,
             totalTimeLimitSec: quiz.defaultSettings.totalTimeLimitSec,
-            // useCache: false (default) — public library не использует кэш.
+
           ),
         ),
       ),
@@ -204,111 +208,3 @@ class _QuizPreviewScreenState extends State<QuizPreviewScreen> {
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String value;
-
-  const _InfoCard({
-    required this.icon,
-    required this.title,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.mono50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.mono150),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.mono150),
-            ),
-            child: Icon(icon, size: 18, color: AppColors.mono700),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.mono400,
-              ),
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppColors.mono900,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _WarningBlock extends StatelessWidget {
-  final String text;
-  final bool isError;
-
-  const _WarningBlock({required this.text, this.isError = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isError
-            ? const Color(0xFFFEE2E2)
-            : AppColors.mono50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isError
-              ? const Color(0xFFEF4444)
-              : AppColors.mono150,
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            isError
-                ? Icons.error_outline
-                : Icons.info_outline,
-            size: 16,
-            color: isError
-                ? const Color(0xFFEF4444)
-                : AppColors.mono400,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 12,
-                height: 1.5,
-                color: isError
-                    ? const Color(0xFFEF4444)
-                    : AppColors.mono400,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

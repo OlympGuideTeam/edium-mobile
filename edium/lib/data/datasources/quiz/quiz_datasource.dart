@@ -8,7 +8,7 @@ abstract class IQuizDatasource {
     int limit,
   });
 
-  /// Returns quiz template id.
+
   Future<String> createQuiz({
     required String title,
     String? description,
@@ -22,7 +22,7 @@ abstract class IQuizDatasource {
     String? courseId,
   });
 
-  /// Returns test session id.
+
   Future<String> createTestSession({
     required String quizTemplateId,
     required String moduleId,
@@ -32,7 +32,7 @@ abstract class IQuizDatasource {
     DateTime? finishedAt,
   });
 
-  /// Returns live session id.
+
   Future<String> createLiveSession({
     required String quizTemplateId,
     required String moduleId,
@@ -62,7 +62,7 @@ abstract class IQuizDatasource {
 
   Future<void> removeQuestion(String quizId, String questionId);
 
-  /// Creates quiz template + test session atomically (inline endpoint).
+
   Future<String> createTestSessionInline({
     required String title,
     String? description,
@@ -75,7 +75,7 @@ abstract class IQuizDatasource {
     DateTime? finishedAt,
   });
 
-  /// Creates quiz template + live session atomically (inline endpoint).
+
   Future<String> createLiveSessionInline({
     required String title,
     String? description,
@@ -87,6 +87,6 @@ abstract class IQuizDatasource {
 
   Future<void> deleteSession(String sessionId);
 
-  /// Запускает асинхерную генерацию вопросов по тексту (уведомление по готовности).
+
   Future<void> generateQuizQuestions(String quizId, String sourceText);
 }

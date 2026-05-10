@@ -4,6 +4,10 @@ import 'package:edium/data/models/attempt_summary_model.dart';
 import 'package:edium/data/models/quiz_attempt_model.dart';
 import 'package:edium/data/models/test_session_meta_model.dart';
 
+part 'test_session_datasource_mock_mock_attempt.dart';
+part 'test_session_datasource_mock_grade_entry.dart';
+
+
 class TestSessionDatasourceMock implements ITestSessionDatasource {
   static const Map<String, String> _userNames = {
     'student-1': 'Мария Кузнецова',
@@ -15,15 +19,15 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
   };
 
   static final Map<String, Map<String, _GradeEntry>> _teacherGrades = {};
-  // sessionId → meta
+
   static final Map<String, TestSessionMetaModel> _sessions = _buildSessions();
-  // sessionId → questions
+
   static final Map<String, List<QuizQuestionForStudentModel>> _questions =
       _buildQuestions();
-  // sessionId → List<attempt> (для teacher view)
+
   static final Map<String, List<_MockAttempt>> _attemptsBySession =
       _buildAttempts();
-  // attemptId → AttemptReviewModel (для GetAttemptReview)
+
   static final Map<String, AttemptReviewModel> _reviews = _buildReviews();
 
   int _attemptCounter = 100;
@@ -36,7 +40,7 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
     await Future.delayed(const Duration(milliseconds: 150));
     final sid = fallbackSessionId;
     if (sid != null && _sessions.containsKey(sid)) return _sessions[sid]!;
-    // Fallback: по quizId ищем первую сессию с таким quiz_id
+
     return _sessions.values.firstWhere(
       (s) => s.quizId == quizId,
       orElse: () =>
@@ -96,7 +100,7 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
   @override
   Future<void> deleteSession(String sessionId) async {
     await Future.delayed(const Duration(milliseconds: 150));
-    // Noop в мока (или можно удалить из статической карты, но state shared).
+
   }
 
   @override
@@ -126,7 +130,6 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
     await Future.delayed(const Duration(milliseconds: 150));
   }
 
-  // ── Seed data ──────────────────────────────────────────────────────────
 
   static Map<String, TestSessionMetaModel> _buildSessions() => {
         'mock-test-sess-1': const TestSessionMetaModel(
@@ -159,7 +162,7 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
           startedAt: '2030-01-01T09:00:00Z',
           finishedAt: '2030-01-10T23:59:00Z',
         ),
-        // ── Мониторинг-демо ────────────────────────────────────────────
+
         'mock-mon-sess-1': const TestSessionMetaModel(
           sessionId: 'mock-mon-sess-1',
           quizId: 'mock-mon-sess-1',
@@ -251,7 +254,7 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
             maxScore: 10,
           ),
         ],
-        // ── Мониторинг-демо ────────────────────────────────────────────
+
         'mock-mon-sess-2': [
           const QuizQuestionForStudentModel(
             id: 'qmon2-1',
@@ -328,11 +331,11 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
           ),
         ],
         'mock-test-sess-3': const [],
-        // ── Мониторинг-демо ────────────────────────────────────────────
-        // Стейт 1: никто не начал
+
+
         'mock-mon-sess-1': const [],
-        // Стейт 2: двое начали (один graded — ждёт проверки, один in_progress),
-        //          двое не начинали
+
+
         'mock-mon-sess-2': [
           _MockAttempt(
             attemptId: 'mock-mon-att-2-A',
@@ -347,7 +350,7 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
             score: null,
           ),
         ],
-        // Стейт 3: все четыре завершили — мониторинг всегда остаётся на этом экране
+
         'mock-mon-sess-3': [
           _MockAttempt(
             attemptId: 'mock-mon-att-3-A',
@@ -435,7 +438,7 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
             ),
           ],
         ),
-        // ── Мониторинг-демо: graded attempt (стейт 2) ─────────────────
+
         'mock-mon-att-2-A': AttemptReviewModel(
           attemptId: 'mock-mon-att-2-A',
           userId: 'student-1',
@@ -523,7 +526,7 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
             ),
           ],
         ),
-        // ── Мониторинг-демо: completed + teacher-graded (стейт 3) ──────
+
         'mock-mon-att-3-A': AttemptReviewModel(
           attemptId: 'mock-mon-att-3-A',
           userId: 'student-1',
@@ -592,22 +595,3 @@ class TestSessionDatasourceMock implements ITestSessionDatasource {
       };
 }
 
-class _MockAttempt {
-  final String attemptId;
-  final String userId;
-  final String status;
-  final double? score;
-
-  const _MockAttempt({
-    required this.attemptId,
-    required this.userId,
-    required this.status,
-    required this.score,
-  });
-}
-
-class _GradeEntry {
-  final double score;
-  final String? feedback;
-  const _GradeEntry({required this.score, this.feedback});
-}

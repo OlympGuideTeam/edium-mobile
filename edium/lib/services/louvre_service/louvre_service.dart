@@ -11,7 +11,7 @@ class LouvreService {
 
   final DioHandler _dioHandler;
 
-  /// GET `louvre/v1/images/<id>` — LRU в памяти, один сетевой запрос на id при гонках.
+
   static const int _maxCachedImageEntries = 48;
 
   final Map<String, Uint8List> _imageBytesCache = {};
@@ -39,8 +39,7 @@ class LouvreService {
     return data['id'] as String;
   }
 
-  /// Применяет EXIF-ориентацию к пикселям и возвращает нормализованный файл.
-  /// Бэкенд конвертирует в PNG и теряет EXIF, поэтому нормализуем до отправки.
+
   static Future<File> _normalizeOrientation(File file) async {
     final bytes = await file.readAsBytes();
     final decoded = img.decodeImage(bytes);
@@ -55,7 +54,7 @@ class LouvreService {
   String imageUrl(String imageId) =>
       '${_dioHandler.dio.options.baseUrl}louvre/v1/images/$imageId';
 
-  /// Сырые байты изображения (как у GET без трансформаций).
+
   Future<Uint8List> getImageBytes(String imageId) {
     final fromCache = _touchImageCache(imageId);
     if (fromCache != null) return Future<Uint8List>.value(fromCache);
