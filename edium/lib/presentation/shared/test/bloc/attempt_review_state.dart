@@ -1,30 +1,15 @@
 import 'package:edium/domain/entities/attempt_review.dart';
 import 'package:equatable/equatable.dart';
 
+part 'attempt_review_state_attempt_review_initial.dart';
+part 'attempt_review_state_attempt_review_loading.dart';
+part 'attempt_review_state_attempt_review_loaded.dart';
+part 'attempt_review_state_attempt_review_error.dart';
+
+
 abstract class AttemptReviewBlocState extends Equatable {
   const AttemptReviewBlocState();
   @override
   List<Object?> get props => [];
 }
 
-class AttemptReviewInitial extends AttemptReviewBlocState {
-  const AttemptReviewInitial();
-}
-
-class AttemptReviewLoading extends AttemptReviewBlocState {
-  const AttemptReviewLoading();
-}
-
-class AttemptReviewLoaded extends AttemptReviewBlocState {
-  final AttemptReview review;
-  const AttemptReviewLoaded(this.review);
-  @override
-  List<Object?> get props => [review];
-}
-
-class AttemptReviewError extends AttemptReviewBlocState {
-  final String message;
-  const AttemptReviewError(this.message);
-  @override
-  List<Object?> get props => [message];
-}

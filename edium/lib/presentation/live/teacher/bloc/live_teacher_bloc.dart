@@ -21,7 +21,7 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
   String _quizTitle = '';
   int _questionCount = 0;
   String? _joinCode;
-  /// userId → display name (предзагрузка из Caesar `/modules/{id}/roster` для курсового live)
+
   Map<String, String> _roster = {};
 
   LiveQuestion? _currentQuestion;
@@ -227,7 +227,7 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
     return wsName.isNotEmpty ? wsName : userId ?? '?';
   }
 
-  /// Roster для имён в итогах — если сразу перешли к результатам, до WS roster мог не подгрузиться.
+
   Future<void> _ensureRosterBeforeResults() async {
     final mid = _moduleId;
     if (_roster.isNotEmpty || mid == null || mid.isEmpty) return;
@@ -242,7 +242,7 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
     }
   }
 
-  /// Доля прошедшего времени вопроса по дедлайну (для полоски прогресса).
+
   double _timerFillFraction(DateTime deadlineAt, int timeLimitSec) {
     if (timeLimitSec <= 0) return 1.0;
     final started = deadlineAt.subtract(Duration(seconds: timeLimitSec));
@@ -322,7 +322,7 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
   void _onStartLobby(
       LiveTeacherStartLobby event, Emitter<LiveTeacherState> emit) {
     _ws.send({'type': 'teacher.start_lobby', 'data': {}});
-    // State will update via snapshot / participant_joined events
+
   }
 
   void _onStartQuiz(

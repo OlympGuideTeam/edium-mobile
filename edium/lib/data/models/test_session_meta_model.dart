@@ -25,9 +25,7 @@ class TestSessionMetaModel {
     this.finishedAt,
   });
 
-  /// Riddler `GET /quizzes/:id?role=student`. `library_test_session_id` — это
-  /// sessionId для public library; для course-теста sessionId задан снаружи и
-  /// приходит через параметр [fallbackSessionId].
+
   factory TestSessionMetaModel.fromStudentQuizJson(
     Map<String, dynamic> json, {
     String? fallbackSessionId,

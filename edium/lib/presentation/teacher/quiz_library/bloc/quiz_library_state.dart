@@ -1,38 +1,15 @@
 import 'package:edium/domain/entities/quiz.dart';
 import 'package:equatable/equatable.dart';
 
+part 'quiz_library_state_quiz_library_initial.dart';
+part 'quiz_library_state_quiz_library_loading.dart';
+part 'quiz_library_state_quiz_library_loaded.dart';
+part 'quiz_library_state_quiz_library_error.dart';
+
+
 abstract class QuizLibraryState extends Equatable {
   const QuizLibraryState();
   @override
   List<Object?> get props => [];
 }
 
-class QuizLibraryInitial extends QuizLibraryState {
-  const QuizLibraryInitial();
-}
-
-class QuizLibraryLoading extends QuizLibraryState {
-  const QuizLibraryLoading();
-}
-
-class QuizLibraryLoaded extends QuizLibraryState {
-  final List<Quiz> quizzes;
-  final String scope;
-  final String? search;
-
-  const QuizLibraryLoaded({
-    required this.quizzes,
-    required this.scope,
-    this.search,
-  });
-
-  @override
-  List<Object?> get props => [quizzes, scope, search];
-}
-
-class QuizLibraryError extends QuizLibraryState {
-  final String message;
-  const QuizLibraryError(this.message);
-  @override
-  List<Object?> get props => [message];
-}

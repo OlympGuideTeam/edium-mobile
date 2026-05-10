@@ -1,0 +1,35 @@
+part of 'herald_dto.dart';
+
+class NotificationItem {
+  final String id;
+  final String title;
+  final String body;
+  final DateTime createdAt;
+  final bool isRead;
+  final String? route;
+  final String? role;
+
+  const NotificationItem({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.createdAt,
+    required this.isRead,
+    this.route,
+    this.role,
+  });
+
+  factory NotificationItem.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>?;
+    return NotificationItem(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      body: json['body'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      isRead: json['is_read'] as bool,
+      route: data?['route'] as String?,
+      role: data?['role'] as String?,
+    );
+  }
+}
+

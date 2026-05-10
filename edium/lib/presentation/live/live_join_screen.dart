@@ -10,10 +10,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
-/// Screen shown when a student wants to join a live quiz by entering a 6-digit code.
-/// Resolves the code → session meta → calls /live/join → pushes to live_lobby_student.
+
 class LiveJoinScreen extends StatefulWidget {
-  final String? prefillCode; // from deep link / QR
+  final String? prefillCode;
 
   const LiveJoinScreen({super.key, this.prefillCode});
 
@@ -56,7 +55,7 @@ class _LiveJoinScreenState extends State<LiveJoinScreen> {
     try {
       final repo = getIt<ILiveRepository>();
 
-      // Step 1: resolve code → session meta
+
       meta = await repo.resolveLiveCode(code);
 
       if (!mounted) return;
@@ -69,7 +68,7 @@ class _LiveJoinScreenState extends State<LiveJoinScreen> {
         return;
       }
 
-      // Step 2: join — get attemptId + wsToken
+
       final join = await repo.joinLiveSession(sessionId: meta.sessionId);
 
       if (!mounted) return;

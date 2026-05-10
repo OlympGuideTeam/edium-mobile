@@ -9,8 +9,7 @@ import 'package:edium/services/network/api_exception.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// Экран ввода имени перед входом в library-live квиз.
-/// Показывается после резолва кода на WelcomeScreen, когда source == 'library'.
+
 class LiveJoinNameScreen extends StatefulWidget {
   final LiveSessionMeta meta;
 

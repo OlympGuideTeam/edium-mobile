@@ -1,39 +1,15 @@
 import 'package:edium/domain/entities/course_detail.dart';
 
+part 'course_detail_state_course_detail_initial.dart';
+part 'course_detail_state_course_detail_loading.dart';
+part 'course_detail_state_course_detail_loaded.dart';
+part 'course_detail_state_course_detail_error.dart';
+part 'course_detail_state_course_module_created.dart';
+part 'course_detail_state_course_detail_action_error.dart';
+part 'course_detail_state_course_draft_deleted.dart';
+
+
 abstract class CourseDetailState {
   const CourseDetailState();
 }
 
-class CourseDetailInitial extends CourseDetailState {
-  const CourseDetailInitial();
-}
-
-class CourseDetailLoading extends CourseDetailState {
-  const CourseDetailLoading();
-}
-
-class CourseDetailLoaded extends CourseDetailState {
-  final CourseDetail course;
-  const CourseDetailLoaded(this.course);
-}
-
-class CourseDetailError extends CourseDetailState {
-  final String message;
-  const CourseDetailError(this.message);
-}
-
-class CourseModuleCreated extends CourseDetailState {
-  final CourseDetail course;
-  const CourseModuleCreated(this.course);
-}
-
-class CourseDetailActionError extends CourseDetailState {
-  final String message;
-  final CourseDetail course;
-  const CourseDetailActionError(this.message, this.course);
-}
-
-class CourseDraftDeleted extends CourseDetailState {
-  final CourseDetail course;
-  const CourseDraftDeleted(this.course);
-}

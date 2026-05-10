@@ -22,7 +22,7 @@ class UserDatasourceImpl extends BaseApiService implements IUserDatasource {
       'caesar/v1/users/me',
       method: HttpMethod.patch,
       req: {'role': role},
-      // PATCH returns 204 with no body
+
       parser: (_) => UserModel(id: '', name: '', phone: '', role: role),
     );
   }
@@ -33,7 +33,7 @@ class UserDatasourceImpl extends BaseApiService implements IUserDatasource {
       'caesar/v1/users/me',
       method: HttpMethod.patch,
       req: {'name': name, 'surname': surname},
-      // PATCH returns 204 with no body — construct from params
+
       parser: (_) => UserModel(id: '', name: name, surname: surname, phone: ''),
     );
   }

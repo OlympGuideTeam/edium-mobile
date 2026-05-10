@@ -2,9 +2,7 @@ import 'package:edium/services/network/api_exception.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
-/// После ошибки `SESSION_COMPLETED` на POST `/live/join`: если бэкенд передал
-/// `attempt_id` в [ApiException.details], открываем экран ученика без WS — блок
-/// сразу покажет результаты.
+
 bool tryNavigateLiveStudentAfterJoinSessionCompleted(
   Object error, {
   required BuildContext context,

@@ -64,8 +64,7 @@ RouterNotifier _routerNotifierInstance() {
   return _routerNotifier!;
 }
 
-/// После [GetIt.reset] старый [RouterNotifier] слушает уничтоженный [AuthBloc].
-/// Вызывать перед повторной регистрацией DI (смена окружения).
+
 void resetAppRouterAfterGetItClear() {
   _routerInstance?.dispose();
   _routerInstance = null;
@@ -73,9 +72,7 @@ void resetAppRouterAfterGetItClear() {
   _routerNotifier = null;
 }
 
-/// Один экземпляр на процесс. Раньше [buildRouter] вызывался из [EdiumApp.build]
-/// и каждый раз создавал новый [GoRouter] — на iOS это давало пустой/белый
-/// первый кадр и рассинхрон с [MaterialApp.router].
+
 GoRouter buildRouter() {
   _routerInstance ??= GoRouter(
     initialLocation: '/splash',
@@ -210,9 +207,8 @@ GoRouter buildRouter() {
           final sid = state.pathParameters['sessionId']!;
           final extra = state.extra as Map<String, dynamic>?;
           final courseItem = extra?['courseItem'] as CourseItem?;
-          // When navigating via context.push, isTeacher comes from extra.
-          // When navigating via deep link (e.g. notification tap), extra is null
-          // and the role is encoded as a query parameter by _routeOrSwitch.
+
+
           final isTeacher = (extra?['isTeacher'] as bool?) ??
               (state.uri.queryParameters['role'] == 'teacher');
           final moduleId = extra?['moduleId'] as String?;
@@ -347,10 +343,10 @@ String? _redirect(BuildContext context, GoRouterState state) {
   }
 
   if (authState is AuthUnauthenticated || authState is AuthOtpSent) {
-    // /invite, /live/join* и /live/:id/student доступны без авторизации
+
     if (location.startsWith('/invite')) return null;
-    if (location.startsWith('/live/join')) return null;  // /live/join, /live/join/name
-    if (location.endsWith('/student')) return null;      // /live/:sessionId/student
+    if (location.startsWith('/live/join')) return null;
+    if (location.endsWith('/student')) return null;
     if ((!isAuthFlowPath && !isLegalDocumentPath) || location == '/splash') {
       if (!getIt<ProfileStorage>().isOnboardingCompleted) {
         return '/onboarding';
@@ -381,15 +377,11 @@ String? _redirect(BuildContext context, GoRouterState state) {
     final deepLink = getIt<DeepLinkService>().consumePendingRoute();
     debugPrint('[Router] _redirect called, location=$location, deepLink=$deepLink');
     if (deepLink != null) {
-      // Navigate to the correct home first, then push the deep link on top
-      // so the user has something to go back to. Returning homeRoute makes
-      // GoRouter clear the stack — useful on terminated launch (current
-      // location may be /splash) and on role switch (back swipe goes to the
-      // new role's home, not the previous role's screen).
+
+
       final homeRoute = _homeRoute(authState);
-      // Defer push until after GoRouter finishes its redirect-driven
-      // navigation. addPostFrameCallback alone fires before the redirect
-      // chain completes; a small delay is more reliable.
+
+
       Future.delayed(const Duration(milliseconds: 200), () {
         _routerInstance?.push(deepLink);
       });
@@ -397,8 +389,7 @@ String? _redirect(BuildContext context, GoRouterState state) {
       return null;
     }
 
-    // Двойной тап на «Профиль» в таб-баре меняет роль: state уже новый, а путь
-    // мог остаться /teacher/home или /student/home — выравниваем.
+
     final shellHome = _homeRoute(authState);
     if ((location == '/teacher/home' || location == '/student/home') &&
         location != shellHome) {

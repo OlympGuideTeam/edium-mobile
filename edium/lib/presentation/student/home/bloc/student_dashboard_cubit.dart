@@ -10,6 +10,10 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'student_dashboard_state.dart';
+part 'student_dashboard_cubit_student_dashboard_initial.dart';
+part 'student_dashboard_cubit_student_dashboard_loading.dart';
+part 'student_dashboard_cubit_student_dashboard_loaded.dart';
+part 'student_dashboard_cubit_student_dashboard_error.dart';
 
 class StudentDashboardCubit extends Cubit<StudentDashboardState> {
   final GetStudentDashboardUsecase _usecase;
@@ -46,7 +50,6 @@ class StudentDashboardCubit extends Cubit<StudentDashboardState> {
     return super.close();
   }
 
-  // ─── Private ───────────────────────────────────────────────────────────────
 
   Future<void> _connectLiveNotify() async {
     await _liveItemsSub?.cancel();
@@ -65,10 +68,10 @@ class StudentDashboardCubit extends Cubit<StudentDashboardState> {
         _onLiveItems(items);
       });
 
-      // Emit initial snapshot (may already have items from connect).
+
       _onLiveItems(_notifyService.currentItems);
     } catch (e) {
-      // Non-fatal — live banner simply won't show.
+
     }
   }
 

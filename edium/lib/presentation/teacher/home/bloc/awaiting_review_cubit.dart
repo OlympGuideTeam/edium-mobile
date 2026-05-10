@@ -4,6 +4,10 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'awaiting_review_state.dart';
+part 'awaiting_review_cubit_awaiting_review_initial.dart';
+part 'awaiting_review_cubit_awaiting_review_loading.dart';
+part 'awaiting_review_cubit_awaiting_review_loaded.dart';
+part 'awaiting_review_cubit_awaiting_review_error.dart';
 
 class AwaitingReviewCubit extends Cubit<AwaitingReviewState> {
   final GetAwaitingReviewUsecase _usecase;

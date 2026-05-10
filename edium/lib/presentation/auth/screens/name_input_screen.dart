@@ -87,7 +87,7 @@ class _NameInputScreenState extends State<NameInputScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                 const SizedBox(height: 56),
-                // Тег
+
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(

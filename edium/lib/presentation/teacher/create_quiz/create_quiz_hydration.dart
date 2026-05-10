@@ -3,7 +3,7 @@ import 'package:edium/domain/entities/question.dart';
 import 'package:edium/domain/entities/quiz.dart';
 import 'package:edium/presentation/teacher/create_quiz/bloc/create_quiz_state.dart';
 
-/// Maps a domain question into the JSON shape used by [AddQuestionScreen] / create flow.
+
 Map<String, dynamic> questionEntityToCreateMap(Question q) {
   final maxScore = q.maxScore ?? 10;
   final meta =
@@ -70,10 +70,7 @@ Map<String, dynamic> questionEntityToCreateMap(Question q) {
   }
 }
 
-/// Builds initial bloc state from a loaded quiz template.
-///
-/// When [treatAsExistingCourseTemplate] is true (course draft), submit updates that template.
-/// When false, data is only prefilled and submit creates a new quiz (e.g. library template copy).
+
 CreateQuizState createQuizStateFromQuiz(
   Quiz quiz, {
   CourseItemPayload? courseDraftPayload,
@@ -83,8 +80,7 @@ CreateQuizState createQuizStateFromQuiz(
   final payload = courseDraftPayload;
   final payloadTitle = payload?.title?.trim();
 
-  /// Course draft payload in Caesar can lag behind Riddler; when editing the
-  /// real template, prefer the quiz returned by `getQuizById`.
+
   final useQuizCanonical = treatAsExistingCourseTemplate;
 
   final title = useQuizCanonical
@@ -110,7 +106,7 @@ CreateQuizState createQuizStateFromQuiz(
   DateTime? finishedAt;
 
   if (useQuizCanonical) {
-    // Riddler template is authoritative; Caesar draft payload can disagree.
+
     shuffle = quiz.settings.shuffleQuestions;
     questionSec = quiz.settings.questionTimeLimitSec;
     totalSec = quiz.settings.totalTimeLimitSec ??

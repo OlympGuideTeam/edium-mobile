@@ -3,7 +3,7 @@ enum AppEnvironment { prod, test, mock }
 class ApiConfig {
   ApiConfig._();
 
-  // true только в сборках для App Store / RuStore (--dart-define=ENVIRONMENT=prod)
+
   static const bool isStoreBuild =
       String.fromEnvironment('ENVIRONMENT') == 'prod';
 

@@ -4,6 +4,10 @@ import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/library_quiz.dart';
 import 'package:flutter/material.dart';
 
+part 'library_quiz_card_tag.dart';
+part 'library_quiz_card_info_chip.dart';
+
+
 class LibraryQuizCard extends StatelessWidget {
   final LibraryQuiz quiz;
   final VoidCallback? onTap;
@@ -128,64 +132,3 @@ class LibraryQuizCard extends StatelessWidget {
   }
 }
 
-class _Tag extends StatelessWidget {
-  final String label;
-  final Color bg;
-  final Color fg;
-
-  const _Tag({required this.label, required this.bg, required this.fg});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: fg,
-          letterSpacing: 0.8,
-        ),
-      ),
-    );
-  }
-}
-
-class _InfoChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _InfoChip({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.mono50,
-        borderRadius: BorderRadius.circular(AppDimens.radiusXs),
-        border: Border.all(color: AppColors.mono100),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: AppColors.mono400),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: AppTextStyles.caption.copyWith(
-              color: AppColors.mono600,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
