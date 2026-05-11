@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:bloc_test/bloc_test.dart';
 import 'package:edium/domain/entities/user.dart';
 import 'package:edium/domain/repositories/auth_repository.dart';

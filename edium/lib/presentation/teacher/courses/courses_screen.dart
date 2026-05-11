@@ -75,8 +75,9 @@ class _CoursesScreenState extends State<CoursesScreen> {
       return;
     }
     setState(() => _expandedClasses.add(classId));
-    if (_classDetails.containsKey(classId) || _loadingClasses.contains(classId))
+    if (_classDetails.containsKey(classId) || _loadingClasses.contains(classId)) {
       return;
+    }
     setState(() => _loadingClasses.add(classId));
     try {
       final detail = await getIt<GetClassDetailUsecase>()(classId: classId);
@@ -98,7 +99,9 @@ class _CoursesScreenState extends State<CoursesScreen> {
     }
     setState(() => _expandedCourses.add(courseId));
     if (_courseDetails.containsKey(courseId) ||
-        _loadingCourses.contains(courseId)) return;
+        _loadingCourses.contains(courseId)) {
+      return;
+    }
     setState(() => _loadingCourses.add(courseId));
     try {
       final detail = await getIt<GetCourseDetailUsecase>()(courseId: courseId);

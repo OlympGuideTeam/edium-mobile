@@ -29,7 +29,6 @@ import 'package:edium/presentation/teacher/create_quiz/bloc/create_quiz_state.da
 import 'package:edium/domain/usecases/quiz/create_quiz_usecase.dart';
 import 'package:edium/domain/usecases/quiz/create_session_usecase.dart';
 import 'package:edium/domain/usecases/quiz/get_quizzes_usecase.dart';
-import 'package:edium/presentation/teacher/quiz_library/quiz_detail_screen.dart';
 import 'package:edium/domain/repositories/live_repository.dart';
 import 'package:edium/presentation/live/live_session_completed_navigation.dart';
 import 'package:edium/services/network/api_exception.dart';

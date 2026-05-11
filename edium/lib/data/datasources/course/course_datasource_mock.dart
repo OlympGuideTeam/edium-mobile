@@ -143,26 +143,6 @@ final _mockModules = <String, ModuleDetail>{
   ),
 };
 
-const _mockDrafts = [
-  CourseDraft(
-    id: 'draft-1',
-    quizTemplateId: '1',
-    payload: CourseItemPayload(
-      title: 'Производные и интегралы',
-      mode: 'test',
-      totalTimeLimitSec: 1800,
-    ),
-  ),
-  CourseDraft(
-    id: 'draft-2',
-    quizTemplateId: '2',
-    payload: CourseItemPayload(
-      title: 'Тригонометрия: базовый курс',
-      mode: 'live',
-      questionTimeLimitSec: 30,
-    ),
-  ),
-];
 
 class CourseDatasourceMock implements ICourseDatasource {
   final ProfileStorage _profileStorage;
