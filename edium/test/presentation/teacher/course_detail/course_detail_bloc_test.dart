@@ -260,8 +260,6 @@ void main() {
   });
 
   group('OptimisticQuizAddedEvent', () {
-    const _payload = CourseItemPayload(mode: 'test', title: 'Тест по химии');
-
     blocTest<CourseDetailBloc, CourseDetailState>(
       'добавляет элемент в модуль оптимистично',
       build: () => _makeBloc(mockRepo, mockStorage),
