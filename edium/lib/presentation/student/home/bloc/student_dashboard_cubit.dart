@@ -7,6 +7,7 @@ import 'package:edium/domain/usecases/student_dashboard/get_student_dashboard_us
 import 'package:edium/services/course_live_notify/course_live_notify_service.dart';
 import 'package:edium/services/token_storage/token_storage_interface.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'student_dashboard_state.dart';
@@ -71,7 +72,7 @@ class StudentDashboardCubit extends Cubit<StudentDashboardState> {
 
       _onLiveItems(_notifyService.currentItems);
     } catch (e) {
-
+      debugPrint('StudentDashboardCubit: live connect failed: $e');
     }
   }
 
