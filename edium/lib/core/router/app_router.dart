@@ -38,7 +38,6 @@ import 'package:edium/presentation/teacher/test_session/test_session_results_scr
 import 'package:edium/services/notification_service/deep_link_service.dart';
 import 'package:edium/core/router/navigation_logger.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 GoRouter? _routerInstance;

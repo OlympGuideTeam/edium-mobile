@@ -210,7 +210,7 @@ Future<void> _exportToXlsx({
   final safe = courseName.replaceAll(RegExp(r'[^\wа-яёА-ЯЁ ]'), '').trim();
   final file = File('${dir.path}/${safe}_ведомость.xlsx');
   await file.writeAsBytes(bytes);
-  await Share.shareXFiles([XFile(file.path)],
-      subject: 'Ведомость — $courseName');
+  await SharePlus.instance.share(
+      ShareParams(files: [XFile(file.path)], subject: 'Ведомость — $courseName'));
 }
 

@@ -30,21 +30,21 @@ class DioHandler {
             contentType: 'application/json',
           ),
         ) {
-    const _publicPaths = {
+    const publicPaths = {
       DoormanEndpoints.otpSend,
       DoormanEndpoints.otpVerify,
       DoormanEndpoints.authRegister,
       DoormanEndpoints.authTokensRefresh,
     };
 
-    bool _isPublic(String path) =>
-        _publicPaths.any((e) => path.contains(e.path)) ||
+    bool isPublic(String path) =>
+        publicPaths.any((e) => path.contains(e.path)) ||
         RegExp(r'caesar/v1/invitations/[^/]+$').hasMatch(path);
 
     dio.interceptors.add(
       QueuedInterceptorsWrapper(
         onRequest: (options, handler) async {
-          if (!_isPublic(options.path)) {
+          if (!isPublic(options.path)) {
             final accessToken = await _tokenStorage.getAccessToken();
             if (accessToken != null && accessToken.isNotEmpty) {
               options.headers['Authorization'] = 'Bearer $accessToken';
@@ -83,7 +83,7 @@ class DioHandler {
 
         shouldRefresh: (response) {
           if (response == null) return false;
-          if (_isPublic(response.requestOptions.path)) return false;
+          if (isPublic(response.requestOptions.path)) return false;
           return response.statusCode == 401;
         },
 

@@ -395,6 +395,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
   }
 
   Future<void> _openAddQuestion(BuildContext context) async {
+    final bloc = context.read<CreateQuizBloc>();
     FocusScope.of(context).unfocus();
     setState(() => _excludeFocus = true);
     final q = await Navigator.push<Map<String, dynamic>>(
@@ -404,7 +405,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     if (!mounted) return;
     setState(() => _excludeFocus = false);
     if (q != null) {
-      context.read<CreateQuizBloc>().add(AddQuestionEvent(q));
+      bloc.add(AddQuestionEvent(q));
     }
   }
 
@@ -413,6 +414,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     int index,
     Map<String, dynamic> existing,
   ) async {
+    final bloc = context.read<CreateQuizBloc>();
     FocusScope.of(context).unfocus();
     setState(() => _excludeFocus = true);
     final q = await Navigator.push<Map<String, dynamic>>(
@@ -424,7 +426,7 @@ class _CreateQuizScreenState extends State<CreateQuizScreen> {
     if (!mounted) return;
     setState(() => _excludeFocus = false);
     if (q != null) {
-      context.read<CreateQuizBloc>().add(ReplaceQuestionEvent(index, q));
+      bloc.add(ReplaceQuestionEvent(index, q));
     }
   }
 }

@@ -5,6 +5,7 @@ class _ReorderableModuleItem extends StatelessWidget {
   final int index;
   final bool isTeacher;
   final String courseId;
+  final String? classId;
   final int moduleListReloadToken;
   final Future<void> Function()? onReload;
 
@@ -14,6 +15,7 @@ class _ReorderableModuleItem extends StatelessWidget {
     required this.index,
     required this.isTeacher,
     required this.courseId,
+    this.classId,
     this.moduleListReloadToken = 0,
     this.onReload,
   });
@@ -28,6 +30,7 @@ class _ReorderableModuleItem extends StatelessWidget {
           module: module,
           isTeacher: isTeacher,
           courseId: courseId,
+          classId: classId,
           moduleListReloadToken: moduleListReloadToken,
           onReload: onReload,
         ),

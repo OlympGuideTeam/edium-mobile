@@ -116,6 +116,7 @@ class _CourseDetailBody extends StatelessWidget {
     final bloc = context.read<CourseDetailBloc>();
     return _CourseContentList(
       course: course,
+      classId: classId,
       onDraftTap: (draft) => _openCreateQuizFromDraft(context, draft),
       onDraftDelete: (draft) => bloc.add(DeleteDraftEvent(draft.id)),
       onModulesReorder: (ids) => bloc.add(ReorderModulesEvent(ids)),

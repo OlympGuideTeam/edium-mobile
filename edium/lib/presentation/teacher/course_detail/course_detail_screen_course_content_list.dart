@@ -2,6 +2,7 @@ part of 'course_detail_screen.dart';
 
 class _CourseContentList extends StatefulWidget {
   final CourseDetail course;
+  final String? classId;
   final void Function(CourseDraft draft) onDraftTap;
   final void Function(CourseDraft draft) onDraftDelete;
   final void Function(List<String> moduleIds) onModulesReorder;
@@ -9,6 +10,7 @@ class _CourseContentList extends StatefulWidget {
 
   const _CourseContentList({
     required this.course,
+    this.classId,
     required this.onDraftTap,
     required this.onDraftDelete,
     required this.onModulesReorder,
@@ -70,6 +72,7 @@ class _CourseContentListState extends State<_CourseContentList> {
                       index: i,
                       isTeacher: course.isTeacher,
                       courseId: course.id,
+                      classId: widget.classId,
                       moduleListReloadToken: _moduleListReloadToken,
                       onReload: _onPullRefresh,
                     );
@@ -86,6 +89,7 @@ class _CourseContentListState extends State<_CourseContentList> {
                           module: module,
                           isTeacher: course.isTeacher,
                           courseId: course.id,
+                          classId: widget.classId,
                           moduleListReloadToken: _moduleListReloadToken,
                           onReload: _onPullRefresh,
                         ),
