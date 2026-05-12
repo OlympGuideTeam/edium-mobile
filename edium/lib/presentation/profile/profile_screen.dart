@@ -1,6 +1,7 @@
 import 'package:edium/core/di/injection.dart';
-import 'package:edium/core/storage/profile_storage.dart';
 import 'package:edium/core/theme/app_colors.dart';
+import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
+import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/core/theme/app_dimens.dart';
 import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/domain/entities/user.dart';
