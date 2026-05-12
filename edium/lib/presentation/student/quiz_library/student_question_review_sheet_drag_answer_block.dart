@@ -25,6 +25,8 @@ class _DragAnswerBlock extends StatelessWidget {
       return _emptyAnswer();
     }
 
+    final hasCorrect = correctOrder.isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -33,14 +35,30 @@ class _DragAnswerBlock extends StatelessWidget {
         ...studentOrder.asMap().entries.map((e) {
           final i = e.key;
           final item = e.value;
-          final isCorrectPos = i < correctOrder.length && correctOrder[i] == item;
+          final isCorrectPos = hasCorrect && i < correctOrder.length && correctOrder[i] == item;
+          final Color itemColor;
+          final Color itemBg;
+          final Color itemBorder;
+          if (!hasCorrect) {
+            itemColor = AppColors.mono700;
+            itemBg = AppColors.mono50;
+            itemBorder = AppColors.mono150;
+          } else if (isCorrectPos) {
+            itemColor = _green;
+            itemBg = _greenBg;
+            itemBorder = _green;
+          } else {
+            itemColor = _red;
+            itemBg = _redBg;
+            itemBorder = _red;
+          }
           return Container(
             margin: const EdgeInsets.only(bottom: 5),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: isCorrectPos ? _greenBg : _redBg,
+              color: itemBg,
               borderRadius: BorderRadius.circular(AppDimens.radiusSm),
-              border: Border.all(color: isCorrectPos ? _green : _red),
+              border: Border.all(color: itemBorder),
             ),
             child: Row(
               children: [
@@ -48,7 +66,7 @@ class _DragAnswerBlock extends StatelessWidget {
                   width: 22,
                   height: 22,
                   decoration: BoxDecoration(
-                    color: isCorrectPos ? _green : _red,
+                    color: itemColor,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Center(
@@ -66,22 +84,20 @@ class _DragAnswerBlock extends StatelessWidget {
                 Expanded(
                   child: Text(
                     item,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isCorrectPos ? _green : _red,
-                    ),
+                    style: TextStyle(fontSize: 14, color: itemColor),
                   ),
                 ),
-                Icon(
-                  isCorrectPos ? Icons.check : Icons.close,
-                  size: 15,
-                  color: isCorrectPos ? _green : _red,
-                ),
+                if (hasCorrect)
+                  Icon(
+                    isCorrectPos ? Icons.check : Icons.close,
+                    size: 15,
+                    color: itemColor,
+                  ),
               ],
             ),
           );
         }),
-        if (!_isFullyCorrect) ...[
+        if (!_isFullyCorrect && hasCorrect) ...[
           const SizedBox(height: 12),
           Text('Правильный порядок', style: AppTextStyles.fieldLabel),
           const SizedBox(height: 6),

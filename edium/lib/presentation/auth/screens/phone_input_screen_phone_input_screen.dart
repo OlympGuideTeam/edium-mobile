@@ -11,17 +11,12 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
   final _controller = TextEditingController();
   final _phoneFocus = FocusNode();
   String? _error;
-  String? _pasteSuggestionDigits;
   late final TapGestureRecognizer _privacyTap;
   late final TapGestureRecognizer _termsTap;
 
   @override
   void initState() {
     super.initState();
-    _phoneFocus.addListener(_onPhoneFocusChange);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _refreshClipboardSuggestion();
-    });
     _privacyTap = TapGestureRecognizer()
       ..onTap = () {
         if (!mounted) return;
@@ -42,72 +37,11 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
 
   @override
   void dispose() {
-    _phoneFocus.removeListener(_onPhoneFocusChange);
     _phoneFocus.dispose();
     _privacyTap.dispose();
     _termsTap.dispose();
     _controller.dispose();
     super.dispose();
-  }
-
-  void _onPhoneFocusChange() {
-    if (_phoneFocus.hasFocus) {
-      _refreshClipboardSuggestion();
-    }
-  }
-
-  Future<void> _refreshClipboardSuggestion() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    if (!mounted) return;
-    final fromClipboard = _parseClipboardPhone(data?.text);
-    setState(() {
-      _pasteSuggestionDigits =
-          (fromClipboard != null && fromClipboard != _digits)
-              ? fromClipboard
-              : null;
-    });
-  }
-
-  void _applyPasteFromClipboard() {
-    final digits = _pasteSuggestionDigits;
-    if (digits == null || digits.length != 10) return;
-    final formatted = _formatPhoneDigits(digits);
-    _controller.value = TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
-    setState(() {
-      _pasteSuggestionDigits = null;
-      _error = null;
-    });
-  }
-
-  Future<void> _pasteFromClipboardOnTap() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    if (!mounted) return;
-    final text = data?.text;
-    if (text == null || text.trim().isEmpty) {
-      EdiumNotification.show(context, 'Буфер обмена пуст');
-      return;
-    }
-    final digits = _parseClipboardPhone(text);
-    if (digits != null) {
-      final formatted = _formatPhoneDigits(digits);
-      _controller.value = TextEditingValue(
-        text: formatted,
-        selection: TextSelection.collapsed(offset: formatted.length),
-      );
-      setState(() {
-        _pasteSuggestionDigits = null;
-        _error = null;
-      });
-      return;
-    }
-    EdiumNotification.show(
-      context,
-      'Не удалось распознать номер — скопируйте 10 цифр или +7…',
-      type: EdiumNotificationType.error,
-    );
   }
 
   String get _digits => _controller.text.replaceAll(RegExp(r'[^0-9]'), '');
@@ -229,84 +163,10 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                                 style: AppTextStyles.screenSubtitle,
                               ),
                               const SizedBox(height: 28),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  const Expanded(
-                                    child: Text(
-                                      'Номер телефона',
-                                      style: AppTextStyles.fieldLabel,
-                                    ),
-                                  ),
-                                  TextButton(
-                                    onPressed: _pasteFromClipboardOnTap,
-                                    style: TextButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      minimumSize: Size.zero,
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                    ),
-                                    child: Text(
-                                      'Вставить',
-                                      style: AppTextStyles.fieldLabel.copyWith(
-                                        color: AppColors.mono700,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              const Text(
+                                'Номер телефона',
+                                style: AppTextStyles.fieldLabel,
                               ),
-                              if (_pasteSuggestionDigits != null) ...[
-                                const SizedBox(height: 8),
-                                Material(
-                                  color: AppColors.mono150
-                                      .withValues(alpha: 0.45),
-                                  borderRadius: BorderRadius.circular(
-                                      AppDimens.radiusMd),
-                                  child: InkWell(
-                                    onTap: _applyPasteFromClipboard,
-                                    borderRadius: BorderRadius.circular(
-                                        AppDimens.radiusMd),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 10,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.content_paste_rounded,
-                                            size: 20,
-                                            color: AppColors.mono700,
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Expanded(
-                                            child: Text(
-                                              'Вставить номер из буфера обмена',
-                                              style: AppTextStyles.helperText
-                                                  .copyWith(
-                                                color: AppColors.mono700,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ),
-                                          Text(
-                                            _formatPhoneDigits(
-                                                _pasteSuggestionDigits!),
-                                            style:
-                                                AppTextStyles.fieldText.copyWith(
-                                              letterSpacing: 0.5,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
                               const SizedBox(height: 8),
                               Container(
                                 height: AppDimens.inputH,
@@ -366,15 +226,7 @@ class _PhoneInputScreenState extends State<PhoneInputScreen> {
                                           letterSpacing: 0.5,
                                         ),
                                         onChanged: (_) {
-                                          setState(() {
-                                            _error = null;
-                                            if (_pasteSuggestionDigits !=
-                                                    null &&
-                                                _digits ==
-                                                    _pasteSuggestionDigits) {
-                                              _pasteSuggestionDigits = null;
-                                            }
-                                          });
+                                          setState(() => _error = null);
                                         },
                                         decoration: InputDecoration(
                                           hintText: '900 000 00 00',
