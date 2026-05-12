@@ -83,14 +83,9 @@ class _ProfileContent extends StatelessWidget {
                       ? 'Переключиться на ученика'
                       : 'Переключиться на учителя',
                   onTap: () {
-                    final storage = getIt<ProfileStorage>();
-                    if (isTeacher) {
-                      storage.saveRole('student');
-                      context.go('/student/home');
-                    } else {
-                      storage.saveRole('teacher');
-                      context.go('/teacher/home');
-                    }
+                    getIt<AuthBloc>().add(
+                      SwitchToRoleEvent(isTeacher ? 'student' : 'teacher'),
+                    );
                   },
                 ),
                 const SizedBox(height: 8),

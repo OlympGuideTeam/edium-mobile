@@ -6,7 +6,6 @@ import 'package:edium/core/theme/app_text_styles.dart';
 import 'package:edium/presentation/auth/bloc/auth_bloc.dart';
 import 'package:edium/presentation/auth/bloc/auth_event.dart';
 import 'package:edium/presentation/auth/bloc/auth_state.dart';
-import 'package:edium/presentation/shared/widgets/edium_notification.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -36,13 +35,6 @@ String _cleanPhoneInput(String raw) {
   }
   if (digits.length > 10) digits = digits.substring(0, 10);
   return digits;
-}
-
-/// Возвращает 10 цифр номера РФ из произвольного текста или null, если цифр меньше 10.
-String? _parseClipboardPhone(String? raw) {
-  if (raw == null || raw.trim().isEmpty) return null;
-  final digits = _cleanPhoneInput(raw);
-  return digits.length == 10 ? digits : null;
 }
 
 class _PhoneInputFormatter extends TextInputFormatter {

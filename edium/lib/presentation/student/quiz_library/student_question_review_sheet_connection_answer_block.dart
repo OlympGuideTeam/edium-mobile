@@ -30,22 +30,42 @@ class _ConnectionAnswerBlock extends StatelessWidget {
       );
     }
 
-    final keys = correctPairs.keys.toList();
+    final hasCorrect = correctPairs.isNotEmpty;
+    final keys = hasCorrect
+        ? correctPairs.keys.toList()
+        : studentPairs.keys.toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: keys.map((left) {
         final studentRight = studentPairs[left];
-        final correctRight = correctPairs[left];
-        final isCorrect = studentRight == correctRight;
+        final correctRight = hasCorrect ? correctPairs[left] : null;
+        final isCorrect = hasCorrect ? studentRight == correctRight : null;
+
+        final Color accentColor;
+        final Color bgColor;
+        final Color borderColor;
+        if (isCorrect == true) {
+          accentColor = _green;
+          bgColor = _greenBg;
+          borderColor = _green;
+        } else if (isCorrect == false) {
+          accentColor = _red;
+          bgColor = _redBg;
+          borderColor = _red;
+        } else {
+          accentColor = AppColors.mono600;
+          bgColor = AppColors.mono50;
+          borderColor = AppColors.mono150;
+        }
 
         return Container(
           margin: const EdgeInsets.only(bottom: 7),
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: isCorrect ? _greenBg : _redBg,
+            color: bgColor,
             borderRadius: BorderRadius.circular(AppDimens.radiusSm),
-            border: Border.all(color: isCorrect ? _green : _red),
+            border: Border.all(color: borderColor),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,38 +75,33 @@ class _ConnectionAnswerBlock extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: isCorrect ? _green : _red,
+                  color: accentColor,
                 ),
               ),
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Icon(Icons.arrow_forward,
-                      size: 13,
-                      color: isCorrect ? _green : _red),
+                  Icon(Icons.arrow_forward, size: 13, color: accentColor),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       studentRight ?? '—',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isCorrect ? _green : _red,
-                      ),
+                      style: TextStyle(fontSize: 13, color: accentColor),
                     ),
                   ),
-                  Icon(
-                    isCorrect ? Icons.check_circle : Icons.cancel,
-                    size: 15,
-                    color: isCorrect ? _green : _red,
-                  ),
+                  if (isCorrect != null)
+                    Icon(
+                      isCorrect! ? Icons.check_circle : Icons.cancel,
+                      size: 15,
+                      color: accentColor,
+                    ),
                 ],
               ),
-              if (!isCorrect && correctRight != null) ...[
+              if (isCorrect == false && correctRight != null) ...[
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.check,
-                        size: 13, color: _green),
+                    const Icon(Icons.check, size: 13, color: _green),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(

@@ -66,7 +66,6 @@ class _OtpScreenState extends State<OtpScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _hiddenFocus.requestFocus();
-      _checkClipboard();
     });
   }
 
