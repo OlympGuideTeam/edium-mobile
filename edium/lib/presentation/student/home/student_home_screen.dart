@@ -23,6 +23,7 @@ import 'package:edium/presentation/shared/widgets/edium_refresh_indicator.dart';
 import 'package:edium/presentation/shared/widgets/notification_bell_button.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -33,6 +34,7 @@ part 'student_home_screen_recent_grades_block.dart';
 part 'student_home_screen_grade_row.dart';
 part 'student_home_screen_active_test_tile.dart';
 part 'student_home_screen_active_live_banner.dart';
+part 'student_home_screen_join_live_block.dart';
 
 
 

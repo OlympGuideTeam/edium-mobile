@@ -19,8 +19,18 @@ class TemplateSearchCubit extends Cubit<TemplateSearchState> {
   Future<void> _fetch(String? query) async {
     emit(const TemplateSearchLoading());
     try {
-      final quizzes = await _getQuizzes(scope: 'global', search: query);
-      emit(TemplateSearchLoaded(quizzes));
+      final results = await Future.wait([
+        _getQuizzes(scope: 'mine', search: query),
+        _getQuizzes(scope: 'global', search: query),
+      ]);
+      final mine = results[0];
+      final global = results[1];
+      final seen = <String>{};
+      final merged = [
+        ...mine,
+        ...global,
+      ].where((q) => seen.add(q.id)).toList();
+      emit(TemplateSearchLoaded(merged));
     } catch (e) {
       emit(TemplateSearchError(e.toString()));
     }

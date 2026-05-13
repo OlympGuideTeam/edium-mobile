@@ -161,7 +161,7 @@ class _MembersTabState extends State<_MembersTab> {
               AppDimens.screenPaddingH,
               0,
               AppDimens.screenPaddingH,
-              24,
+              12,
             ),
             child: SizedBox(
               width: double.infinity,

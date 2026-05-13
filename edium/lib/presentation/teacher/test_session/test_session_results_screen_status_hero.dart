@@ -1,83 +1,61 @@
 part of 'test_session_results_screen.dart';
 
-class _StatusHero extends StatelessWidget {
+class _StatusHero extends StatefulWidget {
   final TestSessionResultsLoaded state;
 
   const _StatusHero({required this.state});
 
   @override
+  State<_StatusHero> createState() => _StatusHeroState();
+}
+
+class _StatusHeroState extends State<_StatusHero> {
+  void _onCountdownExpired() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final status = state.sessionStatus;
-    final startedAt = state.startedAt;
-    final finishedAt = state.finishedAt;
+    final status = widget.state.sessionStatus;
+    final startedAt = widget.state.startedAt;
+    final finishedAt = widget.state.finishedAt;
     final now = DateTime.now();
 
+    final String heroKey;
+    final Widget inner;
 
     if ((status == null || status == 'not_started' || status == 'waiting') &&
         startedAt != null &&
         startedAt.isAfter(now)) {
-      return _CountdownBanner(
+      heroKey = 'start_countdown';
+      inner = _CountdownBanner(
         label: 'СТАРТ ЧЕРЕЗ',
         target: startedAt,
+        onExpired: _onCountdownExpired,
       );
-    }
-
-
-    if (status == 'active' &&
+    } else if (status == 'active' &&
         finishedAt != null &&
         finishedAt.isAfter(now)) {
-      return _CountdownBanner(
+      heroKey = 'end_countdown';
+      inner = _CountdownBanner(
         label: 'ОСТАЛОСЬ',
         target: finishedAt,
         subtitle: _deadlineSubtitle(finishedAt),
+        onExpired: _onCountdownExpired,
       );
+    } else {
+      heroKey = 'hero_content';
+      final (:tag, :title, :subtitle) = _heroContent();
+      inner = _StaticHeroContent(tag: tag, title: title, subtitle: subtitle);
     }
 
-
-    final (:tag, :title, :subtitle) = _heroContent();
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-      decoration: BoxDecoration(
-        color: AppColors.mono900,
-        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 350),
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: child,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            tag,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: Color(0x80FFFFFF),
-              letterSpacing: 0.8,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-              height: 1.1,
-            ),
-          ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0x80FFFFFF),
-                height: 1.4,
-              ),
-            ),
-          ],
-        ],
-      ),
+      child: KeyedSubtree(key: ValueKey(heroKey), child: inner),
     );
   }
 
@@ -87,9 +65,9 @@ class _StatusHero extends StatelessWidget {
   }
 
   ({String tag, String title, String? subtitle}) _heroContent() {
-    final total = state.totalCount;
-    final avg = state.averageScorePct;
-    final sessionStatus = state.sessionStatus;
+    final total = widget.state.totalCount;
+    final avg = widget.state.averageScorePct;
+    final sessionStatus = widget.state.sessionStatus;
 
     if (sessionStatus == 'finished') {
       if (avg != null && total > 0) {
@@ -106,8 +84,8 @@ class _StatusHero extends StatelessWidget {
       );
     }
 
-    final nobodyStarted = state.rows.every((r) => r.attempt == null);
-    final finishedCount = state.rows.where((r) {
+    final nobodyStarted = widget.state.rows.every((r) => r.attempt == null);
+    final finishedCount = widget.state.rows.where((r) {
       final s = r.attempt?.status;
       return s == AttemptStatus.grading ||
           s == AttemptStatus.graded ||
@@ -155,6 +133,64 @@ class _StatusHero extends StatelessWidget {
     }
     return '$n участников';
   }
+}
 
+class _StaticHeroContent extends StatelessWidget {
+  final String tag;
+  final String title;
+  final String? subtitle;
+
+  const _StaticHeroContent({
+    required this.tag,
+    required this.title,
+    this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      decoration: BoxDecoration(
+        color: AppColors.mono900,
+        borderRadius: BorderRadius.circular(AppDimens.radiusLg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tag,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Color(0x80FFFFFF),
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+              height: 1.1,
+            ),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              subtitle!,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0x80FFFFFF),
+                height: 1.4,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
