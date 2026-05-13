@@ -252,34 +252,14 @@ class _ModuleSectionState extends State<_ModuleSection>
                                     onTap: item.isTestQuiz
                                         ? () async {
                                             if (widget.isTeacher) {
-                                              final now = DateTime.now();
-                                              final p = item.payload;
-                                              final isActive = p != null &&
-                                                  !(p.finishedAt != null &&
-                                                      now.isAfter(
-                                                          p.finishedAt!)) &&
-                                                  (p.startedAt == null ||
-                                                      !now.isBefore(
-                                                          p.startedAt!));
-                                              if (isActive &&
-                                                  widget.classId != null) {
-                                                context.push(
-                                                  '/test/${item.refId}/monitor',
-                                                  extra: {
-                                                    'courseItem': item,
-                                                    'classId': widget.classId,
-                                                  },
-                                                );
-                                              } else {
-                                                context.push(
-                                                  '/test/${item.refId}/results',
-                                                  extra: {
-                                                    'courseItem': item,
-                                                    'isTeacher': true,
-                                                    'moduleId': widget.module.id,
-                                                  },
-                                                );
-                                              }
+                                              context.push(
+                                                '/test/${item.refId}/results',
+                                                extra: {
+                                                  'courseItem': item,
+                                                  'isTeacher': true,
+                                                  'moduleId': widget.module.id,
+                                                },
+                                              );
                                             } else {
                                               if (item.isPassed) {
                                                 context.push(
