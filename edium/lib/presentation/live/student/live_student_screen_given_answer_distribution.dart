@@ -1,7 +1,7 @@
 part of 'live_student_screen.dart';
 
 class _GivenAnswerDistribution extends StatelessWidget {
-  final LiveBinaryStats? stats;
+  final LiveQuestionStats? stats;
   const _GivenAnswerDistribution({required this.stats});
 
   static const _green = Color(0xFF22C55E);
@@ -10,7 +10,9 @@ class _GivenAnswerDistribution extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = stats?.answeredCount ?? 0;
     final correct = stats?.correctCount ?? 0;
-    final incorrect = stats?.incorrectCount ?? 0;
+    final incorrect = stats is LiveBinaryStats
+        ? (stats as LiveBinaryStats).incorrectCount
+        : (total - correct).clamp(0, total).toInt();
     final correctPct = total > 0 ? correct / total : 0.0;
     final incorrectPct = total > 0 ? incorrect / total : 0.0;
 

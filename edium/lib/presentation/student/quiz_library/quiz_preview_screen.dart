@@ -12,6 +12,7 @@ import 'package:edium/presentation/student/quiz_library/bloc/take_quiz_bloc.dart
 import 'package:edium/presentation/student/quiz_library/take_quiz_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:share_plus/share_plus.dart';
 
 part 'quiz_preview_screen_info_card.dart';
 part 'quiz_preview_screen_warning_block.dart';
@@ -28,6 +29,13 @@ class QuizPreviewScreen extends StatefulWidget {
 
 class _QuizPreviewScreenState extends State<QuizPreviewScreen> {
   late Future<LibraryQuiz> _detailFuture;
+
+  void _shareQuiz() {
+    Share.share(
+      'https://links.edium.online/quiz/${widget.quiz.id}',
+      subject: widget.quiz.title,
+    );
+  }
 
   @override
   void initState() {
@@ -54,6 +62,12 @@ class _QuizPreviewScreenState extends State<QuizPreviewScreen> {
                     icon: const Icon(Icons.arrow_back_ios_new,
                         size: 20, color: AppColors.mono900),
                     onPressed: () => Navigator.pop(context),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.ios_share_outlined,
+                        size: 20, color: AppColors.mono700),
+                    onPressed: _shareQuiz,
                   ),
                 ],
               ),

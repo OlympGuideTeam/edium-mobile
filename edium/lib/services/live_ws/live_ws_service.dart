@@ -11,7 +11,7 @@ class LiveWsService {
   WebSocket? _socket;
   StreamSubscription? _sub;
   final StreamController<LiveWsEvent> _controller =
-      StreamController.broadcast();
+      StreamController.broadcast(sync: true);
 
   bool _disposed = false;
 

@@ -334,6 +334,9 @@ String? _parseDeepLinkUri(Uri uri) {
   if (segments.length == 2 && segments[0] == 'invite') {
     return '/invite/${segments[1]}';
   }
+  if (segments.length == 2 && segments[0] == 'quiz') {
+    return '/quiz/${segments[1]}';
+  }
   return null;
 }
 
