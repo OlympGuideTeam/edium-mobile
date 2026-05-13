@@ -160,7 +160,7 @@ class _CoursesTab extends StatelessWidget {
               AppDimens.screenPaddingH,
               0,
               AppDimens.screenPaddingH,
-              24,
+              12,
             ),
             child: SizedBox(
               width: double.infinity,

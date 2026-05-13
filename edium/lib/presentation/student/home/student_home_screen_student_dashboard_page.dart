@@ -25,10 +25,13 @@ class _StudentDashboardPage extends StatelessWidget {
               : 'Студент';
           return Scaffold(
             backgroundColor: Colors.white,
-            body: SafeArea(
-              child: EdiumRefreshIndicator(
-                onRefresh: () => _refresh(context),
-                child: SingleChildScrollView(
+            body: GestureDetector(
+              onTap: () => FocusScope.of(context).unfocus(),
+              behavior: HitTestBehavior.translucent,
+              child: SafeArea(
+                child: EdiumRefreshIndicator(
+                  onRefresh: () => _refresh(context),
+                  child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
@@ -81,6 +84,8 @@ class _StudentDashboardPage extends StatelessWidget {
                           style: AppTextStyles.screenSubtitle,
                         ),
                         const SizedBox(height: 16),
+                        const _JoinLiveBlock(),
+                        const SizedBox(height: 16),
                         BlocBuilder<StudentDashboardCubit,
                             StudentDashboardState>(
                           builder: (context, state) {
@@ -124,6 +129,7 @@ class _StudentDashboardPage extends StatelessWidget {
                 ),
               ),
             ),
+          ),
           );
         },
       ),

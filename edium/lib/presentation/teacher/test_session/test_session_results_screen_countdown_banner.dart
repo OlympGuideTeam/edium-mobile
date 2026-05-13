@@ -4,11 +4,13 @@ class _CountdownBanner extends StatefulWidget {
   final String label;
   final DateTime target;
   final String? subtitle;
+  final VoidCallback? onExpired;
 
   const _CountdownBanner({
     required this.label,
     required this.target,
     this.subtitle,
+    this.onExpired,
   });
 
   @override
@@ -27,18 +29,34 @@ class _CountdownBannerState extends State<_CountdownBanner> {
   void _startTimer() {
     _timer?.cancel();
     final remaining = widget.target.toLocal().difference(DateTime.now());
-    if (remaining.isNegative) return;
+    if (remaining.isNegative) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onExpired?.call();
+      });
+      return;
+    }
 
     if (remaining.inSeconds < 60) {
       _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (mounted) setState(() {});
+        if (!mounted) return;
+        final r = widget.target.toLocal().difference(DateTime.now());
+        setState(() {});
+        if (r.isNegative) {
+          _timer?.cancel();
+          widget.onExpired?.call();
+        }
       });
     } else {
       _timer = Timer.periodic(const Duration(minutes: 1), (_) {
         if (!mounted) return;
         setState(() {});
         final r = widget.target.toLocal().difference(DateTime.now());
-        if (r.inSeconds < 60) _startTimer();
+        if (r.isNegative) {
+          _timer?.cancel();
+          widget.onExpired?.call();
+        } else if (r.inSeconds < 60) {
+          _startTimer();
+        }
       });
     }
   }
