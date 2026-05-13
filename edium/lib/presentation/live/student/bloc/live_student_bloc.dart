@@ -9,6 +9,7 @@ import 'package:edium/domain/repositories/live_repository.dart';
 import 'package:edium/presentation/live/student/bloc/live_student_event.dart';
 import 'package:edium/presentation/live/student/bloc/live_student_state.dart';
 import 'package:edium/services/live_ws/live_ws_service.dart';
+import 'package:edium/services/network/api_exception.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -264,7 +265,10 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
 
 
       case LiveWsDisconnected():
-        if (state is! LiveStudentKicked && state is! LiveStudentCompleted) {
+        if (state is! LiveStudentKicked &&
+            state is! LiveStudentCompleted &&
+            state is! LiveStudentResultsLoading &&
+            state is! LiveStudentResultsLoaded) {
           emit(LiveStudentError('Соединение прервано'));
         }
 
@@ -369,10 +373,25 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
     emit(LiveStudentResultsLoading());
     try {
       await _ensureRosterBeforeResults();
-      final resultsF = _repo.getLiveResultsStudent(sid, aid);
-      final reviewF = _repo.getAttemptReview(aid);
 
-      final raw = await resultsF;
+      LiveResultsStudent raw;
+      const maxRetries = 4;
+      var attempt = 0;
+      while (true) {
+        try {
+          raw = await _repo.getLiveResultsStudent(sid, aid);
+          break;
+        } on ApiException catch (e) {
+          if (e.statusCode == 409 && attempt < maxRetries - 1) {
+            attempt++;
+            debugPrint('[LiveStudentBloc] results 409, retry $attempt/$maxRetries');
+            await Future.delayed(const Duration(milliseconds: 1500));
+            continue;
+          }
+          rethrow;
+        }
+      }
+
       final resolvedTop = raw.top
           .map((row) => LiveLeaderboardRow(
                 position: row.position,
@@ -395,7 +414,7 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
 
       LiveAttemptReview? review;
       try {
-        review = await reviewF;
+        review = await _repo.getAttemptReview(aid);
       } catch (e) {
         debugPrint('[LiveStudentBloc] review load failed: $e');
       }
