@@ -367,7 +367,25 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
     emit(LiveTeacherResultsLoading());
     try {
       await _ensureRosterBeforeResults();
-      final results = await _repo.getLiveResultsTeacher(sid);
+
+      LiveResultsTeacher results;
+      const maxRetries = 4;
+      var attempt = 0;
+      while (true) {
+        try {
+          results = await _repo.getLiveResultsTeacher(sid);
+          break;
+        } on ApiException catch (e) {
+          if (e.statusCode == 409 && attempt < maxRetries - 1) {
+            attempt++;
+            debugPrint('[LiveTeacherBloc] results 409, retry $attempt/$maxRetries');
+            await Future.delayed(const Duration(milliseconds: 1500));
+            continue;
+          }
+          rethrow;
+        }
+      }
+
       final leaderboard = results.leaderboard.map((row) {
         final resolved = row.userId != null ? _roster[row.userId!] : null;
         if (resolved != null && resolved.isNotEmpty) {
