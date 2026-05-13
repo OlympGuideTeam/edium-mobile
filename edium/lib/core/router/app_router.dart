@@ -27,6 +27,7 @@ import 'package:edium/presentation/profile/notifications/notifications_screen.da
 import 'package:edium/presentation/shared/widgets/legal_document_screen.dart';
 import 'package:edium/presentation/shared/test/attempt_review_screen.dart';
 import 'package:edium/presentation/teacher/edit_quiz_template/edit_quiz_template_screen.dart';
+import 'package:edium/presentation/shared/quiz_link_screen.dart';
 import 'package:edium/presentation/teacher/grade_attempt/teacher_grade_attempt_screen.dart';
 import 'package:edium/presentation/teacher/review_session/review_session_screen.dart';
 import 'package:edium/presentation/shared/invite/invite_screen.dart';
@@ -238,6 +239,13 @@ GoRouter buildRouter() {
         builder: (_, state) {
           final quizId = state.pathParameters['quizId']!;
           return EditQuizTemplateScreen(quizId: quizId);
+        },
+      ),
+      GoRoute(
+        path: '/quiz/:quizId',
+        builder: (_, state) {
+          final quizId = state.pathParameters['quizId']!;
+          return QuizLinkScreen(quizId: quizId);
         },
       ),
       GoRoute(

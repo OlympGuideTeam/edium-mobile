@@ -73,13 +73,14 @@ class _OptionFillCell extends StatelessWidget {
 
                 const SizedBox(width: 8),
                 SizedBox(
-                  width: 36,
+                  width: 44,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         showCount ? '${(fillFraction * 100).round()}%' : '—',
+                        maxLines: 1,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,

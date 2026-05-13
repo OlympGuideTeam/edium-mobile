@@ -79,11 +79,8 @@ class _LockedPhase extends StatelessWidget {
                     const SizedBox(height: 24),
                     _buildLockedContent(),
                     const SizedBox(height: 24),
-                    _GivenAnswerDistribution(
-                      stats: state.stats is LiveBinaryStats
-                          ? state.stats as LiveBinaryStats
-                          : null,
-                    ),
+                    if (state.stats is LiveChoiceStats || state.stats is LiveBinaryStats)
+                      _GivenAnswerDistribution(stats: state.stats),
                   ],
                 ),
               ),
