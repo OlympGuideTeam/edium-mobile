@@ -19,6 +19,7 @@ import 'package:edium/presentation/teacher/create_quiz/quiz_results_screen.dart'
 import 'package:edium/presentation/teacher/create_quiz/view_question_screen.dart';
 import 'package:edium/presentation/teacher/edit_quiz_template/edit_quiz_template_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 part 'quiz_detail_screen_add_to_course_sheet.dart';
 part 'quiz_detail_screen_course_entry.dart';
@@ -264,6 +265,14 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
     );
   }
 
+  void _shareQuiz() {
+    final title = _quiz?.title ?? '';
+    Share.share(
+      'https://links.edium.online/quiz/${widget.quizId}',
+      subject: title,
+    );
+  }
+
   Future<void> _startLive() async {
     setState(() => _actionLoading = true);
     try {
@@ -389,6 +398,10 @@ class _QuizDetailScreenState extends State<QuizDetailScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           const Spacer(),
+          _TopBarButton(
+            icon: Icons.ios_share_outlined,
+            onTap: _shareQuiz,
+          ),
           if (quiz.status == QuizStatus.active ||
               quiz.status == QuizStatus.completed)
             _TopBarButton(

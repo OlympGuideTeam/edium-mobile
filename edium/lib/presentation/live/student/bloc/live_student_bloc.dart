@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:edium/domain/entities/live_question.dart';
+import 'package:edium/domain/entities/question.dart';
 import 'package:edium/domain/entities/live_results.dart';
 import 'package:edium/domain/entities/live_session.dart';
 import 'package:edium/domain/entities/live_ws_event.dart';
@@ -156,16 +157,41 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
           )
           .toList();
 
-  void _onWsEvent(
+  Future<void> _onWsEvent(
     LiveStudentWsEvent event,
     Emitter<LiveStudentState> emit,
-  ) {
+  ) async {
     final e = event.event;
 
     switch (e) {
       case LiveStateSnapshot(:final questionTotal):
         _questionTotal = questionTotal;
         _applySnapshot(e, emit);
+        if (state is LiveStudentLobby && _roster.isEmpty) {
+          final s = state as LiveStudentLobby;
+          final userIds = s.participants
+              .where((p) => p.userId != null && p.userId!.isNotEmpty)
+              .map((p) => p.userId!)
+              .toSet()
+              .toList();
+          if (userIds.isNotEmpty) {
+            try {
+              final members = await _repo.getUsersRoster(userIds);
+              if (members.isNotEmpty) {
+                _roster = {for (final m in members) m.userId: m.name};
+                if (state is LiveStudentLobby) {
+                  emit((state as LiveStudentLobby).copyWith(
+                    participants: _resolveParticipants(
+                      (state as LiveStudentLobby).participants,
+                    ),
+                  ));
+                }
+              }
+            } catch (err) {
+              debugPrint('[LiveStudentBloc] getUsersRoster: $err');
+            }
+          }
+        }
 
       case LiveLobbyParticipantJoined(:final attemptId, :final userId, :final name):
         if (state is LiveStudentLobby) {
@@ -267,12 +293,13 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
         ));
 
       case LivePhase.questionActive:
-        if (snap.currentQuestion != null) {
-          _currentQuestion = snap.currentQuestion;
-          _questionIndex = snap.questionIndex ?? 1;
+        final activeQuestion = snap.currentQuestion ?? _currentQuestion;
+        if (activeQuestion != null) {
+          _currentQuestion = activeQuestion;
+          _questionIndex = snap.questionIndex ?? _questionIndex;
           emit(LiveStudentQuestionActive(
-            question: snap.currentQuestion!,
-            questionIndex: snap.questionIndex ?? 1,
+            question: activeQuestion,
+            questionIndex: _questionIndex,
             questionTotal: snap.questionTotal,
             deadlineAt: snap.questionDeadlineAt ?? DateTime.now(),
             timeLimitSec: snap.timeLimitSec ?? 30,
@@ -281,16 +308,19 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
         }
 
       case LivePhase.questionLocked:
-        if (_currentQuestion != null && snap.lastQuestionLocked != null) {
-          final locked = snap.lastQuestionLocked!;
+        final lockedQuestion = snap.currentQuestion ?? _currentQuestion;
+        if (lockedQuestion != null) {
+          _currentQuestion = lockedQuestion;
+          if (snap.questionIndex != null) _questionIndex = snap.questionIndex!;
+          final locked = snap.lastQuestionLocked;
           emit(LiveStudentQuestionLocked(
-            question: _currentQuestion!,
+            question: lockedQuestion,
             questionIndex: _questionIndex,
             questionTotal: _questionTotal,
-            correctAnswer: locked.correctAnswer,
-            stats: locked.stats,
-            myResult: locked.myResult,
-            wordCloud: locked.wordCloud,
+            correctAnswer: locked?.correctAnswer ?? const LiveCorrectAnswer({}),
+            stats: locked?.stats ?? _emptyStats(lockedQuestion),
+            myResult: locked?.myResult,
+            wordCloud: locked?.wordCloud,
             myAnswer: _myLastAnswer,
           ));
         }
@@ -298,6 +328,16 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
       case LivePhase.completed:
         emit(LiveStudentCompleted());
     }
+  }
+
+  LiveQuestionStats _emptyStats(LiveQuestion q) {
+    if (q.type == QuestionType.singleChoice ||
+        q.type == QuestionType.multiChoice) {
+      return LiveChoiceStats(
+          answeredCount: 0, correctCount: 0, distribution: []);
+    }
+    return LiveBinaryStats(
+        answeredCount: 0, correctCount: 0, incorrectCount: 0);
   }
 
   Future<void> _onSubmitAnswer(

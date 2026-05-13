@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:edium/domain/entities/live_question.dart';
+import 'package:edium/domain/entities/question.dart';
 import 'package:edium/domain/entities/live_results.dart';
 import 'package:edium/domain/entities/live_session.dart';
 import 'package:edium/domain/entities/live_ws_event.dart';
@@ -281,15 +282,16 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
         ));
 
       case LivePhase.questionActive:
-        if (snap.currentQuestion != null) {
-          _currentQuestion = snap.currentQuestion;
-          _questionIndex = snap.questionIndex ?? 1;
+        final activeQuestion = snap.currentQuestion ?? _currentQuestion;
+        if (activeQuestion != null) {
+          _currentQuestion = activeQuestion;
+          _questionIndex = snap.questionIndex ?? _questionIndex;
           _answeredMap = {};
           final pending =
               _lobbyParticipants.map((p) => p.attemptId).toList();
           emit(LiveTeacherQuestionActive(
-            question: snap.currentQuestion!,
-            questionIndex: snap.questionIndex ?? 1,
+            question: activeQuestion,
+            questionIndex: _questionIndex,
             questionTotal: snap.questionTotal,
             deadlineAt: snap.questionDeadlineAt ?? DateTime.now(),
             timeLimitSec: snap.timeLimitSec ?? 30,
@@ -300,14 +302,17 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
         }
 
       case LivePhase.questionLocked:
-        if (_currentQuestion != null && snap.lastQuestionLocked != null) {
-          final locked = snap.lastQuestionLocked!;
+        final lockedQuestion = snap.currentQuestion ?? _currentQuestion;
+        if (lockedQuestion != null) {
+          _currentQuestion = lockedQuestion;
+          if (snap.questionIndex != null) _questionIndex = snap.questionIndex!;
+          final locked = snap.lastQuestionLocked;
           emit(LiveTeacherQuestionLocked(
-            question: _currentQuestion!,
+            question: lockedQuestion,
             questionIndex: _questionIndex,
             questionTotal: _questionTotal,
-            correctAnswer: locked.correctAnswer,
-            stats: locked.stats,
+            correctAnswer: locked?.correctAnswer ?? const LiveCorrectAnswer({}),
+            stats: locked?.stats ?? _emptyStats(lockedQuestion),
             participants: List.from(_lobbyParticipants),
             answeredMap: Map.from(_answeredMap),
             timerFillAtLock: 1.0,
@@ -317,6 +322,16 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
       case LivePhase.completed:
         emit(LiveTeacherCompleted());
     }
+  }
+
+  LiveQuestionStats _emptyStats(LiveQuestion q) {
+    if (q.type == QuestionType.singleChoice ||
+        q.type == QuestionType.multiChoice) {
+      return LiveChoiceStats(
+          answeredCount: 0, correctCount: 0, distribution: []);
+    }
+    return LiveBinaryStats(
+        answeredCount: 0, correctCount: 0, incorrectCount: 0);
   }
 
   void _onStartLobby(
