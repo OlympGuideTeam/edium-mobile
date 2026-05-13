@@ -195,6 +195,20 @@ class LiveStudentBloc extends Bloc<LiveStudentEvent, LiveStudentState> {
         }
 
       case LiveLobbyParticipantJoined(:final attemptId, :final userId, :final name):
+        final needsFetch = userId != null &&
+            userId.isNotEmpty &&
+            name.isEmpty &&
+            !_roster.containsKey(userId);
+        if (needsFetch) {
+          try {
+            final members = await _repo.getUsersRoster([userId]);
+            for (final m in members) {
+              _roster[m.userId] = m.name;
+            }
+          } catch (err) {
+            debugPrint('[LiveStudentBloc] getUsersRoster for joined: $err');
+          }
+        }
         if (state is LiveStudentLobby) {
           final s = state as LiveStudentLobby;
           final updated = List<LiveLobbyParticipant>.from(s.participants)

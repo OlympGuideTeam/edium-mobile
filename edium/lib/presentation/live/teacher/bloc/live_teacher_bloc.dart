@@ -100,10 +100,10 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
     }
   }
 
-  void _onWsEvent(
+  Future<void> _onWsEvent(
     LiveTeacherWsEvent event,
     Emitter<LiveTeacherState> emit,
-  ) {
+  ) async {
     final e = event.event;
 
     switch (e) {
@@ -113,6 +113,20 @@ class LiveTeacherBloc extends Bloc<LiveTeacherEvent, LiveTeacherState> {
         _applySnapshot(e, emit);
 
       case LiveLobbyParticipantJoined(:final attemptId, :final userId, :final name):
+        final needsFetch = userId != null &&
+            userId.isNotEmpty &&
+            name.isEmpty &&
+            !_roster.containsKey(userId);
+        if (needsFetch) {
+          try {
+            final members = await _repo.getUsersRoster([userId]);
+            for (final m in members) {
+              _roster[m.userId] = m.name;
+            }
+          } catch (err) {
+            debugPrint('[LiveTeacherBloc] getUsersRoster for joined: $err');
+          }
+        }
         _lobbyParticipants = [
           ..._lobbyParticipants.where((p) => p.attemptId != attemptId),
           LiveLobbyParticipant(
